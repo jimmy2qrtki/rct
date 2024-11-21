@@ -1,0 +1,8 @@
+<h2>Авторизация</h2> 
+<form method="post"> 
+    {% csrf_token %} 
+    {{ form.as_p }} 
+    <button type="submit">Войти</button> 
+    <a href="{% url 'register' %}">Зарегистрироваться</a>
+</form>
+<a href="{% url 'password_reset' %}">Забыл пароль?</a>

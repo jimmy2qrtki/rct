@@ -1,0 +1,19 @@
+<h1>Доброго времени суток, {{ user.username }}!</h1>
+<h2>Ваш профиль</h2>
+<form method="post">
+    {% csrf_token %}
+    {{ u_form.as_p }}
+    {{ p_form.as_p }}
+    <button type="submit">Сохранить изменения</button>
+</form>
+{% if messages %}
+    <ul class="messages">
+        {% for message in messages %}
+            <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+        {% endfor %}
+    </ul>
+{% endif %}
+<form method="post" action="{% url 'logout' %}">
+    {% csrf_token %}
+    <button type="submit">Выйти</button>
+</form>
