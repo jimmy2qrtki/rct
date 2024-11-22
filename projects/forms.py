@@ -5,15 +5,22 @@ class ProjectForm(forms.ModelForm):
     class Meta:
         model = Project
         fields = ['name', 'description', 'excel_file']
-        widgets = {
-            'description': forms.Textarea(attrs={'minlength': 10}),
+        labels = {
+            'name': 'Название',
+            'description': 'Описание',
+            'excel_file': 'Excel-файл',
         }
 
 class EventForm(forms.ModelForm):
     class Meta:
         model = Event
         fields = ['event_type', 'description', 'photo_count', 'event_date']
+        labels = {
+            'event_type': 'Событие',
+            'description': 'Описание',
+            'photo_count': 'Кол-во фото',
+            'event_date': 'Дата',
+        }
         widgets = {
-            'description': forms.Textarea(attrs={'minlength': 10}),
             'event_date': forms.SelectDateWidget(),
         }

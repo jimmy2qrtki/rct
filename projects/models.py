@@ -5,7 +5,7 @@ from django.utils import timezone
 class Project(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)  # Убрали null=True
     name = models.CharField(max_length=255)
-    description = models.TextField()
+    description = models.TextField(blank=True)
     excel_file = models.FileField(upload_to='excel/', null=True, blank=True)
 
     def get_next_event(self):
@@ -21,7 +21,7 @@ class Event(models.Model):
     )
     project = models.ForeignKey(Project, related_name='events', on_delete=models.CASCADE)
     event_type = models.CharField(choices=EVENT_TYPES, max_length=20)
-    description = models.TextField()
+    description = models.TextField(blank=True)
     photo_count = models.IntegerField()
     event_date = models.DateField()
 

@@ -2,7 +2,7 @@
 
 <div id="profile-display">
     <a href="{% url 'manage_projects' %}">Проекты</a>
-    <h2>профиль</h2>
+    <h2>Профиль</h2>
     <p>Логин: {{ user.username }}</p>
     <p>Почта: {{ user.email }}</p>
     <p>Телефон: {{ user.profile.phone_number|default:"" }}</p>
@@ -10,24 +10,16 @@
 </div>
 
 <div id="profile-edit" style="display: none;">
-    <h2>Внесите</h2>
+    <h2>Редактор профиля</h2>
     <p>Логин: {{ user.username }}</p>
     <form method="post">
         {% csrf_token %}
         {{ u_form.as_p }}
         {{ p_form.as_p }}
-        <button type="submit">Сохранить изменения</button>
+        <button type="submit">Сохранить</button>
     </form>
     <button onclick="toggleEdit(false)">Отмена</button>
 </div>
-
-{% if messages %}
-    <ul class="messages">
-        {% for message in messages %}
-            <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
-        {% endfor %}
-    </ul>
-{% endif %}
 
 <form method="post" action="{% url 'logout' %}">
     {% csrf_token %}

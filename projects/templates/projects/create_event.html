@@ -2,15 +2,15 @@
  <!DOCTYPE html>
  <html>
  <head>
-     <title>Create Event - {{ project.name }}</title>
+     <title>Создать событие | {{ project.name }}</title>
  </head>
  <body>
-     <h1>Create Event for {{ project.name }}</h1>
+     <h1>Событие для {{ project.name }}</h1>
      <form method="POST">
          {% csrf_token %}
          {{ form.as_p }}
-         <button type="submit">Save Event</button>
+         <button type="submit">Сохранить</button>
      </form>
-     <a href="{% url 'edit_project' project.id %}">Back to Project</a>
+     <a href="{% url 'edit_project' project.id %}">Назад</a>
  </body>
  </html>
