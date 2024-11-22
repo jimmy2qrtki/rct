@@ -43,6 +43,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rct',
     'axes',
+    'projects',
+    
 ]
 
 MIDDLEWARE = [

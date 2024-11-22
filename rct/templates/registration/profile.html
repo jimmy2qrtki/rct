@@ -1,7 +1,8 @@
 <h1>Доброго времени суток, {{ user.username }}!</h1>
 
 <div id="profile-display">
-    <h2>Профиль</h2>
+    <a href="{% url 'manage_projects' %}">Проекты</a>
+    <h2>профиль</h2>
     <p>Логин: {{ user.username }}</p>
     <p>Почта: {{ user.email }}</p>
     <p>Телефон: {{ user.profile.phone_number|default:"" }}</p>
@@ -9,7 +10,7 @@
 </div>
 
 <div id="profile-edit" style="display: none;">
-    <h2>Внесите правки</h2>
+    <h2>Внесите</h2>
     <p>Логин: {{ user.username }}</p>
     <form method="post">
         {% csrf_token %}

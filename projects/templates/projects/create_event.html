@@ -1,0 +1,16 @@
+ <!-- templates/projects/create_event.html -->
+ <!DOCTYPE html>
+ <html>
+ <head>
+     <title>Create Event - {{ project.name }}</title>
+ </head>
+ <body>
+     <h1>Create Event for {{ project.name }}</h1>
+     <form method="POST">
+         {% csrf_token %}
+         {{ form.as_p }}
+         <button type="submit">Save Event</button>
+     </form>
+     <a href="{% url 'edit_project' project.id %}">Back to Project</a>
+ </body>
+ </html>

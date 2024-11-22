@@ -1,0 +1,16 @@
+<!-- templates/projects/edit_event.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Edit Event - {{ event.get_event_type_display }}</title>
+</head>
+<body>
+    <h1>Edit Event: {{ event.get_event_type_display }} on {{ event.event_date }}</h1>
+    <form method="POST">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Save Changes</button>
+    </form>
+    <a href="{% url 'edit_project' project.id %}">Back to Project</a>
+</body>
+</html>
