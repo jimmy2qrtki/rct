@@ -3,30 +3,39 @@
 <html>
 <head>
     <title>Правка - {{ project.name }}</title>
+    {% load static %}
+    <script src="{% static 'js/jquery-3.7.1.min.js' %}"></script>
 </head>
 <body>
     <h1>{{ project.name }}</h1>
-    <form method="POST" enctype="multipart/form-data">
+    <form id="project-form" method="POST" enctype="multipart/form-data">
         {% csrf_token %}
         {{ form.as_p }}
         <a href="{% url 'create_event' project.id %}">Создать событие</a>
-        <ul>
-            {% for event in events %}
-            <li>
-                <a href="{% url 'edit_event' event.id %}">
-                    {{ event.get_event_type_display }} {{ event.event_date }}
-                </a>
-                <form method="POST" action="{% url 'delete_event' event.id %}" style="display:inline;">
-                    {% csrf_token %}
-                    <button type="submit" onclick="return confirm('Вы уверены что хотите удалить событие?');">Delete</button>
-                </form>
-            </li>
-            {% empty %}
-                <li>Нет событий.</li>
-            {% endfor %}
-        </ul>
-        <button type="submit">Сохранить проект</button>
     </form>
+    <ul>
+        {% for event in events %}
+        <li>
+            <a href="{% url 'edit_event' event.id %}">
+                {{ event.get_event_type_display }} {{ event.event_date }}
+            </a>
+            <form method="POST" action="{% url 'delete_event' event.id %}" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit" onclick="return confirm('Вы уверены что хотите удалить событие?');">Delete</button>
+            </form>
+        </li>
+        {% empty %}
+            <li>Нет событий.</li>
+        {% endfor %}
+    </ul>
+    <button type="button" id="save-project-button">Сохранить проект</button>
     <a href="{% url 'manage_projects' %}">Закрыть</a>
+    <script>
+        $(document).ready(function() {
+            $('#save-project-button').click(function() {
+                $('#project-form').submit();
+            });
+        });
+    </script>
 </body>
 </html>

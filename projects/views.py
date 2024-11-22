@@ -19,7 +19,8 @@ def edit_project(request, project_id):
     
     return render(request, 'projects/edit_project.html', {
         'form': form,
-        'project': project
+        'project': project,
+        'events': events
     })
 
 def create_project(request):
