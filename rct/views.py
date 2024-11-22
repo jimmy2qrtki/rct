@@ -38,7 +38,6 @@ def profile(request):
         p_form = ProfileUpdateForm(instance=request.user.profile)
 
     # Переопределяем метки полей
-    u_form.fields['username'].label = 'Логин'
     u_form.fields['email'].label = 'Почта:'
     p_form.fields['phone_number'].label = 'Телефон:'
 

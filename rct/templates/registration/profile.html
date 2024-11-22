@@ -1,11 +1,25 @@
 <h1>Доброго времени суток, {{ user.username }}!</h1>
-<h2>Ваш профиль</h2>
-<form method="post">
-    {% csrf_token %}
-    {{ u_form.as_p }}
-    {{ p_form.as_p }}
-    <button type="submit">Сохранить изменения</button>
-</form>
+
+<div id="profile-display">
+    <h2>Профиль</h2>
+    <p>Логин: {{ user.username }}</p>
+    <p>Почта: {{ user.email }}</p>
+    <p>Телефон: {{ user.profile.phone_number|default:"" }}</p>
+    <button onclick="toggleEdit(true)">Редактировать</button>
+</div>
+
+<div id="profile-edit" style="display: none;">
+    <h2>Внесите правки</h2>
+    <p>Логин: {{ user.username }}</p>
+    <form method="post">
+        {% csrf_token %}
+        {{ u_form.as_p }}
+        {{ p_form.as_p }}
+        <button type="submit">Сохранить изменения</button>
+    </form>
+    <button onclick="toggleEdit(false)">Отмена</button>
+</div>
+
 {% if messages %}
     <ul class="messages">
         {% for message in messages %}
@@ -13,7 +27,22 @@
         {% endfor %}
     </ul>
 {% endif %}
+
 <form method="post" action="{% url 'logout' %}">
     {% csrf_token %}
     <button type="submit">Выйти</button>
 </form>
+
+<script>
+function toggleEdit(editMode) {
+    const displayDiv = document.getElementById('profile-display');
+    const editDiv = document.getElementById('profile-edit');
+    if (editMode) {
+        displayDiv.style.display = 'none';
+        editDiv.style.display = 'block';
+    } else {
+        displayDiv.style.display = 'block';
+        editDiv.style.display = 'none';
+    }
+}
+</script>

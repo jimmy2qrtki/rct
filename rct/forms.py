@@ -6,10 +6,7 @@ from django.contrib.auth.forms import UserCreationForm
 class UserUpdateForm(forms.ModelForm):
     class Meta:
         model = User
-        fields = ['username', 'email']
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields['username'].help_text = ''  # Удаляем текст помощи для поля "username"
+        fields = ['email']
 
 class ProfileUpdateForm(forms.ModelForm):
     class Meta:
