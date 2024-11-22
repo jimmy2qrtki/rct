@@ -11,8 +11,8 @@
     <form id="project-form" method="POST" enctype="multipart/form-data">
         {% csrf_token %}
         {{ form.as_p }}
-        <a href="{% url 'create_event' project.id %}">Создать событие</a>
     </form>
+    <a href="{% url 'create_event' project.id %}">Создать событие</a>
     <ul>
         {% for event in events %}
         <li>

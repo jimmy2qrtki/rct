@@ -5,21 +5,26 @@
      <title>Project Management</title>
  </head>
  <body>
-     <h1>Projects</h1>
-     <a href="{% url 'create_project' %}">Create New Project</a>
-     <ul>
-         {% for project in projects %}
-             <li>
-                 <a href="{% url 'edit_project' project.id %}">{{ project.name }}</a> -
-                 <a href="{% url 'manage_events' project.id %}">Manage Events</a> -
-                 <form method="POST" action="{% url 'delete_project' project.id %}" style="display:inline;">
-                     {% csrf_token %}
-                     <button type="submit" onclick="return confirm('Are you sure you want to delete this project?');">Delete</button>
-                 </form>
-             </li>
-         {% empty %}
-             <li>No projects available.</li>
-         {% endfor %}
-     </ul>
- </body>
+    <a href="{% url 'profile' %}">Профиль</a>
+    <h1>Проекты</h1>
+    <a href="{% url 'create_project' %}">Создать</a>
+    <ul>
+        {% for project, next_event in projects_with_events %}
+            <li>
+                <a href="{% url 'edit_project' project.id %}">{{ project.name }}</a> 
+                {% if next_event %}
+                    - {{ next_event.get_event_type_display }} {{ next_event.event_date }}
+                {% else %}
+                    - нет предстоящих событий
+                {% endif %}
+                - <form method="POST" action="{% url 'delete_project' project.id %}" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" onclick="return confirm('Are you sure you want to delete this project?');">Delete</button>
+                </form>
+            </li>
+        {% empty %}
+            <li>No projects available.</li>
+        {% endfor %}
+    </ul>
+</body>
  </html>
