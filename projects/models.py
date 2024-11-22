@@ -27,3 +27,12 @@ class Event(models.Model):
 
     def __str__(self):
         return f"{self.event_type} on {self.event_date}"
+    
+class Address(models.Model):
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='addresses')
+    name = models.CharField(max_length=255)
+    latitude = models.FloatField()
+    longitude = models.FloatField()
+
+    def __str__(self):
+        return self.name

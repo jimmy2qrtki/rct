@@ -11,6 +11,8 @@
     <form id="project-form" method="POST" enctype="multipart/form-data">
         {% csrf_token %}
         {{ form.as_p }}
+        <button type="button" id="get-coordinates-btn">Получить координаты</button>
+        <div id="loading-indicator" style="display: none;">Идет парсинг адресов, пожалуйста подождите...</div>
     </form>
     <a href="{% url 'create_event' project.id %}">Создать событие</a>
     <ul>
@@ -28,12 +30,59 @@
             <li>Нет событий.</li>
         {% endfor %}
     </ul>
+    <h2>Список адресов</h2>
+    <ul id="addresses-list">
+        {% for address in addresses %}
+        <li data-id="{{ address.id }}">
+            <span class="address-number">{{ forloop.counter }}.</span> 
+            <span class="address-name">{{ address.name }}</span> |
+            <span class="latitude">{{ address.latitude }}</span> | <span class="longitude">{{ address.longitude }}</span>
+        </li>
+        {% empty %}
+        <li>Нет адресов.</li>
+        {% endfor %}
+    </ul>
     <button type="button" id="save-project-button">Сохранить проект</button>
     <a href="{% url 'manage_projects' %}">Закрыть</a>
     <script>
         $(document).ready(function() {
             $('#save-project-button').click(function() {
                 $('#project-form').submit();
+            });
+        });
+    </script>
+    <script>
+        document.getElementById('get-coordinates-btn').addEventListener('click', function() {
+            document.getElementById('loading-indicator').style.display = 'block';
+            const formData = new FormData();
+            formData.append('excel_file', document.querySelector('input[type="file"]').files[0]);
+            fetch("{% url 'get_coordinates' project.id %}", {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('loading-indicator').style.display = 'none';
+                if (data.status === 'ok') {
+                    // Обновите список адресов на странице
+                    const addressList = document.getElementById('addresses-list');
+                    addressList.innerHTML = '';
+                    data.addresses.forEach((address, index) => {
+                        const li = document.createElement('li');
+                        li.innerHTML = `${index + 1}. ${address.name} | ${address.latitude} | ${address.longitude}`;
+                        addressList.appendChild(li);
+                    });
+                } else {
+                    alert('Ошибка при получении координат');
+                }
+            })
+            .catch(error => {
+                document.getElementById('loading-indicator').style.display = 'none';
+                console.error('Error:', error);
+                alert('Ошибка сети');
             });
         });
     </script>

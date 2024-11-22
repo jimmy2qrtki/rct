@@ -1,7 +1,10 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from .models import Project, Event
+from .models import Address, Project, Event
 from .forms import ProjectForm, EventForm
 from django.contrib.auth.decorators import login_required
+from openpyxl import load_workbook
+import requests
+from django.http import JsonResponse
 
 @login_required
 def manage_projects(request):
@@ -12,10 +15,23 @@ def manage_projects(request):
 def edit_project(request, project_id):
     project = get_object_or_404(Project, pk=project_id)
     events = project.events.all()
+    addresses = project.addresses.all()
 
     if request.method == 'POST':
         form = ProjectForm(request.POST, request.FILES, instance=project)
         if form.is_valid():
+            uploaded_file = form.cleaned_data.get('excel_file')
+            if uploaded_file:
+                workbook = load_workbook(uploaded_file, data_only=True)
+                sheet = workbook.active
+                addresses_list = []
+                for row in sheet.iter_rows(min_row=2, max_col=1, values_only=True):
+                    if row[0]:
+                        coordinates = get_coordinates_from_yandex(row[0])
+                        address = Address(project=project, name=row[0], latitude=coordinates['lat'], longitude=coordinates['lon'])
+                        address.save()
+                        addresses_list.append(address)
+
             form.save()
     else:
         form = ProjectForm(instance=project)
@@ -23,7 +39,8 @@ def edit_project(request, project_id):
     return render(request, 'projects/edit_project.html', {
         'form': form,
         'project': project,
-        'events': events
+        'events': events,
+        'addresses': addresses
     })
 
 @login_required
@@ -81,3 +98,45 @@ def delete_event(request, event_id):
     project_id = event.project.id
     event.delete()
     return redirect('edit_project', project_id=project_id)
+
+def get_coordinates_from_yandex(address):
+    # Выполняем запрос к Yandex Geocoding API (вставьте свой API ключ)
+    response = requests.get("https://geocode-maps.yandex.ru/1.x/", params={
+        'apikey': '212ad00a-2b33-4742-9805-36eb9352e2df',
+        'geocode': address,
+        'format': 'json',
+    })
+    geo_object = response.json()['response']['GeoObjectCollection']['featureMember'][0]['GeoObject']
+    coordinates = geo_object['Point']['pos'].split()
+    return {
+        'lat': float(coordinates[1]),
+        'lon': float(coordinates[0]),
+    }
+
+def get_coordinates(request, project_id):
+    if request.method == 'POST' and request.FILES.get('excel_file'):
+        project = get_object_or_404(Project, pk=project_id)
+        uploaded_file = request.FILES['excel_file']
+        workbook = load_workbook(uploaded_file, data_only=True)
+        sheet = workbook.active
+        addresses_list = []
+
+        try:
+            for row in sheet.iter_rows(min_row=2, max_col=1, values_only=True):
+                if row[0]:
+                    coordinates = get_coordinates_from_yandex(row[0])
+                    address = Address.objects.create(
+                        project=project,
+                        name=row[0],
+                        latitude=coordinates['lat'],
+                        longitude=coordinates['lon']
+                    )
+                    addresses_list.append({
+                        'name': address.name,
+                        'latitude': address.latitude,
+                        'longitude': address.longitude
+                    })
+            return JsonResponse({'status': 'ok', 'addresses': addresses_list})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)})
+    return JsonResponse({'status': 'error', 'message': 'Invalid request'})
