@@ -45,6 +45,8 @@
         <li>Нет адресов.</li>
         {% endfor %}
     </ul>
+    <button type="button" id="add-address-btn">Добавить адрес</button>
+    <button type="button" id="update-addresses-btn">Обновить список</button>
     <button type="button" id="delete-addresses-btn">Удалить список</button>
     <button type="button" id="save-project-button">Сохранить проект</button>
     <a href="{% url 'manage_projects' %}">Закрыть</a>
@@ -138,6 +140,61 @@
                 });
             });
         });
+        document.getElementById('add-address-btn').addEventListener('click', function() {
+            const addressList = document.getElementById('addresses-list');
+            const newListItem = document.createElement('li');
+
+            // Создаем новый элемент списка с пустыми данными
+            newListItem.innerHTML = `
+                <span class="address-number">${addressList.children.length + 1}.</span>
+                <input type="text" name="new_address_names[]" class="address-name" placeholder="Введите название адреса">
+                <span class="latitude"></span> | <span class="longitude"></span>
+                <button type="button" class="delete-address-btn">Удалить</button>
+            `;
+
+            addressList.appendChild(newListItem);
+            newListItem.querySelector('.delete-address-btn').addEventListener('click', function() {
+                addressList.removeChild(newListItem);
+                updateAddressNumbers();
+            });
+        });
+
+        document.getElementById('update-addresses-btn').onclick = function() {
+            const newAddresses = document.querySelectorAll('input[name="new_address_names[]"]');
+            const data = Array.from(newAddresses).map(input => input.value).filter(name => name.trim() !== '');
+
+            fetch("{% url 'update_addresses' project.id %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({ 
+                    new_addresses: data 
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'ok') {
+                    alert('Адреса успешно обновлены');
+                    location.reload();
+                } else {
+                    alert('Произошла ошибка при обновлении адресов');
+                }
+            })
+            .catch(error => {
+                console.error('Ошибка:', error);
+                alert('Ошибка сети');
+            });
+        };
+
+        function updateAddressNumbers() {
+            const addressNumbers = document.querySelectorAll('.address-number');
+            addressNumbers.forEach((span, index) => {
+                span.textContent = `${index + 1}.`;
+            });
+        }
+
         document.getElementById('delete-addresses-btn').addEventListener('click', function() {
             if (!confirm('Вы уверены, что хотите удалить все адреса?')) {
                 return;

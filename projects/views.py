@@ -163,3 +163,24 @@ def delete_address(request, project_id):
         return JsonResponse({'status': 'ok'})
     except Address.DoesNotExist:
         return JsonResponse({'status': 'error', 'message': 'Address not found'}, status=404)
+    
+@require_POST
+def update_addresses(request, project_id):
+    try:
+        project = get_object_or_404(Project, pk=project_id)
+        data = json.loads(request.body)
+        new_addresses = data.get('new_addresses', [])
+
+        for name in new_addresses:
+            if name:
+                coordinates = get_coordinates_from_yandex(name)
+                Address.objects.create(
+                    project=project, 
+                    name=name, 
+                    latitude=coordinates['lat'], 
+                    longitude=coordinates['lon']
+                )
+        
+        return JsonResponse({'status': 'ok'})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
