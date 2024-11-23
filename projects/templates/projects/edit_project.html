@@ -36,8 +36,10 @@
         {% for address in addresses %}
         <li data-id="{{ address.id }}">
             <span class="address-number">{{ forloop.counter }}.</span> 
-            <span class="address-name">{{ address.name }}</span> |
-            <span class="latitude">{{ address.latitude }}</span> | <span class="longitude">{{ address.longitude }}</span>
+            <input class="address-name" value="{{ address.name }}" data-id="{{ address.id }}"> |
+            <span class="latitude">{{ address.latitude }}</span> | 
+            <span class="longitude">{{ address.longitude }}</span>
+            <button class="delete-address-btn" data-id="{{ address.id }}">Удалить</button>
         </li>
         {% empty %}
         <li>Нет адресов.</li>
@@ -94,6 +96,48 @@
         });
     </script>
     <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Обработка редактирования адреса
+            document.querySelectorAll('.address-name').forEach(input => {
+                input.addEventListener('change', function() {
+                    const addressId = this.getAttribute('data-id');
+                    const newName = this.value;
+                    
+                    fetch(`{% url 'edit_address_name' project.id %}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': '{{ csrf_token }}'
+                        },
+                        body: JSON.stringify({ id: addressId, new_name: newName })
+                    });
+                });
+            });
+
+            // Обработка удаления адреса
+            document.querySelectorAll('.delete-address-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const addressId = this.getAttribute('data-id');
+                    
+                    fetch(`{% url 'delete_address' project.id %}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': '{{ csrf_token }}'
+                        },
+                        body: JSON.stringify({ id: addressId })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'ok') {
+                            this.parentElement.remove();
+                        } else {
+                            alert('Ошибка при удалении адреса');
+                        }
+                    });
+                });
+            });
+        });
         document.getElementById('delete-addresses-btn').addEventListener('click', function() {
             if (!confirm('Вы уверены, что хотите удалить все адреса?')) {
                 return;

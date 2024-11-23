@@ -3,9 +3,9 @@ from .models import Address, Project, Event
 from .forms import ProjectForm, EventForm
 from django.contrib.auth.decorators import login_required
 from openpyxl import load_workbook
-import requests
+import requests, json
 from django.http import JsonResponse
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_POST, require_http_methods
 
 @login_required
 def manage_projects(request):
@@ -137,3 +137,29 @@ def delete_addresses(request, project_id):
     # Удаляем все адреса, связанные с проектом
     project.addresses.all().delete()
     return JsonResponse({'status': 'ok'})
+
+@require_http_methods(["POST"])
+def edit_address_name(request, project_id):
+    payload = json.loads(request.body)
+    address_id = payload.get('id')
+    new_name = payload.get('new_name')
+
+    try:
+        address = Address.objects.get(id=address_id, project_id=project_id)
+        address.name = new_name
+        address.save()
+        return JsonResponse({'status': 'ok'})
+    except Address.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Address not found'}, status=404)
+
+@require_http_methods(["DELETE"])
+def delete_address(request, project_id):
+    payload = json.loads(request.body)
+    address_id = payload.get('id')
+
+    try:
+        address = Address.objects.get(id=address_id, project_id=project_id)
+        address.delete()
+        return JsonResponse({'status': 'ok'})
+    except Address.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Address not found'}, status=404)
