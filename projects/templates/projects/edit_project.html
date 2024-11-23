@@ -60,10 +60,8 @@
     <script>
         document.getElementById('get-coordinates-btn').addEventListener('click', function() {
             document.getElementById('loading-indicator').style.display = 'block';
-            const fileInput = document.querySelector('input[type="file"]');
             const formData = new FormData();
-            formData.append('excel_file', fileInput.files[0]);
-            
+            formData.append('excel_file', document.querySelector('input[type="file"]').files[0]);
             fetch("{% url 'get_coordinates' project.id %}", {
                 method: 'POST',
                 body: formData,
@@ -75,17 +73,14 @@
             .then(data => {
                 document.getElementById('loading-indicator').style.display = 'none';
                 if (data.status === 'ok') {
-                    // Обновите список адресов на странице
                     const addressList = document.getElementById('addresses-list');
-                    addressList.innerHTML = '';
-                    data.addresses.forEach((address, index) => {
-                        const li = document.createElement('li');
-                        li.innerHTML = `${index + 1}. ${address.name} | ${address.latitude} | ${address.longitude}`;
-                        addressList.appendChild(li);
+                    addressList.innerHTML = '';  // Очищаем текущий список адресов
+                    data.addresses.forEach(html => {
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = html;
+                        addressList.appendChild(tempDiv.firstElementChild);
                     });
-                    
-                    // Сброс значения поля ввода файла
-                    fileInput.value = '';
+                    addDeleteEventListeners(); // Добавление слушателей событий
                 } else {
                     alert('Ошибка при получении координат');
                 }
@@ -96,6 +91,16 @@
                 alert('Ошибка сети');
             });
         });
+
+        function addDeleteEventListeners() {
+            document.querySelectorAll('.delete-address-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const li = button.closest('li');
+                    // Дополнительная логика для удаления из БД может быть добавлена здесь
+                    li.remove(); // Удаление элемента из DOM
+                });
+            });
+        }
     </script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {

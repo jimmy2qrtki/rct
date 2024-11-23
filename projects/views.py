@@ -6,6 +6,7 @@ from openpyxl import load_workbook
 import requests, json
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST, require_http_methods
+from django.utils.html import escape
 
 @login_required
 def manage_projects(request):
@@ -112,7 +113,7 @@ def get_coordinates(request, project_id):
         addresses_list = []
 
         try:
-            for row in sheet.iter_rows(min_row=2, max_col=1, values_only=True):
+            for index, row in enumerate(sheet.iter_rows(min_row=2, max_col=1, values_only=True)):
                 if row[0]:
                     coordinates = get_coordinates_from_yandex(row[0])
                     address = Address.objects.create(
@@ -121,14 +122,22 @@ def get_coordinates(request, project_id):
                         latitude=coordinates['lat'],
                         longitude=coordinates['lon']
                     )
-                    addresses_list.append({
-                        'name': address.name,
-                        'latitude': address.latitude,
-                        'longitude': address.longitude
-                    })
+                    # Формирование HTML для каждого адреса
+                    html = f"""
+                    <li data-id="{address.id}">
+                        <span class="address-number">{index + 1}.</span>
+                        <input class="address-name" value="{escape(address.name)}" data-id="{address.id}"> |
+                        <span class="latitude">{address.latitude}</span> |
+                        <span class="longitude">{address.longitude}</span>
+                        <button class="delete-address-btn" data-id="{address.id}">Удалить</button>
+                    </li>
+                    """
+                    addresses_list.append(html)
+
             return JsonResponse({'status': 'ok', 'addresses': addresses_list})
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)})
+
     return JsonResponse({'status': 'error', 'message': 'Invalid request'})
 
 @require_POST
