@@ -11,9 +11,9 @@
     <form id="project-form" method="POST" enctype="multipart/form-data">
         {% csrf_token %}
         {{ form.as_p }}
-        <button type="button" id="get-coordinates-btn">Получить координаты</button>
-        <div id="loading-indicator" style="display: none;">Идет парсинг адресов, пожалуйста подождите...</div>
     </form>
+    <button type="button" id="get-coordinates-btn">Получить координаты</button>
+    <div id="loading-indicator" style="display: none;">Идет парсинг адресов, пожалуйста подождите...</div>
     <a href="{% url 'create_event' project.id %}">Создать событие</a>
     <ul>
         {% for event in events %}
@@ -30,6 +30,7 @@
             <li>Нет событий.</li>
         {% endfor %}
     </ul>
+    
     <h2>Список адресов</h2>
     <ul id="addresses-list">
         {% for address in addresses %}
@@ -42,6 +43,7 @@
         <li>Нет адресов.</li>
         {% endfor %}
     </ul>
+    <button type="button" id="delete-addresses-btn">Удалить список</button>
     <button type="button" id="save-project-button">Сохранить проект</button>
     <a href="{% url 'manage_projects' %}">Закрыть</a>
     <script>
@@ -54,8 +56,10 @@
     <script>
         document.getElementById('get-coordinates-btn').addEventListener('click', function() {
             document.getElementById('loading-indicator').style.display = 'block';
+            const fileInput = document.querySelector('input[type="file"]');
             const formData = new FormData();
-            formData.append('excel_file', document.querySelector('input[type="file"]').files[0]);
+            formData.append('excel_file', fileInput.files[0]);
+            
             fetch("{% url 'get_coordinates' project.id %}", {
                 method: 'POST',
                 body: formData,
@@ -75,12 +79,42 @@
                         li.innerHTML = `${index + 1}. ${address.name} | ${address.latitude} | ${address.longitude}`;
                         addressList.appendChild(li);
                     });
+                    
+                    // Сброс значения поля ввода файла
+                    fileInput.value = '';
                 } else {
                     alert('Ошибка при получении координат');
                 }
             })
             .catch(error => {
                 document.getElementById('loading-indicator').style.display = 'none';
+                console.error('Error:', error);
+                alert('Ошибка сети');
+            });
+        });
+    </script>
+    <script>
+        document.getElementById('delete-addresses-btn').addEventListener('click', function() {
+            if (!confirm('Вы уверены, что хотите удалить все адреса?')) {
+                return;
+            }
+    
+            fetch("{% url 'delete_addresses' project.id %}", {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json',
+                },
+            })
+            .then(response => {
+                if (response.ok) {
+                    // Очистите список адресов на странице
+                    document.getElementById('addresses-list').innerHTML = '<li>Нет адресов.</li>';
+                } else {
+                    alert('Ошибка при удалении адресов');
+                }
+            })
+            .catch(error => {
                 console.error('Error:', error);
                 alert('Ошибка сети');
             });

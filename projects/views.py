@@ -5,6 +5,7 @@ from django.contrib.auth.decorators import login_required
 from openpyxl import load_workbook
 import requests
 from django.http import JsonResponse
+from django.views.decorators.http import require_POST
 
 @login_required
 def manage_projects(request):
@@ -20,19 +21,8 @@ def edit_project(request, project_id):
     if request.method == 'POST':
         form = ProjectForm(request.POST, request.FILES, instance=project)
         if form.is_valid():
-            uploaded_file = form.cleaned_data.get('excel_file')
-            if uploaded_file:
-                workbook = load_workbook(uploaded_file, data_only=True)
-                sheet = workbook.active
-                addresses_list = []
-                for row in sheet.iter_rows(min_row=2, max_col=1, values_only=True):
-                    if row[0]:
-                        coordinates = get_coordinates_from_yandex(row[0])
-                        address = Address(project=project, name=row[0], latitude=coordinates['lat'], longitude=coordinates['lon'])
-                        address.save()
-                        addresses_list.append(address)
-
             form.save()
+            # Без парсинга координат здесь
     else:
         form = ProjectForm(instance=project)
     
@@ -140,3 +130,10 @@ def get_coordinates(request, project_id):
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)})
     return JsonResponse({'status': 'error', 'message': 'Invalid request'})
+
+@require_POST
+def delete_addresses(request, project_id):
+    project = get_object_or_404(Project, pk=project_id)
+    # Удаляем все адреса, связанные с проектом
+    project.addresses.all().delete()
+    return JsonResponse({'status': 'ok'})
