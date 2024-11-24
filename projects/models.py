@@ -36,3 +36,12 @@ class Address(models.Model):
 
     def __str__(self):
         return self.name
+    
+class RequestCounter(models.Model):
+    count = models.PositiveIntegerField(default=1000)
+    last_reset = models.DateTimeField(auto_now=True)
+
+    def reset(self):
+        self.count = 1000
+        self.last_reset = timezone.now()
+        self.save()

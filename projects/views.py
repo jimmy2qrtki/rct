@@ -1,5 +1,5 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from .models import Address, Project, Event
+from .models import Address, Project, Event, RequestCounter
 from .forms import ProjectForm, EventForm
 from django.contrib.auth.decorators import login_required
 from openpyxl import load_workbook
@@ -7,6 +7,7 @@ import requests, json
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST, require_http_methods
 from django.utils.html import escape
+from .utils import reset_request_counter, get_time_until_midnight
 
 @login_required
 def manage_projects(request):
@@ -18,6 +19,8 @@ def edit_project(request, project_id):
     project = get_object_or_404(Project, pk=project_id)
     events = project.events.all()
     addresses = project.addresses.all()
+    counter, created = RequestCounter.objects.get_or_create(pk=1)
+    remaining_requests = counter.count
 
     if request.method == 'POST':
         form = ProjectForm(request.POST, request.FILES, instance=project)
@@ -31,7 +34,8 @@ def edit_project(request, project_id):
         'form': form,
         'project': project,
         'events': events,
-        'addresses': addresses
+        'addresses': addresses,
+        'remaining_requests': remaining_requests,  # Передаем оставшиеся запросы в шаблон
     })
 
 @login_required
@@ -104,7 +108,19 @@ def get_coordinates_from_yandex(address):
         'lon': float(coordinates[0]),
     }
 
+@login_required
 def get_coordinates(request, project_id):
+    reset_request_counter()
+    counter, created = RequestCounter.objects.get_or_create(pk=1)
+
+    if counter.count <= 0:
+        time_left = get_time_until_midnight()
+        return JsonResponse({
+            'status': 'error',
+            'message': f'Закончились запросы для координат - запросы будут доступны через {time_left}',
+            'remaining_requests': counter.count
+        })
+    
     if request.method == 'POST' and request.FILES.get('excel_file'):
         project = get_object_or_404(Project, pk=project_id)
         uploaded_file = request.FILES['excel_file']
@@ -113,8 +129,18 @@ def get_coordinates(request, project_id):
         addresses_list = []
 
         try:
+            num_processed = 0
+
             for index, row in enumerate(sheet.iter_rows(min_row=2, max_col=1, values_only=True)):
                 if row[0]:
+                    if counter.count <= 0:
+                        time_left = get_time_until_midnight()
+                        return JsonResponse({
+                            'status': 'error',
+                            'message': f'Закончились запросы для координат - запросы будут доступны через {time_left}',
+                            'remaining_requests': counter.count
+                        })
+                    
                     coordinates = get_coordinates_from_yandex(row[0])
                     address = Address.objects.create(
                         project=project,
@@ -122,7 +148,6 @@ def get_coordinates(request, project_id):
                         latitude=coordinates['lat'],
                         longitude=coordinates['lon']
                     )
-                    # Формирование HTML для каждого адреса
                     html = f"""
                     <li data-id="{address.id}">
                         <span class="address-number">{index + 1}.</span>
@@ -133,10 +158,14 @@ def get_coordinates(request, project_id):
                     </li>
                     """
                     addresses_list.append(html)
+                    num_processed += 1
+            
+            counter.count -= num_processed
+            counter.save()
 
-            return JsonResponse({'status': 'ok', 'addresses': addresses_list})
+            return JsonResponse({'status': 'ok', 'addresses': addresses_list, 'remaining_requests': counter.count})
         except Exception as e:
-            return JsonResponse({'status': 'error', 'message': str(e)})
+            return JsonResponse({'status': 'error', 'message': str(e), 'remaining_requests': counter.count})
 
     return JsonResponse({'status': 'error', 'message': 'Invalid request'})
 
@@ -175,13 +204,33 @@ def delete_address(request, project_id):
     
 @require_POST
 def update_addresses(request, project_id):
+    reset_request_counter()  # Сбрасываем счетчик, если необходимо
+    counter, created = RequestCounter.objects.get_or_create(pk=1)
+
+    if counter.count <= 0:
+        time_left = get_time_until_midnight()
+        return JsonResponse({
+            'status': 'error',
+            'message': f'Закончились запросы для координат - запросы будут доступны через {time_left}',
+            'remaining_requests': counter.count
+        })
+
     try:
         project = get_object_or_404(Project, pk=project_id)
         data = json.loads(request.body)
         new_addresses = data.get('new_addresses', [])
+        num_processed = 0
 
         for name in new_addresses:
             if name:
+                if counter.count <= 0:
+                    time_left = get_time_until_midnight()
+                    return JsonResponse({
+                        'status': 'error',
+                        'message': f'Закончились запросы для координат - запросы будут доступны через {time_left}',
+                        'remaining_requests': counter.count
+                    })
+
                 coordinates = get_coordinates_from_yandex(name)
                 Address.objects.create(
                     project=project, 
@@ -189,7 +238,11 @@ def update_addresses(request, project_id):
                     latitude=coordinates['lat'], 
                     longitude=coordinates['lon']
                 )
+                num_processed += 1  # Увеличиваем счетчик обработанных адресов
+
+        counter.count -= num_processed  # Уменьшаем количество запросов на количество обработанных адресов
+        counter.save()
         
-        return JsonResponse({'status': 'ok'})
+        return JsonResponse({'status': 'ok', 'remaining_requests': counter.count})
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)

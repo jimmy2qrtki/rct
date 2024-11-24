@@ -1,5 +1,4 @@
 <!-- templates/projects/edit_project.html -->
-<!DOCTYPE html>
 <html>
 <head>
     <title>Правка - {{ project.name }}</title>
@@ -12,6 +11,7 @@
         {% csrf_token %}
         {{ form.as_p }}
     </form>
+    <p id="remaining-requests">Осталось {{ remaining_requests }} запросов</p>
     <button type="button" id="get-coordinates-btn">Получить координаты</button>
     <div id="loading-indicator" style="display: none;">Идет парсинг адресов, пожалуйста подождите...</div>
     <a href="{% url 'create_event' project.id %}">Создать событие</a>
@@ -59,6 +59,9 @@
     </script>
     <script>
         document.getElementById('get-coordinates-btn').addEventListener('click', function() {
+            const btn = this;
+            if (btn.disabled) return;
+
             document.getElementById('loading-indicator').style.display = 'block';
             const formData = new FormData();
             formData.append('excel_file', document.querySelector('input[type="file"]').files[0]);
@@ -72,6 +75,7 @@
             .then(response => response.json())
             .then(data => {
                 document.getElementById('loading-indicator').style.display = 'none';
+
                 if (data.status === 'ok') {
                     const addressList = document.getElementById('addresses-list');
                     addressList.innerHTML = '';  // Очищаем текущий список адресов
@@ -80,10 +84,19 @@
                         tempDiv.innerHTML = html;
                         addressList.appendChild(tempDiv.firstElementChild);
                     });
-                    addDeleteEventListeners(); // Добавление слушателей событий
+                    addDeleteEventListeners();
+
+                    // Обновление оставшихся запросов
+                    updateRemainingRequestsCount(data.remaining_requests);
                 } else {
-                    alert('Ошибка при получении координат');
+                    alert(data.message || 'Ошибка при получении координат');
+                    if (data.message && data.message.includes('Закончились запросы')) {
+                        btn.disabled = true;  // Отключение кнопки при исчерпании запросов
+                    }
                 }
+
+                // Обновление оставшегося количества запросов независимо от статуса
+                updateRemainingRequestsCount(data.remaining_requests);
             })
             .catch(error => {
                 document.getElementById('loading-indicator').style.display = 'none';
@@ -92,6 +105,10 @@
             });
         });
 
+        function updateRemainingRequestsCount(count) {
+            document.getElementById('remaining-requests').innerText = `Осталось ${count} запросов`;
+        }
+    
         function addDeleteEventListeners() {
             document.querySelectorAll('.delete-address-btn').forEach(button => {
                 button.addEventListener('click', function() {
@@ -100,6 +117,10 @@
                     li.remove(); // Удаление элемента из DOM
                 });
             });
+        }
+    
+        function updateRemainingRequestsCount(count) {
+            document.getElementById('remaining-requests').textContent = `Осталось ${count} запросов`;
         }
     </script>
     <script>
@@ -182,9 +203,10 @@
             .then(data => {
                 if (data.status === 'ok') {
                     alert('Адреса успешно обновлены');
+                    updateRemainingRequestsCount(data.remaining_requests);
                     location.reload();
                 } else {
-                    alert('Произошла ошибка при обновлении адресов');
+                    alert(data.message || 'Произошла ошибка при обновлении адресов');
                 }
             })
             .catch(error => {
@@ -192,6 +214,10 @@
                 alert('Ошибка сети');
             });
         };
+
+        function updateRemainingRequestsCount(count) {
+            document.getElementById('remaining-requests').innerText = `Осталось ${count} запросов`;
+        }
 
         function updateAddressNumbers() {
             const addressNumbers = document.querySelectorAll('.address-number');
