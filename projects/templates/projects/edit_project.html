@@ -4,6 +4,8 @@
     <title>Правка - {{ project.name }}</title>
     {% load static %}
     <script src="{% static 'js/jquery-3.7.1.min.js' %}"></script>
+    <link rel="stylesheet" type="text/css" href="{% static 'projects/yandex-map-modal.css' %}">
+    <script src="https://api-maps.yandex.ru/2.1/?apikey=<212ad00a-2b33-4742-9805-36eb9352e2df>&lang=ru_RU" type="text/javascript"></script>
 </head>
 <body>
     <h1>{{ project.name }}</h1>
@@ -37,7 +39,8 @@
         <li data-id="{{ address.id }}">
             <span class="address-number">{{ forloop.counter }}.</span> 
             <input class="address-name" value="{{ address.name }}" data-id="{{ address.id }}"> |
-            <span class="latitude">{{ address.latitude }}</span> | 
+            <span class="latitude">{{ address.latitude }}</span>
+            <button class="show-map-btn" data-latitude="{{ address.latitude }}" data-longitude="{{ address.longitude }}">Карта</button> 
             <span class="longitude">{{ address.longitude }}</span>
             <button class="delete-address-btn" data-id="{{ address.id }}">Удалить</button>
         </li>
@@ -45,6 +48,12 @@
         <li>Нет адресов.</li>
         {% endfor %}
     </ul>
+    <div id="map-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div id="map" style="width: 600px; height: 400px;"></div>
+        </div>
+    </div>
     <button type="button" id="add-address-btn">Добавить адрес</button>
     <button type="button" id="update-addresses-btn">Обновить список</button>
     <button type="button" id="delete-addresses-btn">Удалить список</button>
@@ -78,13 +87,13 @@
 
                 if (data.status === 'ok') {
                     const addressList = document.getElementById('addresses-list');
-                    addressList.innerHTML = '';  // Очищаем текущий список адресов
                     data.addresses.forEach(html => {
                         const tempDiv = document.createElement('div');
                         tempDiv.innerHTML = html;
-                        addressList.appendChild(tempDiv.firstElementChild);
+                        addressList.appendChild(tempDiv.firstElementChild); // Добавляем новые адреса к существующему списку
                     });
-                    addDeleteEventListeners();
+                    addDeleteEventListeners(); // Повторное добавление обработчиков событий
+                    updateAddressNumbers() // Обновление нумерации списка
 
                     // Обновление оставшихся запросов
                     updateRemainingRequestsCount(data.remaining_requests);
@@ -165,6 +174,49 @@
                     });
                 });
             });
+        });
+        // яндекс карта
+        document.querySelectorAll('.show-map-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                // Получаем координаты из атрибутов data
+                const latStr = this.getAttribute('data-latitude');
+                const lonStr = this.getAttribute('data-longitude');
+
+                // Заменяем запятую на точку, если она присутствует
+                const latitude = parseFloat(latStr.replace(',', '.'));
+                const longitude = parseFloat(lonStr.replace(',', '.'));
+
+                const modal = document.getElementById('map-modal');
+                modal.style.display = "block";
+
+                // Удаление старой карты, чтобы создать каждую карту с нужными координатами
+                while (document.getElementById('map').firstChild) {
+                    document.getElementById('map').removeChild(document.getElementById('map').firstChild);
+                }
+
+                ymaps.ready(() => {
+                    const map = new ymaps.Map("map", {
+                        center: [latitude, longitude],
+                        zoom: 14
+                    });
+                    const placemark = new ymaps.Placemark([latitude, longitude], {}, {
+                        preset: 'islands#icon',
+                        iconColor: '#0095b6'
+                    });
+                    map.geoObjects.add(placemark);
+                });
+            });
+        });
+
+        document.querySelector('.close').addEventListener('click', function() {
+            document.getElementById('map-modal').style.display = "none";
+        });
+
+        window.addEventListener('click', function(event) {
+            const modal = document.getElementById('map-modal');
+            if (event.target === modal) {
+                modal.style.display = "none";
+            }
         });
         document.getElementById('add-address-btn').addEventListener('click', function() {
             const addressList = document.getElementById('addresses-list');
