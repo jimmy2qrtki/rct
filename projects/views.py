@@ -15,27 +15,35 @@ def manage_projects(request):
     projects_with_events = [(project, project.get_next_event()) for project in projects]
     return render(request, 'projects/manage_projects.html', {'projects_with_events': projects_with_events})
 
+@login_required
 def edit_project(request, project_id):
+    # Получаем проект
     project = get_object_or_404(Project, pk=project_id)
+    
+    # Получаем связанные события и адреса
     events = project.events.all()
     addresses = project.addresses.all()
-    counter, created = RequestCounter.objects.get_or_create(pk=1)
+    
+    # Получаем или создаем RequestCounter для текущего пользователя
+    counter, created = RequestCounter.objects.get_or_create(user=request.user)
     remaining_requests = counter.count
-
+    
+    # Обработка формы
     if request.method == 'POST':
         form = ProjectForm(request.POST, request.FILES, instance=project)
         if form.is_valid():
             form.save()
-            # Без парсинга координат здесь
+            return redirect('edit_project', project_id=project.id)  # Перенаправление для предотвращения повторной отправки формы
     else:
         form = ProjectForm(instance=project)
-    
+
+    # Отправляем данные в шаблон
     return render(request, 'projects/edit_project.html', {
         'form': form,
         'project': project,
         'events': events,
         'addresses': addresses,
-        'remaining_requests': remaining_requests,  # Передаем оставшиеся запросы в шаблон
+        'remaining_requests': remaining_requests,  # Отображаем оставшиеся запросы
     })
 
 @login_required
@@ -110,8 +118,8 @@ def get_coordinates_from_yandex(address):
 
 @login_required
 def get_coordinates(request, project_id):
-    reset_request_counter()
-    counter, created = RequestCounter.objects.get_or_create(pk=1)
+    reset_request_counter(request)  # Передайте request для доступа к пользователю
+    counter = RequestCounter.objects.get(user=request.user)
 
     if counter.count <= 0:
         time_left = get_time_until_midnight()
@@ -204,8 +212,8 @@ def delete_address(request, project_id):
     
 @require_POST
 def update_addresses(request, project_id):
-    reset_request_counter()  # Сбрасываем счетчик, если необходимо
-    counter, created = RequestCounter.objects.get_or_create(pk=1)
+    reset_request_counter(request)
+    counter = RequestCounter.objects.get(user=request.user)
 
     if counter.count <= 0:
         time_left = get_time_until_midnight()

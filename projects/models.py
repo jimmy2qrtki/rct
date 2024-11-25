@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
+from django.conf import settings
 
 class Project(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)  # Убрали null=True
@@ -38,6 +39,7 @@ class Address(models.Model):
         return self.name
     
 class RequestCounter(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     count = models.PositiveIntegerField(default=1000)
     last_reset = models.DateTimeField(auto_now=True)
 
