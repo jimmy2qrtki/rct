@@ -38,6 +38,12 @@ class Address(models.Model):
     def __str__(self):
         return self.name
     
+class EventAddress(models.Model):
+    event = models.ForeignKey(Event, related_name='addresses', on_delete=models.CASCADE)
+    name = models.CharField(max_length=255)
+    latitude = models.FloatField()
+    longitude = models.FloatField()
+    
 class RequestCounter(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     count = models.PositiveIntegerField(default=1000)

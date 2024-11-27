@@ -2,6 +2,7 @@
 <html>
 <head>
     <title>Правка события - {{ event.get_event_type_display }}</title>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 </head>
 <body>
     <h1>Правка события: {{ event.get_event_type_display }} | {{ project.name }}</h1>
@@ -11,5 +12,36 @@
         <button type="submit">Сохранить</button>
     </form>
     <a href="{% url 'edit_project' project.id %}">Назад</a>
+    
+    <button type="button" id="copy-addresses-btn">Добавить адреса</button>
+    
+    <ul id="copied-addresses-list">
+        <!-- Список будет заполняться здесь -->
+    </ul>
+    
+    
+    <script>
+        $(document).ready(function() {
+            // Попробуем загрузить адреса из localStorage
+            let storedAddresses = localStorage.getItem('eventAddresses');
+            if (storedAddresses) {
+                $('#copied-addresses-list').html(storedAddresses);
+            }
+    
+            $('#copy-addresses-btn').on('click', function() {
+                let addressesHtml = "";
+    
+                {% for address in project.addresses.all %}
+                    addressesHtml += "<li>{{ address.name|escapejs }} ({{ address.latitude }}, {{ address.longitude }})</li>";
+                {% empty %}
+                    addressesHtml = "<li>Нет доступных адресов для копирования.</li>";
+                {% endfor %}
+    
+                $('#copied-addresses-list').html(addressesHtml);
+                // Сохраняем адреса в localStorage
+                localStorage.setItem('eventAddresses', addressesHtml);
+            });
+        });
+    </script>
 </body>
 </html>

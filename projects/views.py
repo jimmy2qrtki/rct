@@ -65,18 +65,22 @@ def manage_events(request, project_id):
     return render(request, 'projects/manage_events.html', {'project': project, 'events': events})
 
 def edit_event(request, event_id):
-     event = get_object_or_404(Event, pk=event_id)
-     project = event.project
+    event = get_object_or_404(Event, pk=event_id)
+    project = event.project
 
-     if request.method == 'POST':
-         form = EventForm(request.POST, instance=event)
-         if form.is_valid():
-             form.save()
-             return redirect('edit_project', project_id=project.id)
-     else:
-         form = EventForm(instance=event)
-     
-     return render(request, 'projects/edit_event.html', {'form': form, 'project': project, 'event': event})
+    if request.method == 'POST':
+        form = EventForm(request.POST, instance=event)
+        if form.is_valid():
+            form.save()
+            return redirect('edit_project', project_id=project.id)
+    else:
+        form = EventForm(instance=event)
+    
+    return render(request, 'projects/edit_event.html', {
+        'form': form,
+        'project': project,
+        'event': event
+    })
 
 def create_event(request, project_id):
     project = get_object_or_404(Project, pk=project_id)
