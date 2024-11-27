@@ -24,5 +24,5 @@ class EventForm(forms.ModelForm):
         }
         widgets = {
             'event_date': forms.SelectDateWidget(),
-             'event_date': forms.DateInput(attrs={'type': 'date', 'min': datetime.date.today().strftime('%Y-%m-%d')}),
+            # 'event_date': forms.DateInput(attrs={'type': 'date', 'min': datetime.date.today().strftime('%Y-%m-%d')}),
         }

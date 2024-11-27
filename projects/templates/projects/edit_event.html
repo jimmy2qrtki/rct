@@ -2,6 +2,7 @@
 <html>
 <head>
     <title>Правка события - {{ event.get_event_type_display }}</title>
+    {% load static %}
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 </head>
 <body>
@@ -22,24 +23,30 @@
     
     <script>
         $(document).ready(function() {
-            // Попробуем загрузить адреса из localStorage
-            let storedAddresses = localStorage.getItem('eventAddresses');
+            const eventID = '{{ event.id }}';
+            const storedAddressesKey = `eventAddresses_${eventID}`;
+    
+            // Загрузка адресов из localStorage
+            let storedAddresses = localStorage.getItem(storedAddressesKey);
             if (storedAddresses) {
                 $('#copied-addresses-list').html(storedAddresses);
             }
-    
+            
             $('#copy-addresses-btn').on('click', function() {
                 let addressesHtml = "";
+                let index = 1;
     
-                {% for address in project.addresses.all %}
-                    addressesHtml += "<li>{{ address.name|escapejs }} ({{ address.latitude }}, {{ address.longitude }})</li>";
+                // Используем адреса проекта для текущего события
+                {% for address in project_addresses %}
+                    addressesHtml += `<li>${index}. {{ address.name|escapejs }} ({{ address.latitude }}, {{ address.longitude }})</li>`;
+                    index++;
                 {% empty %}
                     addressesHtml = "<li>Нет доступных адресов для копирования.</li>";
                 {% endfor %}
     
                 $('#copied-addresses-list').html(addressesHtml);
-                // Сохраняем адреса в localStorage
-                localStorage.setItem('eventAddresses', addressesHtml);
+                // Сохраняем адреса в localStorage для текущего события
+                localStorage.setItem(storedAddressesKey, addressesHtml);
             });
         });
     </script>

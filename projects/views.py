@@ -1,5 +1,5 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from .models import Address, Project, Event, RequestCounter
+from .models import Address, EventAddress, Project, Event, RequestCounter
 from .forms import ProjectForm, EventForm
 from django.contrib.auth.decorators import login_required
 from openpyxl import load_workbook
@@ -76,10 +76,14 @@ def edit_event(request, event_id):
     else:
         form = EventForm(instance=event)
     
+    # Получаем адреса, связанные с проектом текущего события
+    project_addresses = project.addresses.all()
+    
     return render(request, 'projects/edit_event.html', {
         'form': form,
         'project': project,
-        'event': event
+        'event': event,
+        'project_addresses': project_addresses,  # передаем адреса проекта в шаблон
     })
 
 def create_event(request, project_id):
