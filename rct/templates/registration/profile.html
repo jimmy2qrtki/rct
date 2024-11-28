@@ -1,17 +1,32 @@
-<h1>Доброго времени суток, {{ user.username }}!</h1>
-
+<h1>
+    Доброго времени суток, 
+    {% if user.first_name %}
+        {{ user.first_name }}!
+    {% else %}
+        {{ user.email }}!
+    {% endif %}
+</h1>
 <div id="profile-display">
     <a href="{% url 'manage_projects' %}">Проекты</a>
     <h2>Профиль</h2>
-    <p>Логин: {{ user.username }}</p>
-    <p>Почта: {{ user.email }}</p>
-    <p>Телефон: {{ user.profile.phone_number|default:"" }}</p>
+    <p>Логин: {{ user.email }}</p>
+    {% if user.first_name %}
+    <p>Имя: {{ user.first_name }}</p> 
+    {% endif %}
+
+    {% if p_form.phone_number.value %}
+    <p>Телефон: +7{{ p_form.phone_number.value }}</p>
+    {% endif %}
+    
+    {% if p_form.api_key.value %}
+    <p>API Key: {{ p_form.api_key.value }}</p>
+    {% endif %}
     <button onclick="toggleEdit(true)">Редактировать</button>
 </div>
 
 <div id="profile-edit" style="display: none;">
     <h2>Редактор профиля</h2>
-    <p>Логин: {{ user.username }}</p>
+    <p>Почта: {{ email }}</p>
     <form method="post">
         {% csrf_token %}
         {{ u_form.as_p }}

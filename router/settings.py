@@ -61,6 +61,7 @@ MIDDLEWARE = [
 
 AUTHENTICATION_BACKENDS = [
     'axes.backends.AxesBackend',  # Используйте AxesBackend
+    'rct.backends.EmailBackend', 
     'django.contrib.auth.backends.ModelBackend',  # Стандартный бэкенд Django
 ]
 
