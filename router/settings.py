@@ -14,7 +14,7 @@ from pathlib import Path
 import os
 
 
-LOGIN_REDIRECT_URL = '/' 
+#LOGIN_REDIRECT_URL = '/' 
 LOGOUT_REDIRECT_URL = '/accounts/login/'
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -60,7 +60,7 @@ MIDDLEWARE = [
 ]
 
 AUTHENTICATION_BACKENDS = [
-    'axes.backends.AxesBackend',  # Используйте AxesBackend
+    'axes.backends.AxesStandaloneBackend',  # Используйте AxesBackend
     'rct.backends.EmailBackend', 
     'django.contrib.auth.backends.ModelBackend',  # Стандартный бэкенд Django
 ]

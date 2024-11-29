@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login, logout, get_backends, authenticate
-from .forms import UserUpdateForm, ProfileUpdateForm, CustomUserCreationForm, ExecutorRegistrationForm, ExecutorProfileForm
+from .forms import UserUpdateForm, ProfileUpdateForm, CustomUserCreationForm, ExecutorRegistrationForm, ExecutorProfileForm, EmailAuthenticationForm
 from django.contrib import messages
 from django.contrib.auth.models import Group
 from .models import ExecutorProfile
@@ -13,12 +13,18 @@ def register(request):
         form = CustomUserCreationForm(request.POST)
         if form.is_valid():
             user = form.save()
+            
+            # Добавляем пользователя в группу "Менеджер"
+            managers_group, created = Group.objects.get_or_create(name='Менеджер')
+            user.groups.add(managers_group)
+
             # Аутентифицируем пользователя с использованием email и пароля
             authenticated_user = authenticate(request, username=form.cleaned_data['email'], password=form.cleaned_data['password1'])
             
             if authenticated_user is not None:
                 login(request, authenticated_user)
                 return redirect('profile')  # Перенаправляем на профиль после регистрации
+
     else:
         form = CustomUserCreationForm()
     
@@ -31,7 +37,11 @@ def login_view(request):
         user = authenticate(request, email=email, password=password)
         if user is not None:
             login(request, user)
-            return redirect('profile')
+            # Проверка на принадлежность к группе 'Исполнитель'
+            if user.groups.filter(name='Исполнитель').exists():
+                return redirect('executor_profile')  # Перенаправление на профиль исполнителя
+            else:
+                return redirect('profile')  # Перенаправление на обычный профиль
         else:
             messages.error(request, 'Неверный Email или пароль.')
     return render(request, 'registration/login.html')
@@ -91,27 +101,10 @@ def executor_register(request):
         form = ExecutorRegistrationForm()
     return render(request, 'registration/executor/register.html', {'form': form})
 
-def executor_login(request):
-    if request.method == 'POST':
-        form = AuthenticationForm(request, data=request.POST)
-        if form.is_valid():
-            user = form.get_user()
-            login(request, user)
-
-            if user.groups.filter(name='Исполнитель').exists():
-                return redirect('executor_profile')  # Перенаправить на профиль исполнителя
-
-            # Если ваш логин для исполнителей может попасть сюда, следует сделать общее перенаправление
-            return redirect('/')
-
-    else:
-        form = AuthenticationForm()
-    return render(request, 'registration/executor/login.html', {'form': form})  # Убедитесь, что у вас есть шаблон
-
 # для перенапраления исполнителя при выходе
 def executor_logout(request):
     logout(request)
-    return redirect('executor_login')  # Перенаправить обратно на логин исполнителя
+    return redirect('login')  # Перенаправить обратно на логин исполнителя
 
 @login_required
 def executor_profile(request):

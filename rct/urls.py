@@ -12,6 +12,5 @@ urlpatterns = [
     # Страницы для исполнителей
     path('executor/register/', views.executor_register, name='executor_register'),
     path('executor/profile/', views.executor_profile, name='executor_profile'),
-    path('executor/login/', views.executor_login, name='executor_login'),
     path('executor/logout/', views.executor_logout, name='executor_logout'),
 ]

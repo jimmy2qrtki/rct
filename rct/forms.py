@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth.models import User
 from .models import Profile, ExecutorProfile
-from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.core.exceptions import ValidationError
 
 class UserUpdateForm(forms.ModelForm):
