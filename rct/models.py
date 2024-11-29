@@ -9,3 +9,16 @@ class Profile(models.Model):
 
     def __str__(self):
         return self.user.username
+    
+class ExecutorProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    name = models.CharField(max_length=255, blank=True)
+    start_address = models.CharField(max_length=255)
+    district_choices = [
+        ('САО', 'САО'),
+        ('ВАО', 'ВАО'),
+        ('ЮАО', 'ЮАО'),
+        ('ЗАО', 'ЗАО'),
+    ]
+    district = models.CharField(max_length=3, choices=district_choices)
+    api_key = models.CharField(max_length=255, blank=True)
