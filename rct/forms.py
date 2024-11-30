@@ -9,7 +9,6 @@ class UserUpdateForm(forms.ModelForm):
         model = User
         fields = ['first_name']
 
-    # Не забудьте добавить обработку email в представление
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -69,3 +68,6 @@ class ExecutorProfileForm(forms.ModelForm):
         widgets = {
             'api_key': forms.PasswordInput(),  # скроет вводимый ключ
         }
+
+class EmailAuthenticationForm(AuthenticationForm):
+    email = forms.EmailField()

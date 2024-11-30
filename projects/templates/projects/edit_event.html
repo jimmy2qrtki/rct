@@ -3,7 +3,9 @@
 <head>
     <title>Правка события - {{ event.get_event_type_display }}</title>
     {% load static %}
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="{% static 'js/jquery-3.7.1.min.js' %}"></script>
+    <link rel="stylesheet" type="text/css" href="{% static 'projects/yandex-map-modal.css' %}">
+    <script src="https://api-maps.yandex.ru/2.1/?apikey=<212ad00a-2b33-4742-9805-36eb9352e2df>&lang=ru_RU" type="text/javascript"></script>
 </head>
 <body>
     <h1>Правка события: {{ event.get_event_type_display }} | {{ project.name }}</h1>
@@ -15,39 +17,138 @@
     <a href="{% url 'edit_project' project.id %}">Назад</a>
     
     <button type="button" id="copy-addresses-btn">Добавить адреса</button>
+    <button type="button" id="save-addresses-btn">Сохранить список</button> <!-- НОВАЯ КНОПКА -->
     
     <ul id="copied-addresses-list">
         <!-- Список будет заполняться здесь -->
     </ul>
     
-    
+    <div id="map-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div id="map" style="width: 600px; height: 400px;"></div>
+        </div>
+    </div>
+
     <script>
         $(document).ready(function() {
             const eventID = '{{ event.id }}';
             const storedAddressesKey = `eventAddresses_${eventID}`;
+    
+            function updateAddressNumbers() {
+                $('#copied-addresses-list .address-number').each(function(index) {
+                    $(this).text((index + 1) + '.');
+                });
+            }
+    
+            let map;
+            let placemark;
+    
+            function initMap() {
+                // Инициализация карты первый раз
+                map = new ymaps.Map("map", {
+                    center: [0, 0], // пустая карта или центральная точка
+                    zoom: 14
+                });
+    
+                placemark = new ymaps.Placemark([0, 0], {}, {
+                    preset: 'islands#icon',
+                    iconColor: '#0095b6'
+                });
+                map.geoObjects.add(placemark);
+            }
+    
+            $(document).on('click', '.show-map-btn', function() {
+                const latStr = $(this).data('latitude');
+                const lonStr = $(this).data('longitude');
+    
+                const latitude = parseFloat(latStr.replace(',', '.'));
+                const longitude = parseFloat(lonStr.replace(',', '.'));
+    
+                const modal = $('#map-modal');
+                modal.css("display", "block");
+    
+                if (!map) {
+                    // Создаем карту при первом вызове
+                    initMap();
+                }
+    
+                // Обновление центра карты и метки
+                map.setCenter([latitude, longitude]);
+                placemark.geometry.setCoordinates([latitude, longitude]);
+            });
     
             // Загрузка адресов из localStorage
             let storedAddresses = localStorage.getItem(storedAddressesKey);
             if (storedAddresses) {
                 $('#copied-addresses-list').html(storedAddresses);
             }
-            
+    
             $('#copy-addresses-btn').on('click', function() {
                 let addressesHtml = "";
                 let index = 1;
-    
-                // Используем адреса проекта для текущего события
                 {% for address in project_addresses %}
-                    addressesHtml += `<li>${index}. {{ address.name|escapejs }} ({{ address.latitude }}, {{ address.longitude }})</li>`;
-                    index++;
+                addressesHtml += `
+                    <li data-id="{{ address.id }}">
+                        <span class="address-number">${index}.</span>
+                        <input class="address-name" value="{{ address.name|escapejs }}" data-id="{{ address.id }}"> |
+                        <span class="latitude">{{ address.latitude }}</span>
+                        <button class="show-map-btn" data-latitude="{{ address.latitude }}" data-longitude="{{ address.longitude }}">Карта</button>
+                        <span class="longitude">{{ address.longitude }}</span>
+                        <button class="delete-address-btn" data-id="{{ address.id }}">Удалить</button>
+                    </li>
+                `;
+                index++;
                 {% empty %}
-                    addressesHtml = "<li>Нет доступных адресов для копирования.</li>";
+                addressesHtml = "<li>Нет доступных адресов для копирования.</li>";
                 {% endfor %}
-    
                 $('#copied-addresses-list').html(addressesHtml);
-                // Сохраняем адреса в localStorage для текущего события
                 localStorage.setItem(storedAddressesKey, addressesHtml);
             });
+    
+            $(document).on('click', '.delete-address-btn', function() {
+                $(this).closest('li').remove();
+                updateAddressNumbers();
+                const updatedAddressesHtml = $('#copied-addresses-list').html();
+                localStorage.setItem(storedAddressesKey, updatedAddressesHtml);
+            });
+    
+            $('#save-addresses-btn').on('click', function() {
+                const addresses = [];
+                $('#copied-addresses-list li').each(function() {
+                    const addressName = $(this).find('.address-name').val();
+                    const latitude = $(this).find('.latitude').text();
+                    const longitude = $(this).find('.longitude').text();
+    
+                    addresses.push({
+                        name: addressName,
+                        latitude: parseFloat(latitude),
+                        longitude: parseFloat(longitude)
+                    });
+                });
+    
+                $.ajax({
+                    url: '{% url "save_event_addresses" event.id %}',
+                    method: 'POST',
+                    headers: {'X-CSRFToken': '{{ csrf_token }}'},
+                    data: {
+                        addresses: JSON.stringify(addresses)
+                    },
+                    success: () => alert('Адреса успешно сохранены!'),
+                    error: (xhr, status, error) => alert('Ошибка при сохранении адресов: ' + error)
+                });
+            });
+    
+            $('.close').click(() => $('#map-modal').css("display", "none"));
+            window.onclick = (event) => {
+                const modal = $('#map-modal');
+                if (event.target === modal) {
+                    modal.css("display", "none");
+                }
+            };
+    
+            // Загружаем JS API Yandex Maps и инициализируем карту
+            ymaps.ready(initMap);
         });
     </script>
 </body>

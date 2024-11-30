@@ -86,6 +86,27 @@ def edit_event(request, event_id):
         'project_addresses': project_addresses,  # передаем адреса проекта в шаблон
     })
 
+def save_event_addresses(request, event_id):
+    if request.method == 'POST':
+        event = get_object_or_404(Event, pk=event_id)
+        addresses_data = json.loads(request.POST.get('addresses', '[]'))
+
+        # Удалим старые адреса события перед добавлением новых
+        event.addresses.all().delete()
+
+        # Сохраняем новые адреса
+        for address_data in addresses_data:
+            EventAddress.objects.create(
+                event=event,
+                name=address_data['name'],
+                latitude=address_data['latitude'],
+                longitude=address_data['longitude']
+            )
+
+        return JsonResponse({'status': 'success'})
+    else:
+        return JsonResponse({'status': 'error', 'message': 'Неверный метод запроса'}, status=400)
+
 def create_event(request, project_id):
     project = get_object_or_404(Project, pk=project_id)
     if request.method == 'POST':
