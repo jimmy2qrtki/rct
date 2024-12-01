@@ -18,12 +18,20 @@
     
     <button type="button" id="copy-addresses-btn">Добавить адреса</button>
     
-    <ul id="copied-addresses-list">
-        <!-- Список будет заполняться здесь -->
+    <h2>Адреса для события</h2>
+    <ul id="event-addresses-list">
+        {% for address in event.addresses.all %}
+        <li>
+            <span>{{ forloop.counter }}. {{ address.name }} ({{ address.latitude }}, {{ address.longitude }})</span>
+        </li>
+        {% empty %}
+        <li>Нет адресов.</li>
+        {% endfor %}
     </ul>
 
     <button type="button" id="add-address-btn">Добавить адрес</button>
     <button type="button" id="update-addresses-btn">Обновить список</button>
+    <button type="button" id="save-addresses-btn">Сохранить адреса</button>
     
     <div id="map-modal" class="modal">
         <div class="modal-content">
@@ -34,161 +42,31 @@
 
     <script>
         $(document).ready(function() {
-            const eventID = '{{ event.id }}';
-            const storedAddressesKey = `eventAddresses_${eventID}`;
-    
-            function updateAddressNumbers() {
-                $('#copied-addresses-list .address-number').each(function(index) {
-                    $(this).text((index + 1) + '.');
-                });
-            }
-    
-            let map;
-            let placemark;
-    
-            function initMap() {
-                // Инициализация карты первый раз
-                map = new ymaps.Map("map", {
-                    center: [0, 0], // пустая карта или центральная точка
-                    zoom: 14
-                });
-    
-                placemark = new ymaps.Placemark([0, 0], {}, {
-                    preset: 'islands#icon',
-                    iconColor: '#0095b6'
-                });
-                map.geoObjects.add(placemark);
-            }
-    
-            $(document).on('click', '.show-map-btn', function() {
-                const latStr = $(this).data('latitude');
-                const lonStr = $(this).data('longitude');
-    
-                const latitude = parseFloat(latStr.replace(',', '.'));
-                const longitude = parseFloat(lonStr.replace(',', '.'));
-    
-                const modal = $('#map-modal');
-                modal.css("display", "block");
-    
-                if (!map) {
-                    // Создаем карту при первом вызове
-                    initMap();
-                }
-    
-                // Обновление центра карты и метки
-                map.setCenter([latitude, longitude]);
-                placemark.geometry.setCoordinates([latitude, longitude]);
-            });
-    
-            // Загрузка адресов из localStorage
-            let storedAddresses = localStorage.getItem(storedAddressesKey);
-            if (storedAddresses) {
-                $('#copied-addresses-list').html(storedAddresses);
-            }
-    
-            $('#copy-addresses-btn').on('click', function() {
-                let addressesHtml = "";
-                let index = 1;
-                {% for address in project_addresses %}
-                addressesHtml += `
-                    <li data-id="{{ address.id }}">
-                        <span class="address-number">${index}.</span>
-                        <input class="address-name" value="{{ address.name|escapejs }}" data-id="{{ address.id }}"> |
-                        <span class="latitude">{{ address.latitude }}</span>
-                        <button class="show-map-btn" data-latitude="{{ address.latitude }}" data-longitude="{{ address.longitude }}">Карта</button>
-                        <span class="longitude">{{ address.longitude }}</span>
-                        <button class="delete-address-btn" data-id="{{ address.id }}">Удалить</button>
-                    </li>
-                `;
-                index++;
-                {% empty %}
-                addressesHtml = "<li>Нет доступных адресов для копирования.</li>";
-                {% endfor %}
-                $('#copied-addresses-list').html(addressesHtml);
-                localStorage.setItem(storedAddressesKey, addressesHtml);
-            });
-    
-            $(document).on('click', '.delete-address-btn', function() {
-                $(this).closest('li').remove();
-                updateAddressNumbers();
-                const updatedAddressesHtml = $('#copied-addresses-list').html();
-                localStorage.setItem(storedAddressesKey, updatedAddressesHtml);
-            });
-    
-            $('.close').click(() => $('#map-modal').css("display", "none"));
-            window.onclick = (event) => {
-                const modal = $('#map-modal');
-                if (event.target === modal) {
-                    modal.css("display", "none");
-                }
-            };
-    
-            // Загружаем JS API Yandex Maps и инициализируем карту
-            ymaps.ready(initMap);
-
-            document.getElementById('add-address-btn').onclick = function() {
-                const addressList = document.getElementById('copied-addresses-list');
-                
-                // Создаем новый элемент списка без данных
-                const newListItem = document.createElement('li');
-                newListItem.innerHTML = `
-                    <span class="address-number">${addressList.children.length + 1}.</span>
-                    <input type="text" name="new_address_names[]" class="address-name" placeholder="Введите название адреса">
-                    <span class="latitude"></span> | <span class="longitude"></span>
-                    <button type="button" class="delete-address-btn">Удалить</button>
-                `;
-                
-                addressList.appendChild(newListItem);
-                updateAddressNumbers();
-                
-                newListItem.querySelector('.delete-address-btn').onclick = function() {
-                    addressList.removeChild(newListItem);
-                    updateAddressNumbers();
-                };
-            };
-
-            function updateAddressNumbers() {
-                const addressNumbers = document.querySelectorAll('#copied-addresses-list .address-number');
-                addressNumbers.forEach((span, index) => {
-                    span.textContent = `${index + 1}.`;
-                });
-            }
-
-            document.getElementById('update-addresses-btn').onclick = async function () {
-                const addressList = document.getElementById('copied-addresses-list');
-                
-                for (let i = 0; i < addressList.children.length; i++) {
-                    const listItem = addressList.children[i];
-                    
-                    // Проверяем, что название адреса не пустое
-                    const addressNameInput = listItem.querySelector('.address-name');
-                    if (!addressNameInput.value.trim()) continue;
-                    
-                    try {
-                        // Получаем координаты через Яндекс Геокодер
-                        const response = await fetch(`https://geocode-maps.yandex.ru/1.x/?apikey=212ad00a-2b33-4742-9805-36eb9352e2df&format=json&geocode=${encodeURIComponent(addressNameInput.value)}`);
-                        const data = await response.json();
+            $('#copy-addresses-btn').click(function() {
+                const eventId = "{{ event.id }}";  // Получаем ID текущего события
+                $.ajax({
+                    url: "{% url 'copy_addresses' event.id %}",  // URL, на который будет отправлен POST-запрос
+                    type: "POST",
+                    data: {
+                        csrfmiddlewaretoken: "{{ csrf_token }}",
+                    },
+                    success: function(response) {
+                        alert('Адреса были успешно добавлены');
                         
-                        if (data.response.GeoObjectCollection.metaDataProperty.GeocoderResponseMetaData.found > 0) {
-                            const geoObject = data.response.GeoObjectCollection.featureMember[0].GeoObject;
-                            const point = geoObject.Point.pos.split(' ');
-                            const latitude = parseFloat(point[1]);
-                            const longitude = parseFloat(point[0]);
-                            
-                            // Обновляем элементы списка с координатами
-                            listItem.querySelector('.latitude').innerText = latitude.toFixed(6); // Округление до 6 знаков после запятой
-                            listItem.querySelector('.longitude').innerText = longitude.toFixed(6);
-                        }
-                    } catch (error) {
-                        console.error('Ошибка при получении координат:', error);
+                        // Очистить текущий список адресов
+                        $('#event-addresses-list').empty();
+                        
+                        // Перебрать полученные адреса и добавить их в список
+                        response.addresses.forEach(function(address, index) {
+                            $('#event-addresses-list').append('<li>' + (index + 1) + '. ' + address.name + ' (' + address.latitude + ', ' + address.longitude + ')</li>');
+                        });
+                    },
+                    error: function(response) {
+                        alert('Произошла ошибка при добавлении адресов');
                     }
-                }
-            };
-            
+                });
+            });
         });
-
-        
-
     </script>
 </body>
 </html>

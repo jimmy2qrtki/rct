@@ -107,6 +107,28 @@ def save_event_addresses(request, event_id):
     else:
         return JsonResponse({'status': 'error', 'message': 'Неверный метод запроса'}, status=400)
 
+def copy_addresses(request, event_id):
+    event = get_object_or_404(Event, id=event_id)
+
+    # Удаляем все существующие адреса для события
+    event.addresses.all().delete()
+
+    # Получаем адреса из проекта
+    project_addresses = event.project.addresses.all()
+
+    # Копируем адреса из проекта в событие
+    for addr in project_addresses:
+        EventAddress.objects.create(
+            event=event,
+            name=addr.name,
+            latitude=addr.latitude,
+            longitude=addr.longitude,
+        )
+
+    # Подготавливаем данные для возврата через JSON
+    event_addresses = list(event.addresses.values('name', 'latitude', 'longitude'))
+    return JsonResponse({"message": "Addresses copied successfully", "addresses": event_addresses})
+
 def create_event(request, project_id):
     project = get_object_or_404(Project, pk=project_id)
     if request.method == 'POST':
