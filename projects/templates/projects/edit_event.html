@@ -36,7 +36,8 @@
 
     <button type="button" id="add-address-btn">Добавить адрес</button>
     <button type="button" id="update-addresses-btn">Обновить список</button>
-    
+    <button type="button" id="show-map-btn">Показать карту</button>
+
     <div id="map-modal" class="modal">
         <div class="modal-content">
             <span class="close">&times;</span>
@@ -195,6 +196,87 @@
                             alert('Произошла ошибка при сохранении новых адресов');
                         }
                     });
+                }
+            };
+
+            // Глобальная переменная для карты
+            var map;
+
+            function initMap() {
+                // Создаём карту только в первый раз
+                if (!map) {
+                    map = new ymaps.Map('map', {
+                        center: [55.76, 37.64], // Начальная позиция - Москва
+                        zoom: 10
+                    });
+                }
+
+                // Очищаем все предыдущие метки
+                map.geoObjects.removeAll();
+
+                // Создаем массив для хранения координат меток
+                let coordinates = [];
+
+                // Добавление меток на карту
+                $('#event-addresses-list li').each(function() {
+                    // Чтение значений из DOM, удаления лишних пробелов
+                    var latitudeText = $(this).find('.latitude').text().trim();
+                    var longitudeText = $(this).find('.longitude').text().trim();
+                    var name = $(this).find('.address-name').val() || '';
+                    var addressNumber = $(this).find('.address-number').text().trim().replace('.', ''); // Убираем точку
+
+                    // Замена запятых на точки, если потребуется
+                    var latitude = parseFloat(latitudeText.replace(',', '.'));
+                    var longitude = parseFloat(longitudeText.replace(',', '.'));
+
+                    // Проверяем, что получили правильные координаты
+                    if (!isNaN(latitude) && !isNaN(longitude)) {
+                        var placemark = new ymaps.Placemark(
+                            [latitude, longitude], 
+                            {
+                                // Добавляем номер адреса в bubble и на метке
+                                balloonContent: `<strong>Адрес ${addressNumber}</strong>: ${name}`,
+                                iconContent: addressNumber // Номер адреса будет отображаться на метке
+                            }, 
+                            {
+                                preset: 'islands#redStretchyIcon' // Используем стиль, который поддерживает текст на метке
+                            }
+                        );
+
+                        map.geoObjects.add(placemark);
+                        coordinates.push([latitude, longitude]);
+                    } else {
+                        console.warn('Некорректные координаты для адреса:', name);
+                    }
+                });
+                // Добавляем линию, соединяющую метки
+                if (coordinates.length > 1) {
+                    var polyline = new ymaps.Polyline(coordinates, {}, {
+                        strokeColor: '#0000FF',
+                        strokeWidth: 3,
+                        strokeOpacity: 0.5
+                    });
+
+                    map.geoObjects.add(polyline);
+                }
+            }
+
+            // Открытие модального окна и обновление меток
+            $('#show-map-btn').click(function() {
+                $('#map-modal').show();
+                ymaps.ready(initMap); // Инициализация или обновление карты
+            });
+
+            // Закрытие модального окна
+            $('.modal .close').click(function() {
+                $('#map-modal').hide();
+            });
+
+            // Закрытие модального окна при клике вне содержимого
+            window.onclick = function(event) {
+                var modal = document.getElementById('map-modal');
+                if (event.target == modal) {
+                    modal.style.display = "none";
                 }
             };
         });
