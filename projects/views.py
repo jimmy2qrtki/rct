@@ -4,10 +4,11 @@ from .forms import ProjectForm, EventForm
 from django.contrib.auth.decorators import login_required
 from openpyxl import load_workbook
 import requests, json
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseBadRequest
 from django.views.decorators.http import require_POST, require_http_methods
 from django.utils.html import escape
 from .utils import reset_request_counter, get_time_until_midnight
+from django.views.decorators.csrf import csrf_exempt
 
 @login_required
 def manage_projects(request):
@@ -85,27 +86,6 @@ def edit_event(request, event_id):
         'event': event,
         'project_addresses': project_addresses,  # передаем адреса проекта в шаблон
     })
-
-def save_event_addresses(request, event_id):
-    if request.method == 'POST':
-        event = get_object_or_404(Event, pk=event_id)
-        addresses_data = json.loads(request.POST.get('addresses', '[]'))
-
-        # Удалим старые адреса события перед добавлением новых
-        event.addresses.all().delete()
-
-        # Сохраняем новые адреса
-        for address_data in addresses_data:
-            EventAddress.objects.create(
-                event=event,
-                name=address_data['name'],
-                latitude=address_data['latitude'],
-                longitude=address_data['longitude']
-            )
-
-        return JsonResponse({'status': 'success'})
-    else:
-        return JsonResponse({'status': 'error', 'message': 'Неверный метод запроса'}, status=400)
 
 def copy_addresses(request, event_id):
     event = get_object_or_404(Event, id=event_id)
@@ -305,3 +285,43 @@ def update_addresses(request, project_id):
         return JsonResponse({'status': 'ok', 'remaining_requests': counter.count})
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+    
+def delete_event_address(request, address_id):
+    if request.method == "POST":
+        address = get_object_or_404(EventAddress, id=address_id)
+        address.delete()
+        return JsonResponse({"success": True})
+    else:
+        return JsonResponse({"error": "Invalid request"}, status=400)
+
+# сохранение новых адресов в событии    
+@csrf_exempt
+def add_new_addresses(request, event_id):
+    if request.method == 'POST':
+        event = get_object_or_404(Event, id=event_id)
+        data = json.loads(request.POST.get('addresses', '[]'))
+        new_addresses = []
+        
+        for item in data:
+            new_address = EventAddress.objects.create(
+                event=event,
+                name=item['name'],
+                latitude=item['latitude'],
+                longitude=item['longitude']
+            )
+            new_addresses.append(new_address)
+        
+        # Подготавливаем данные для ответа
+        response_data = {
+            'addresses': [
+                {
+                    'id': addr.id, 
+                    'name': addr.name, 
+                    'latitude': addr.latitude, 
+                    'longitude': addr.longitude
+                } 
+                for addr in event.addresses.all()
+            ]
+        }
+        
+        return JsonResponse(response_data)
