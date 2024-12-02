@@ -64,7 +64,7 @@ class ExecutorRegistrationForm(UserCreationForm):
 class ExecutorProfileForm(forms.ModelForm):
     class Meta:
         model = ExecutorProfile
-        fields = ('name', 'start_address', 'district', 'api_key')
+        fields = ('name', 'phone_number', 'start_address', 'district', 'api_key')
         widgets = {
             'api_key': forms.PasswordInput(),  # скроет вводимый ключ
         }

@@ -1,5 +1,15 @@
+<h1>
+    Доброго времени суток, 
+    {% if form.name.value %}
+        {{ form.name.value }}!
+    {% else %}
+        {{ user.email }}!
+    {% endif %}
+</h1>
+<a href="{% url 'assigned_events_list' %}">События</a>
 <h2>Профиль Исполнителя</h2>
 <form method="post">
+    <p>Логин: {{ user.email }}</p>
     {% csrf_token %}
     {{ form.as_p }}
     <button type="submit">Сохранить</button>

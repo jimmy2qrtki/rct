@@ -285,7 +285,8 @@ def update_addresses(request, project_id):
         return JsonResponse({'status': 'ok', 'remaining_requests': counter.count})
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
-    
+
+# удаление адреса из списка адресов в событии      
 def delete_event_address(request, address_id):
     if request.method == "POST":
         address = get_object_or_404(EventAddress, id=address_id)
@@ -339,3 +340,26 @@ def update_address_order(request):
         return JsonResponse({'status': 'success'})
 
     return JsonResponse({'status': 'failure'}, status=400)
+
+@login_required
+# представление списка назначенных событий для исполнителя
+def assigned_events_list(request):
+    user = request.user
+    assigned_events = Event.objects.filter(assigned_user=user)
+
+    context = {
+        'assigned_events': assigned_events
+    }
+    return render(request, 'projects/assigned_events_list.html', context)
+
+@login_required
+# представление для удаления назначенного события из списка назначенных событий
+def remove_assigned_event(request, event_id):
+    event = get_object_or_404(Event, id=event_id, assigned_user=request.user)
+
+    if request.method == 'POST':
+        event.assigned_user = None
+        event.save()
+        return redirect('assigned_events_list')
+
+    return redirect('assigned_events_list')

@@ -19,4 +19,6 @@ urlpatterns = [
     path('project/<int:project_id>/edit_address_name/', views.edit_address_name, name='edit_address_name'),
     path('project/<int:project_id>/delete_address/', views.delete_address, name='delete_address'),
     path('project/<int:project_id>/update_addresses/', views.update_addresses, name='update_addresses'),
+    path('assigned-events/', views.assigned_events_list, name='assigned_events_list'),
+    path('assigned-events/remove/<int:event_id>/', views.remove_assigned_event, name='event_remove'),
 ]

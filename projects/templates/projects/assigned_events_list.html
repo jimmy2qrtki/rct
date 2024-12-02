@@ -1,0 +1,46 @@
+ <!-- templates/projects/assigned_events_list.html -->
+ <!DOCTYPE html>
+ <html>
+ <head>
+     <title>Назначенные события</title>
+ </head>
+ <body>
+    <a href="{% url 'executor_profile' %}">Профиль</a>
+    <h2>Назначенные события</h2>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Название проекта</th>
+                <th>Тип события</th>
+                <th>Дата начала</th>
+                <th>Срок выполнения (дни)</th>
+                <th>Дата завершения</th>
+                <th>Действия</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for event in assigned_events %}
+            <tr>
+                <td>{{ event.project.name }}</td>
+                <td>{{ event.get_event_type_display }}</td>
+                <td>{{ event.event_date|date:"Y-m-d" }}</td>
+                <td>{{ event.duration_days }}</td>
+                <td>{{ event.due_date|date:"Y-m-d" }}</td>
+                <td>
+                    <form action="{% url 'event_remove' event.id %}" method="post">
+                        {% csrf_token %}
+                        <button type="submit">Удалить</button>
+                    </form>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6">Нет назначенных событий.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+</body>
+</html>

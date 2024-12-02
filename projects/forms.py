@@ -15,14 +15,14 @@ class ProjectForm(forms.ModelForm):
 class EventForm(forms.ModelForm):
     class Meta:
         model = Event
-        fields = ['event_type', 'description', 'photo_count', 'event_date']
+        fields = ['event_type', 'description', 'photo_count', 'event_date', 'duration_days']
         labels = {
             'event_type': 'Событие',
             'description': 'Описание',
             'photo_count': 'Кол-во фото',
-            'event_date': 'Дата',
+            'event_date': 'Дата начала',
+            'duration_days': 'Срок выполнения (в днях)',
         }
         widgets = {
             'event_date': forms.SelectDateWidget(),
-            # 'event_date': forms.DateInput(attrs={'type': 'date', 'min': datetime.date.today().strftime('%Y-%m-%d')}),
         }

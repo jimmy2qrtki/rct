@@ -25,9 +25,16 @@ class Event(models.Model):
     description = models.TextField(blank=True)
     photo_count = models.IntegerField()
     event_date = models.DateField()
+    duration_days = models.IntegerField(help_text="Количество дней на выполнение")
+    assigned_user = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='assigned_events')
 
     def __str__(self):
         return f"{self.event_type} on {self.event_date}"
+
+    def due_date(self):
+        """Вычислить дату завершения на основе даты начала и срока выполнения."""
+        return self.event_date + timezone.timedelta(days=self.duration_days)
+
     
 class Address(models.Model):
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='addresses')
