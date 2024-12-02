@@ -43,6 +43,13 @@ class EventAddress(models.Model):
     name = models.CharField(max_length=255)
     latitude = models.FloatField()
     longitude = models.FloatField()
+    order = models.PositiveIntegerField(default=0)  # Добавляем поле для сортировки
+
+    class Meta:
+        ordering = ['order']
+
+    def __str__(self):
+        return self.name
     
 class RequestCounter(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)

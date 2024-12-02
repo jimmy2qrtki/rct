@@ -13,6 +13,7 @@ urlpatterns = [
     path('events/<int:event_id>/copy_addresses/', views.copy_addresses, name='copy_addresses'),
     path('events/address/<int:address_id>/delete/', views.delete_event_address, name='delete_event_address'),
     path('event/<int:event_id>/add_addresses/', views.add_new_addresses, name='add_new_addresses'),
+    path('update-address-order/', views.update_address_order, name='update_address_order'), # обновление порядка адреса в списке адресов события
     path('project/<int:project_id>/get_coordinates/', views.get_coordinates, name='get_coordinates'),
     path('project/<int:project_id>/delete_addresses/', views.delete_addresses, name='delete_addresses'),
     path('project/<int:project_id>/edit_address_name/', views.edit_address_name, name='edit_address_name'),

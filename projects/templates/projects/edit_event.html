@@ -6,6 +6,8 @@
     <script src="{% static 'js/jquery-3.7.1.min.js' %}"></script>
     <link rel="stylesheet" type="text/css" href="{% static 'projects/yandex-map-modal.css' %}">
     <script src="https://api-maps.yandex.ru/2.1/?apikey=<212ad00a-2b33-4742-9805-36eb9352e2df>&lang=ru_RU" type="text/javascript"></script>
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <script src="//code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
 </head>
 <body>
     <h1>Правка события: {{ event.get_event_type_display }} | {{ project.name }}</h1>
@@ -279,6 +281,46 @@
                     modal.style.display = "none";
                 }
             };
+
+            $(document).ready(function() {
+                $('#event-addresses-list').sortable({
+                    placeholder: 'ui-state-highlight',
+                    update: function(event, ui) {
+                        updateAddressNumbersAfterSort();
+                        saveNewOrder();
+                    }
+                });
+                $('#event-addresses-list').disableSelection();
+
+                function updateAddressNumbersAfterSort() {
+                    $('#event-addresses-list li').each(function(index) {
+                        $(this).find('.address-number').text((index + 1) + '.');
+                    });
+                }
+
+                function saveNewOrder() {
+                    const orderData = [];
+                    $('#event-addresses-list li').each(function(index) {
+                        const addressId = $(this).data('id');
+                        orderData.push({ id: addressId, order: index });
+                    });
+
+                    $.ajax({
+                        url: "{% url 'update_address_order' %}",
+                        type: "POST",
+                        data: {
+                            order: JSON.stringify(orderData),
+                            csrfmiddlewaretoken: "{{ csrf_token }}"
+                        },
+                        success: function(response) {
+                            console.log('Порядок адресов успешно сохранен.');
+                        },
+                        error: function(response) {
+                            console.error('Ошибка при сохранении порядка адресов');
+                        }
+                    });
+                }
+            });
         });
     </script>
 </body>

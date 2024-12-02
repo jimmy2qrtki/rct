@@ -325,3 +325,17 @@ def add_new_addresses(request, event_id):
         }
         
         return JsonResponse(response_data)
+
+# обновление порядка адресов в событии
+def update_address_order(request):
+    if request.method == 'POST':
+        order_data = json.loads(request.POST.get('order', '[]'))
+        
+        for item in order_data:
+            address = EventAddress.objects.get(id=item['id'])
+            address.order = item['order']
+            address.save()
+
+        return JsonResponse({'status': 'success'})
+
+    return JsonResponse({'status': 'failure'}, status=400)
