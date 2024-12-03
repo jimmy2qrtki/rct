@@ -9,6 +9,7 @@ from django.views.decorators.http import require_POST, require_http_methods
 from django.utils.html import escape
 from .utils import reset_request_counter, get_time_until_midnight
 from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.models import User, Group
 
 @login_required
 def manage_projects(request):
@@ -76,15 +77,19 @@ def edit_event(request, event_id):
             return redirect('edit_project', project_id=project.id)
     else:
         form = EventForm(instance=event)
-    
-    # Получаем адреса, связанные с проектом текущего события
+
     project_addresses = project.addresses.all()
-    
+
+    # Получаем пользователей, принадлежащих к группе "Исполнитель"
+    executor_group = Group.objects.get(name='Исполнитель')
+    executors = User.objects.filter(groups=executor_group).prefetch_related('executorprofile')
+
     return render(request, 'projects/edit_event.html', {
         'form': form,
         'project': project,
         'event': event,
-        'project_addresses': project_addresses,  # передаем адреса проекта в шаблон
+        'project_addresses': project_addresses,
+        'executors': executors,  # Передаем исполнителей в шаблон
     })
 
 def copy_addresses(request, event_id):
@@ -363,3 +368,46 @@ def remove_assigned_event(request, event_id):
         return redirect('assigned_events_list')
 
     return redirect('assigned_events_list')
+
+@csrf_exempt
+# сохраняет и динамически обновляет исполнителей события
+def update_event_executors(request, event_id):
+    if request.method == 'POST' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        executors_ids = request.POST.getlist('executors[]')
+        event = get_object_or_404(Event, pk=event_id)
+
+        # Снять всех текущих исполнителей
+        event.assigned_users.clear()
+
+        # Назначить новых исполнителей
+        users = User.objects.filter(id__in=executors_ids)
+        event.assigned_users.add(*users)
+
+        executors_data = [{'id': user.id,
+                           'name': user.executorprofile.name,
+                           'district': user.executorprofile.district,
+                           'phone_number': user.executorprofile.phone_number}
+                          for user in users]
+
+        return JsonResponse({'executors': executors_data})
+
+    return JsonResponse({'error': 'Invalid request'}, status=400)
+
+# Удаляем пользователя из исполнителей события
+def remove_executor(request):
+    if request.method == 'POST':
+        executor_id = request.POST.get('executor_id')
+        event_id = request.POST.get('event_id')
+
+        # Получаем событие и пользователя на удаление
+        try:
+            event = Event.objects.get(id=event_id)
+            user = User.objects.get(id=executor_id)
+        except (Event.DoesNotExist, User.DoesNotExist):
+            return JsonResponse({'error': 'Event or User not found'}, status=404)
+
+        # Удаляем пользователя из исполнителей события
+        event.assigned_users.remove(user)
+
+        return JsonResponse({'success': True})
+    return JsonResponse({'error': 'Invalid request'}, status=400)

@@ -39,7 +39,51 @@
     <button type="button" id="add-address-btn">Добавить адрес</button>
     <button type="button" id="update-addresses-btn">Обновить список</button>
     <button type="button" id="show-map-btn">Показать карту</button>
+    <!-- Кнопка для выбора исполнителей -->
+    <button type="button" id="select-executors-btn">Выбрать исполнителей</button>
 
+    <!-- Список исполнителей -->
+    <h2>Список исполнителей для события</h2>
+    <ul id="event-executors-list">
+        {% for user in event.assigned_users.all %}
+            {% with user.executorprofile as profile %}
+            <li data-id="{{ profile.user.id }}">
+                <span class="user-name">{{ profile.name|default:user.email }}</span>
+                {% if profile.district %} | <span class="district">{{ profile.district }}</span>{% endif %}
+                {% if profile.phone_number %} | <span class="phone-number">{{ profile.phone_number }}</span>{% endif %}
+                <button class="delete-executor-btn" data-id="{{ profile.user.id }}">Удалить</button>
+            </li>
+            {% endwith %}
+        {% empty %}
+            <li>Нет исполнителей.</li>
+        {% endfor %}
+    </ul>
+
+    <!-- Модальное окно для выбора исполнителей -->
+    <div id="executor-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>Выберите исполнителей</h3>
+            <ul id="executor-selection-list">
+                {% for user in executors %}
+                    {% with user.executorprofile as profile %}
+                    <li>
+                        <input type="checkbox" id="executor-{{ profile.user.id }}" data-id="{{ profile.user.id }}" data-name="{{ profile.name|default:user.email }}">
+                        <label for="executor-{{ profile.user.id }}">
+                            <span class="user-name">{{ profile.name|default:user.email }}</span>
+                            {% if profile.district %} | <span class="district">{{ profile.district }}</span>{% endif %}
+                            {% if profile.phone_number %} | <span class="phone-number">{{ profile.phone_number }}</span>{% endif %}
+                        </label>
+                    </li>
+                    {% endwith %}
+                {% endfor %}
+            </ul>
+            <button type="button" id="add-executors-btn">Выбрать</button>
+        </div>
+    </div>
+
+    <!-- Кнопка для назначения -->
+    <button type="button" id="assign-btn">Назначить</button>
     <div id="map-modal" class="modal">
         <div class="modal-content">
             <span class="close">&times;</span>
@@ -320,6 +364,81 @@
                         }
                     });
                 }
+            });
+
+            // Открытие и закрытие модального окна
+            $('#select-executors-btn').click(function() {
+                $('#executor-modal').show();
+            });
+            $('.close').click(function() {
+                $('#executor-modal').hide();
+            });
+
+            // AJAX-запрос для сохранения выбранных исполнителей
+            $('#add-executors-btn').click(function() {
+                var selectedExecutors = [];
+                $('#executor-selection-list input:checked').each(function() {
+                    selectedExecutors.push($(this).data('id'));
+                });
+
+                $.ajax({
+                    url: "{% url 'update_event_executors' event.id %}",
+                    type: "POST",
+                    headers: {'X-CSRFToken': '{{ csrf_token }}'},
+                    data: {
+                        'executors': selectedExecutors
+                    },
+                    success: function(response) {
+                        $('#executor-modal').hide();
+                        // Обновите список исполнителей на странице
+                        $('#event-executors-list').empty();
+                        $.each(response.executors, function(index, executor) {
+                            $('#event-executors-list').append(
+                                `<li data-id="${executor.id}">
+                                    <span class="user-name">${executor.name}</span>
+                                    | <span class="district">${executor.district}</span>
+                                    | <span class="phone-number">${executor.phone_number}</span>
+                                    <button class="delete-executor-btn" data-id="${executor.id}">Удалить</button>
+                                </li>`
+                            );
+                        });
+                    },
+                    error: function(xhr, status, error) {
+                        alert('Ошибка при сохранении исполнителей. Попробуйте еще раз.');
+                    }
+                });
+            });
+
+            // Удаление исполнителя из списка
+            $(document).on('click', '.delete-executor-btn', function() {
+                var executorId = $(this).data('id');
+                var eventId = "{{ event.id }}";  // Замените на динамические данные, если требуется
+
+                // Удаляем элемент из списка на странице
+                $(this).closest('li').remove();
+
+                // Отправляем запрос на сервер для удаления
+                $.ajax({
+                    url: "{% url 'remove_executor' %}",
+                    method: "POST",
+                    data: {
+                        'executor_id': executorId,
+                        'event_id': eventId,
+                        'csrfmiddlewaretoken': '{{ csrf_token }}'
+                    },
+                    success: function(response) {
+                        console.log('Исполнитель удален');
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Произошла ошибка при удалении исполнителя: ', error);
+                    }
+                });
+
+            });
+            
+            // Обработайте назначение событий на сервере с помощью AJAX или форм
+            $('#assign-btn').click(function() {
+                // Логика для передачи данных списка исполнителей на сервер
             });
         });
     </script>
