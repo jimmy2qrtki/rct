@@ -51,6 +51,7 @@
                 <span class="user-name">{{ profile.name|default:user.email }}</span>
                 {% if profile.district %} | <span class="district">{{ profile.district }}</span>{% endif %}
                 {% if profile.phone_number %} | <span class="phone-number">{{ profile.phone_number }}</span>{% endif %}
+                <button class="assign-btn" data-id="{{ profile.user.id }}">Назначить</button>
                 <button class="delete-executor-btn" data-id="{{ profile.user.id }}">Удалить</button>
             </li>
             {% endwith %}
@@ -82,8 +83,6 @@
         </div>
     </div>
 
-    <!-- Кнопка для назначения -->
-    <button type="button" id="assign-btn">Назначить</button>
     <div id="map-modal" class="modal">
         <div class="modal-content">
             <span class="close">&times;</span>
@@ -368,6 +367,24 @@
 
             // Открытие и закрытие модального окна
             $('#select-executors-btn').click(function() {
+                // Собираем ID исполнителей, уже добавленных в список
+                var existingExecutorIds = [];
+                $('#event-executors-list li').each(function() {
+                    existingExecutorIds.push($(this).data('id'));
+                });
+
+                // Находим чекбоксы, которые соответствуют существующим исполнителям, и блокируем их
+                $('#executor-selection-list input[type=checkbox]').each(function() {
+                    var executorId = $(this).data('id');
+                    if (existingExecutorIds.includes(executorId)) {
+                        $(this).prop('disabled', true);    // Отключаем чекбокс
+                        $(this).prop('checked', true);     // Отмечаем чекбокс
+                    } else {
+                        $(this).prop('disabled', false);
+                        $(this).prop('checked', false);    // Убираем отметку с чекбокса
+                    }
+                });
+
                 $('#executor-modal').show();
             });
             $('.close').click(function() {
@@ -379,6 +396,14 @@
                 var selectedExecutors = [];
                 $('#executor-selection-list input:checked').each(function() {
                     selectedExecutors.push($(this).data('id'));
+                });
+
+                // Собираем уже существующие элементы из DOM
+                $('#event-executors-list li').each(function() {
+                    var executorId = $(this).data('id');
+                    if (!selectedExecutors.includes(executorId)) {
+                        selectedExecutors.push(executorId);
+                    }
                 });
 
                 $.ajax({
@@ -398,6 +423,7 @@
                                     <span class="user-name">${executor.name}</span>
                                     | <span class="district">${executor.district}</span>
                                     | <span class="phone-number">${executor.phone_number}</span>
+                                    <button class="assign-btn" data-id="${executor.id}">Назначить</button>
                                     <button class="delete-executor-btn" data-id="${executor.id}">Удалить</button>
                                 </li>`
                             );
@@ -436,9 +462,9 @@
 
             });
             
-            // Обработайте назначение событий на сервере с помощью AJAX или форм
+            // Это для логики назначения исполнителя к события
             $('#assign-btn').click(function() {
-                // Логика для передачи данных списка исполнителей на сервер
+                // Логика для передачи данных на сервер
             });
         });
     </script>

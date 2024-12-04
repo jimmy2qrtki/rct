@@ -377,7 +377,7 @@ def update_event_executors(request, event_id):
         event = get_object_or_404(Event, pk=event_id)
 
         # Снять всех текущих исполнителей
-        event.assigned_users.clear()
+        # event.assigned_users.clear()
 
         # Назначить новых исполнителей
         users = User.objects.filter(id__in=executors_ids)
