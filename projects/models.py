@@ -41,6 +41,10 @@ class Address(models.Model):
     name = models.CharField(max_length=255)
     latitude = models.FloatField()
     longitude = models.FloatField()
+    order = models.PositiveIntegerField(default=0)  # Добавляем поле для сортировки
+
+    class Meta:
+        ordering = ['order']  # Определяем стандартный порядок сортировки
 
     def __str__(self):
         return self.name

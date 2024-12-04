@@ -10,6 +10,7 @@ from django.utils.html import escape
 from .utils import reset_request_counter, get_time_until_midnight
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.models import User, Group
+from scipy.spatial.distance import euclidean
 
 @login_required
 def manage_projects(request):
@@ -92,6 +93,31 @@ def edit_event(request, event_id):
         'executors': executors,  # Передаем исполнителей в шаблон
     })
 
+# перестраивает порядок адресов для оптимального маршрута
+def nearest_neighbor(coords):
+    n = len(coords)
+    visited = [False] * n
+    path = [0]  # Начинаем с первой точки
+    visited[0] = True
+
+    for _ in range(n - 1):
+        last_index = path[-1]
+        nearest_index = -1
+        nearest_distance = float('inf')
+
+        for i in range(n):
+            if not visited[i]:
+                distance = euclidean(coords[last_index], coords[i])
+                if distance < nearest_distance:
+                    nearest_distance = distance
+                    nearest_index = i
+
+        path.append(nearest_index)
+        visited[nearest_index] = True
+
+    return path
+
+# копирование адресов с проекта в событие с построением маршрута начиная с 1 адреса в проекте
 def copy_addresses(request, event_id):
     event = get_object_or_404(Event, id=event_id)
 
@@ -99,16 +125,24 @@ def copy_addresses(request, event_id):
     event.addresses.all().delete()
 
     # Получаем адреса из проекта
-    project_addresses = event.project.addresses.all()
-
-    # Копируем адреса из проекта в событие
-    for addr in project_addresses:
-        EventAddress.objects.create(
-            event=event,
-            name=addr.name,
-            latitude=addr.latitude,
-            longitude=addr.longitude,
-        )
+    project_addresses = list(event.project.addresses.all())
+    
+    # Подготавливаем координаты для оптимизации
+    coordinates = [(addr.latitude, addr.longitude) for addr in project_addresses]
+    
+    # Находим оптимальный порядок адресов
+    if coordinates:
+        optimal_order = nearest_neighbor(coordinates)
+        sorted_project_addresses = [project_addresses[i] for i in optimal_order]
+    
+        # Копируем адреса из проекта в событие в оптимальном порядке
+        for addr in sorted_project_addresses:
+            EventAddress.objects.create(
+                event=event,
+                name=addr.name,
+                latitude=addr.latitude,
+                longitude=addr.longitude,
+            )
 
     # Подготавливаем данные для возврата через JSON
     event_addresses = list(event.addresses.values('name', 'latitude', 'longitude'))
@@ -336,11 +370,22 @@ def add_new_addresses(request, event_id):
 def update_address_order(request):
     if request.method == 'POST':
         order_data = json.loads(request.POST.get('order', '[]'))
-        
+        model_type = request.POST.get('model')
+
+        if model_type == 'EventAddress':
+            ModelClass = EventAddress
+        elif model_type == 'Address':
+            ModelClass = Address
+        else:
+            return JsonResponse({'status': 'failure', 'error': 'Invalid model type'}, status=400)
+
         for item in order_data:
-            address = EventAddress.objects.get(id=item['id'])
-            address.order = item['order']
-            address.save()
+            try:
+                address = ModelClass.objects.get(id=item['id'])
+                address.order = item['order']
+                address.save()
+            except ModelClass.DoesNotExist:
+                return JsonResponse({'status': 'failure', 'error': 'Address not found'}, status=400)
 
         return JsonResponse({'status': 'success'})
 

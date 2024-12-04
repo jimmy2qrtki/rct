@@ -6,6 +6,8 @@
     <script src="{% static 'js/jquery-3.7.1.min.js' %}"></script>
     <link rel="stylesheet" type="text/css" href="{% static 'projects/yandex-map-modal.css' %}">
     <script src="https://api-maps.yandex.ru/2.1/?apikey=<212ad00a-2b33-4742-9805-36eb9352e2df>&lang=ru_RU" type="text/javascript"></script>
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <script src="//code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
 </head>
 <body>
     <h1>{{ project.name }}</h1>
@@ -39,8 +41,7 @@
         <li data-id="{{ address.id }}">
             <span class="address-number">{{ forloop.counter }}.</span> 
             <input class="address-name" value="{{ address.name }}" data-id="{{ address.id }}"> |
-            <span class="latitude">{{ address.latitude }}</span>
-            <button class="show-map-btn" data-latitude="{{ address.latitude }}" data-longitude="{{ address.longitude }}">Карта</button> 
+            <span class="latitude">{{ address.latitude }}</span> | 
             <span class="longitude">{{ address.longitude }}</span>
             <button class="delete-address-btn" data-id="{{ address.id }}">Удалить</button>
         </li>
@@ -48,15 +49,18 @@
         <li>Нет адресов.</li>
         {% endfor %}
     </ul>
+
     <div id="map-modal" class="modal">
         <div class="modal-content">
             <span class="close">&times;</span>
             <div id="map" style="width: 600px; height: 400px;"></div>
         </div>
     </div>
+
     <button type="button" id="add-address-btn">Добавить адрес</button>
     <button type="button" id="update-addresses-btn">Обновить список</button>
     <button type="button" id="delete-addresses-btn">Удалить список</button>
+    <button type="button" id="show-map-btn">Показать карту</button>
     <button type="button" id="save-project-button">Сохранить проект</button>
     <a href="{% url 'manage_projects' %}">Закрыть</a>
     <script>
@@ -175,49 +179,129 @@
                 });
             });
         });
-        // яндекс карта
-        document.querySelectorAll('.show-map-btn').forEach(button => {
-            button.addEventListener('click', function() {
-                // Получаем координаты из атрибутов data
-                const latStr = this.getAttribute('data-latitude');
-                const lonStr = this.getAttribute('data-longitude');
+        
+        // Глобальная переменная для карты
+        var map;
 
-                // Заменяем запятую на точку, если она присутствует
-                const latitude = parseFloat(latStr.replace(',', '.'));
-                const longitude = parseFloat(lonStr.replace(',', '.'));
-
-                const modal = document.getElementById('map-modal');
-                modal.style.display = "block";
-
-                // Удаление старой карты, чтобы создать каждую карту с нужными координатами
-                while (document.getElementById('map').firstChild) {
-                    document.getElementById('map').removeChild(document.getElementById('map').firstChild);
-                }
-
-                ymaps.ready(() => {
-                    const map = new ymaps.Map("map", {
-                        center: [latitude, longitude],
-                        zoom: 14
-                    });
-                    const placemark = new ymaps.Placemark([latitude, longitude], {}, {
-                        preset: 'islands#icon',
-                        iconColor: '#0095b6'
-                    });
-                    map.geoObjects.add(placemark);
+        function initMap() {
+            // Создаём карту только в первый раз
+            if (!map) {
+                map = new ymaps.Map('map', {
+                    center: [55.76, 37.64], // Начальная позиция - Москва
+                    zoom: 10
                 });
+            }
+
+            // Очищаем все предыдущие метки
+            map.geoObjects.removeAll();
+
+            // Создаем массив для хранения координат меток
+            let coordinates = [];
+
+            // Добавление меток на карту
+            $('#addresses-list li').each(function() {
+                // Чтение значений из DOM, удаления лишних пробелов
+                var latitudeText = $(this).find('.latitude').text().trim();
+                var longitudeText = $(this).find('.longitude').text().trim();
+                var name = $(this).find('.address-name').val() || '';
+                var addressNumber = $(this).find('.address-number').text().trim().replace('.', ''); // Убираем точку
+
+                // Замена запятых на точки, если потребуется
+                var latitude = parseFloat(latitudeText.replace(',', '.'));
+                var longitude = parseFloat(longitudeText.replace(',', '.'));
+
+                // Проверяем, что получили правильные координаты
+                if (!isNaN(latitude) && !isNaN(longitude)) {
+                    var placemark = new ymaps.Placemark(
+                        [latitude, longitude], 
+                        {
+                            // Добавляем номер адреса в bubble и на метке
+                            balloonContent: `<strong>Адрес ${addressNumber}</strong>: ${name}`,
+                            iconContent: addressNumber // Номер адреса будет отображаться на метке
+                        }, 
+                        {
+                            preset: 'islands#redStretchyIcon' // Используем стиль, который поддерживает текст на метке
+                        }
+                    );
+
+                    map.geoObjects.add(placemark);
+                    coordinates.push([latitude, longitude]);
+                } else {
+                    console.warn('Некорректные координаты для адреса:', name);
+                }
             });
+            // Добавляем линию, соединяющую метки
+            if (coordinates.length > 1) {
+                var polyline = new ymaps.Polyline(coordinates, {}, {
+                    strokeColor: '#0000FF',
+                    strokeWidth: 3,
+                    strokeOpacity: 0.5
+                });
+
+                map.geoObjects.add(polyline);
+            }
+        }
+
+        // Открытие модального окна и обновление меток
+        $('#show-map-btn').click(function() {
+            $('#map-modal').show();
+            ymaps.ready(initMap); // Инициализация или обновление карты
         });
 
-        document.querySelector('.close').addEventListener('click', function() {
-            document.getElementById('map-modal').style.display = "none";
+        // Закрытие модального окна
+        $('.modal .close').click(function() {
+            $('#map-modal').hide();
         });
 
-        window.addEventListener('click', function(event) {
-            const modal = document.getElementById('map-modal');
-            if (event.target === modal) {
+        // Закрытие модального окна при клике вне содержимого
+        window.onclick = function(event) {
+            var modal = document.getElementById('map-modal');
+            if (event.target == modal) {
                 modal.style.display = "none";
             }
+        };
+
+        $(document).ready(function() {
+            $('#addresses-list').sortable({
+                placeholder: 'ui-state-highlight',
+                update: function(project, ui) {
+                    updateAddressNumbersAfterSort();
+                    saveNewOrder();
+                }
+            });
+            $('#addresses-list').disableSelection();
+
+            function updateAddressNumbersAfterSort() {
+                $('#addresses-list li').each(function(index) {
+                    $(this).find('.address-number').text((index + 1) + '.');
+                });
+            }
+
+            function saveNewOrder() {
+                const orderData = [];
+                $('#addresses-list li').each(function(index) {
+                    const addressId = $(this).data('id');
+                    orderData.push({ id: addressId, order: index });
+                });
+
+                $.ajax({
+                    url: "{% url 'update_address_order' %}",
+                    type: "POST",
+                    data: {
+                        order: JSON.stringify(orderData),
+                        model: 'Address', // добавлено 
+                        csrfmiddlewaretoken: "{{ csrf_token }}"
+                    },
+                    success: function(response) {
+                        console.log('Порядок адресов проекта успешно сохранен.');
+                    },
+                    error: function(response) {
+                        console.error('Ошибка при сохранении порядка адресов проекта');
+                    }
+                });
+            }
         });
+
         document.getElementById('add-address-btn').addEventListener('click', function() {
             const addressList = document.getElementById('addresses-list');
             const newListItem = document.createElement('li');

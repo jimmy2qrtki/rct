@@ -353,13 +353,14 @@
                         type: "POST",
                         data: {
                             order: JSON.stringify(orderData),
+                            model: 'EventAddress', // добавлено 
                             csrfmiddlewaretoken: "{{ csrf_token }}"
                         },
                         success: function(response) {
-                            console.log('Порядок адресов успешно сохранен.');
+                            console.log('Порядок адресов события успешно сохранен.');
                         },
                         error: function(response) {
-                            console.error('Ошибка при сохранении порядка адресов');
+                            console.error('Ошибка при сохранении порядка адресов события');
                         }
                     });
                 }
