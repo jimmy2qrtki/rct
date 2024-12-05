@@ -87,6 +87,20 @@
         <div class="modal-content">
             <span class="close">&times;</span>
             <div id="map" style="width: 600px; height: 400px;"></div>
+            <ul id="modal-event-addresses-list">
+                {% for address in event.addresses.all %}
+                <li data-id="{{ address.id }}">
+                    <span class="address-number">{{ forloop.counter }}.</span> 
+                    <input class="address-name" value="{{ address.name }}" data-id="{{ address.id }}"> |
+                    <span class="latitude">{{ address.latitude }}</span>
+                    <button class="show-map-btn" data-latitude="{{ address.latitude }}" data-longitude="{{ address.longitude }}">Карта</button> 
+                    <span class="longitude">{{ address.longitude }}</span>
+                    <button class="delete-address-btn" data-id="{{ address.id }}">Удалить</button>
+                </li>
+                {% empty %}
+                <li>Нет адресов.</li>
+                {% endfor %}
+            </ul>
         </div>
     </div>
 
@@ -247,44 +261,37 @@
             // Глобальная переменная для карты
             var map;
 
+            // Глобальная функция для инициализации и обновления карты
             function initMap() {
-                // Создаём карту только в первый раз
                 if (!map) {
                     map = new ymaps.Map('map', {
-                        center: [55.76, 37.64], // Начальная позиция - Москва
+                        center: [55.76, 37.64],
                         zoom: 10
                     });
                 }
 
-                // Очищаем все предыдущие метки
                 map.geoObjects.removeAll();
 
-                // Создаем массив для хранения координат меток
                 let coordinates = [];
 
-                // Добавление меток на карту
-                $('#event-addresses-list li').each(function() {
-                    // Чтение значений из DOM, удаления лишних пробелов
+                $('#modal-event-addresses-list li').each(function() {
                     var latitudeText = $(this).find('.latitude').text().trim();
                     var longitudeText = $(this).find('.longitude').text().trim();
                     var name = $(this).find('.address-name').val() || '';
-                    var addressNumber = $(this).find('.address-number').text().trim().replace('.', ''); // Убираем точку
+                    var addressNumber = $(this).find('.address-number').text().trim().replace('.', '');
 
-                    // Замена запятых на точки, если потребуется
                     var latitude = parseFloat(latitudeText.replace(',', '.'));
                     var longitude = parseFloat(longitudeText.replace(',', '.'));
 
-                    // Проверяем, что получили правильные координаты
                     if (!isNaN(latitude) && !isNaN(longitude)) {
                         var placemark = new ymaps.Placemark(
                             [latitude, longitude], 
                             {
-                                // Добавляем номер адреса в bubble и на метке
                                 balloonContent: `<strong>Адрес ${addressNumber}</strong>: ${name}`,
-                                iconContent: addressNumber // Номер адреса будет отображаться на метке
+                                iconContent: addressNumber
                             }, 
                             {
-                                preset: 'islands#redStretchyIcon' // Используем стиль, который поддерживает текст на метке
+                                preset: 'islands#redStretchyIcon'
                             }
                         );
 
@@ -294,7 +301,7 @@
                         console.warn('Некорректные координаты для адреса:', name);
                     }
                 });
-                // Добавляем линию, соединяющую метки
+
                 if (coordinates.length > 1) {
                     var polyline = new ymaps.Polyline(coordinates, {}, {
                         strokeColor: '#0000FF',
@@ -306,65 +313,74 @@
                 }
             }
 
+            let isOrderChanged = false; // Флаг для отслеживания изменений порядка
+
+            function initializeSorting(selector) {
+                $(selector).sortable({
+                    placeholder: 'ui-state-highlight',
+                    update: function(event, ui) {
+                        updateAddressNumbersAfterSort(selector);
+                        saveNewOrder(selector);
+
+                        // Обновляем карту и устанавливаем флаг при изменении в модальном списке
+                        if (selector === '#modal-event-addresses-list') {
+                            ymaps.ready(initMap);
+                            isOrderChanged = true; // Устанавливаем флаг изменения
+                        }
+                    }
+                });
+
+                $(selector).disableSelection();
+            }
+
+            function updateAddressNumbersAfterSort(selector) {
+                $(selector + ' li').each(function(index) {
+                    $(this).find('.address-number').text((index + 1) + '.');
+                });
+            }
+
+            function saveNewOrder(selector) {
+                const orderData = [];
+                $(selector + ' li').each(function(index) {
+                    const addressId = $(this).data('id');
+                    orderData.push({ id: addressId, order: index });
+                });
+
+                $.ajax({
+                    url: "{% url 'update_address_order' %}",
+                    type: "POST",
+                    data: {
+                        order: JSON.stringify(orderData),
+                        model: 'EventAddress',
+                        csrfmiddlewaretoken: "{{ csrf_token }}"
+                    },
+                    success: function(response) {
+                        console.log('Порядок адресов события успешно сохранен.');
+                    },
+                    error: function(response) {
+                        console.error('Ошибка при сохранении порядка адресов события');
+                    }
+                });
+            }
+
+            // Инициализация сортировки
+            initializeSorting('#event-addresses-list');
+            initializeSorting('#modal-event-addresses-list');
+
             // Открытие модального окна и обновление меток
             $('#show-map-btn').click(function() {
                 $('#map-modal').show();
-                ymaps.ready(initMap); // Инициализация или обновление карты
+                ymaps.ready(initMap);
             });
 
             // Закрытие модального окна
             $('.modal .close').click(function() {
                 $('#map-modal').hide();
-            });
-
-            // Закрытие модального окна при клике вне содержимого
-            window.onclick = function(event) {
-                var modal = document.getElementById('map-modal');
-                if (event.target == modal) {
-                    modal.style.display = "none";
-                }
-            };
-
-            $(document).ready(function() {
-                $('#event-addresses-list').sortable({
-                    placeholder: 'ui-state-highlight',
-                    update: function(event, ui) {
-                        updateAddressNumbersAfterSort();
-                        saveNewOrder();
-                    }
-                });
-                $('#event-addresses-list').disableSelection();
-
-                function updateAddressNumbersAfterSort() {
-                    $('#event-addresses-list li').each(function(index) {
-                        $(this).find('.address-number').text((index + 1) + '.');
-                    });
-                }
-
-                function saveNewOrder() {
-                    const orderData = [];
-                    $('#event-addresses-list li').each(function(index) {
-                        const addressId = $(this).data('id');
-                        orderData.push({ id: addressId, order: index });
-                    });
-
-                    $.ajax({
-                        url: "{% url 'update_address_order' %}",
-                        type: "POST",
-                        data: {
-                            order: JSON.stringify(orderData),
-                            model: 'EventAddress', // добавлено 
-                            csrfmiddlewaretoken: "{{ csrf_token }}"
-                        },
-                        success: function(response) {
-                            console.log('Порядок адресов события успешно сохранен.');
-                        },
-                        error: function(response) {
-                            console.error('Ошибка при сохранении порядка адресов события');
-                        }
-                    });
+                if (isOrderChanged) {
+                    location.reload(); // Перезагрузка страницы, если изменился порядок
                 }
             });
+
 
             // Открытие и закрытие модального окна
             $('#select-executors-btn').click(function() {
