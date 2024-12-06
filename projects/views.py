@@ -20,33 +20,31 @@ def manage_projects(request):
 
 @login_required
 def edit_project(request, project_id):
-    # Получаем проект
     project = get_object_or_404(Project, pk=project_id)
-    
-    # Получаем связанные события и адреса
     events = project.events.all()
     addresses = project.addresses.all()
-    
-    # Получаем или создаем RequestCounter для текущего пользователя
     counter, created = RequestCounter.objects.get_or_create(user=request.user)
     remaining_requests = counter.count
-    
-    # Обработка формы
+
     if request.method == 'POST':
         form = ProjectForm(request.POST, request.FILES, instance=project)
         if form.is_valid():
+            if form.cleaned_data['organization'] == 'add_new':
+                new_org = form.cleaned_data['new_organization']
+                form.instance.organization = new_org
+            else:
+                form.instance.organization = form.cleaned_data['organization']
             form.save()
-            return redirect('edit_project', project_id=project.id)  # Перенаправление для предотвращения повторной отправки формы
+            return redirect('edit_project', project_id=project.id)
     else:
         form = ProjectForm(instance=project)
 
-    # Отправляем данные в шаблон
     return render(request, 'projects/edit_project.html', {
         'form': form,
         'project': project,
         'events': events,
         'addresses': addresses,
-        'remaining_requests': remaining_requests,  # Отображаем оставшиеся запросы
+        'remaining_requests': remaining_requests,
     })
 
 @login_required
@@ -55,11 +53,17 @@ def create_project(request):
         form = ProjectForm(request.POST, request.FILES)
         if form.is_valid():
             project = form.save(commit=False)
+            if form.cleaned_data['organization'] == 'add_new':
+                new_org = form.cleaned_data['new_organization']
+                project.organization = new_org
+            else:
+                project.organization = form.cleaned_data['organization']
             project.user = request.user
-            form.save()
+            project.save()
             return redirect('edit_project', project_id=project.id)
     else:
         form = ProjectForm()
+
     return render(request, 'projects/create_project.html', {'form': form})
 
 def manage_events(request, project_id):
@@ -75,7 +79,7 @@ def edit_event(request, event_id):
         form = EventForm(request.POST, instance=event)
         if form.is_valid():
             form.save()
-            return redirect('edit_project', project_id=project.id)
+            return redirect('edit_event', event_id=event.id)
     else:
         form = EventForm(instance=event)
 

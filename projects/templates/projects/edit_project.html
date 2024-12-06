@@ -33,15 +33,7 @@
             <label for="{{ form.description.id_for_label }}">Описание</label>
             {{ form.description }}
         </p>
-        <p>
-            <label for="{{ form.excel_file.id_for_label }}">Excel-файл</label>
-            {{ form.excel_file }}
-        </p>
-        <button type="submit">Сохранить поля</button>
     </form>
-    <p id="remaining-requests">Осталось {{ remaining_requests }} запросов</p>
-    <button type="button" id="get-coordinates-btn">Получить координаты</button>
-    <div id="loading-indicator" style="display: none;">Идет парсинг адресов, пожалуйста подождите...</div>
     <a href="{% url 'create_event' project.id %}">Создать событие</a>
     <ul>
         {% for event in events %}
@@ -58,6 +50,13 @@
             <li>Нет событий.</li>
         {% endfor %}
     </ul>
+    <p>
+        <label for="{{ form.excel_file.id_for_label }}">Excel-файл</label>
+        {{ form.excel_file }}
+    </p>
+    <button type="button" id="get-coordinates-btn">Получить координаты</button>
+    <span id="remaining-requests">Осталось {{ remaining_requests }} запросов</span>
+    <div id="loading-indicator" style="display: none;">Идет парсинг адресов, пожалуйста подождите...</div>
     
     <h2>Список адресов</h2>
     <ul id="addresses-list">
@@ -89,6 +88,7 @@
     <a href="{% url 'manage_projects' %}">Закрыть</a>
     <script>
         $(document).ready(function() {
+            // сохранение проекта
             $('#save-project-button').click(function() {
                 $('#project-form').submit();
             });

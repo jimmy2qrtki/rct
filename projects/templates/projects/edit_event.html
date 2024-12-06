@@ -11,12 +11,10 @@
 </head>
 <body>
     <h1>Правка события: {{ event.get_event_type_display }} | {{ project.name }}</h1>
-    <form method="POST">
+    <form id="event-form" method="POST">
         {% csrf_token %}
         {{ form.as_p }}
-        <button type="submit">Сохранить</button>
     </form>
-    <a href="{% url 'edit_project' project.id %}">Назад</a>
     
     <button type="button" id="copy-addresses-btn">Добавить адреса</button>
     
@@ -90,12 +88,8 @@
                 {% for address in event.addresses.all %}
                 <li data-id="{{ address.id }}">
                     <span class="address-number">{{ forloop.counter }}.</span> 
-                    <input class="address-name" value="{{ address.name }}" data-id="{{ address.id }}"> |
-                    <span class="latitude">{{ address.latitude }}</span>
-                    <span class="latitude">{{ address.latitude }}</span>
-                    <button class="show-map-btn" data-latitude="{{ address.latitude }}" data-longitude="{{ address.longitude }}">Карта</button> 
-                    <span class="latitude">{{ address.latitude }}</span> 
-                    <button class="show-map-btn" data-latitude="{{ address.latitude }}" data-longitude="{{ address.longitude }}">Карта</button> 
+                    <input class="address-name" value="{{ address.name }}" data-id="{{ address.id }}"> | 
+                    <span class="latitude">{{ address.latitude }}</span> | 
                     <span class="longitude">{{ address.longitude }}</span>
                 </li>
                 {% empty %}
@@ -104,9 +98,16 @@
             </ul>
         </div>
     </div>
+    <button type="button" id="save-event-button">Сохранить событие</button>
+    <a href="{% url 'edit_project' project.id %}">Назад</a>
 
     <script>
         $(document).ready(function() {
+            // сохранение события
+            $('#save-event-button').click(function() {
+                $('#event-form').submit();
+            });
+            // Синхронизация адресов с проекта
             $('#copy-addresses-btn').click(function() {
                 const eventId = "{{ event.id }}";  // Получаем ID текущего события
                 $.ajax({
