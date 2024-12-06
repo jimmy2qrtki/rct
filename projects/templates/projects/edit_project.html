@@ -13,7 +13,31 @@
     <h1>{{ project.name }}</h1>
     <form id="project-form" method="POST" enctype="multipart/form-data">
         {% csrf_token %}
-        {{ form.as_p }}
+        <p>
+            <label for="{{ form.name.id_for_label }}">Название</label>
+            {{ form.name }}
+        </p>
+        <p>
+            <label for="{{ form.organization.id_for_label }}">Организация взаимодействия</label>
+            {{ form.organization }}
+        </p>
+        <div id="new-organization-field" style="display: none;">
+            <label for="{{ form.new_organization.id_for_label }}">Новая организация</label>
+            {{ form.new_organization }}
+        </div>
+        <p>
+            <label for="{{ form.product.id_for_label }}">Продукция взаимодействия</label>
+            {{ form.product }}
+        </p>
+        <p>
+            <label for="{{ form.description.id_for_label }}">Описание</label>
+            {{ form.description }}
+        </p>
+        <p>
+            <label for="{{ form.excel_file.id_for_label }}">Excel-файл</label>
+            {{ form.excel_file }}
+        </p>
+        <button type="submit">Сохранить поля</button>
     </form>
     <p id="remaining-requests">Осталось {{ remaining_requests }} запросов</p>
     <button type="button" id="get-coordinates-btn">Получить координаты</button>
@@ -68,6 +92,14 @@
             $('#save-project-button').click(function() {
                 $('#project-form').submit();
             });
+            // поле для новой организации
+            $('#id_organization').change(function() {
+                if ($(this).val() == 'add_new') {
+                    $('#new-organization-field').show();
+                } else {
+                    $('#new-organization-field').hide();
+                }
+            }).change(); // Trigger change to update on load
         });
     </script>
     <script>

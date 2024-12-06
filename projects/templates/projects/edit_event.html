@@ -26,8 +26,7 @@
         <li data-id="{{ address.id }}">
             <span class="address-number">{{ forloop.counter }}.</span> 
             <input class="address-name" value="{{ address.name }}" data-id="{{ address.id }}"> |
-            <span class="latitude">{{ address.latitude }}</span>
-            <button class="show-map-btn" data-latitude="{{ address.latitude }}" data-longitude="{{ address.longitude }}">Карта</button> 
+            <span class="latitude">{{ address.latitude }}</span> | 
             <span class="longitude">{{ address.longitude }}</span>
             <button class="delete-address-btn" data-id="{{ address.id }}">Удалить</button>
         </li>
@@ -93,9 +92,11 @@
                     <span class="address-number">{{ forloop.counter }}.</span> 
                     <input class="address-name" value="{{ address.name }}" data-id="{{ address.id }}"> |
                     <span class="latitude">{{ address.latitude }}</span>
+                    <span class="latitude">{{ address.latitude }}</span>
+                    <button class="show-map-btn" data-latitude="{{ address.latitude }}" data-longitude="{{ address.longitude }}">Карта</button> 
+                    <span class="latitude">{{ address.latitude }}</span> 
                     <button class="show-map-btn" data-latitude="{{ address.latitude }}" data-longitude="{{ address.longitude }}">Карта</button> 
                     <span class="longitude">{{ address.longitude }}</span>
-                    <button class="delete-address-btn" data-id="{{ address.id }}">Удалить</button>
                 </li>
                 {% empty %}
                 <li>Нет адресов.</li>

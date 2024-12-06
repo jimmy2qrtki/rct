@@ -8,6 +8,8 @@ class Project(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
     excel_file = models.FileField(upload_to='excel/', null=True, blank=True)
+    organization = models.CharField(max_length=255, blank=True, null=True)  # Новое поле
+    product = models.CharField(max_length=255, blank=True, null=True)  # Новое поле
 
     def get_next_event(self):
         today = timezone.now().date()

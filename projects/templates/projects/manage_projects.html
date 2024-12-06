@@ -1,5 +1,4 @@
  <!-- templates/projects/manage_projects.html -->
- <!DOCTYPE html>
  <html>
  <head>
      <title>Project Management</title>
@@ -11,7 +10,14 @@
     <ul>
         {% for project, next_event in projects_with_events %}
             <li>
-                <a href="{% url 'edit_project' project.id %}">{{ project.name }}</a> 
+                <a href="{% url 'edit_project' project.id %}">{{ project.name }} - 
+                    {% if project.organization %}
+                        {{ project.organization }} | 
+                    {% endif %}
+                    {% if project.product %}
+                        {{ project.product }}
+                    {% endif %}
+                </a>
                 {% if next_event %}
                     - {{ next_event.get_event_type_display }} {{ next_event.event_date }}
                 {% else %}
