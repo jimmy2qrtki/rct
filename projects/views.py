@@ -398,22 +398,22 @@ def update_address_order(request):
 @login_required
 # представление списка назначенных событий для исполнителя
 def assigned_events_list(request):
-    user = request.user
-    assigned_events = Event.objects.filter(assigned_user=user)
+    current_user = request.user
+    event_addresses = EventAddress.objects.filter(assigned_user=current_user)
+    assigned_events = Event.objects.filter(addresses__in=event_addresses).distinct()
 
-    context = {
+    return render(request, 'projects/assigned_events_list.html', {
         'assigned_events': assigned_events
-    }
-    return render(request, 'projects/assigned_events_list.html', context)
+    })
 
 @login_required
 # представление для удаления назначенного события из списка назначенных событий
 def remove_assigned_event(request, event_id):
-    event = get_object_or_404(Event, id=event_id, assigned_user=request.user)
-
+    event = get_object_or_404(Event, id=event_id)
+    
     if request.method == 'POST':
-        event.assigned_user = None
-        event.save()
+        # Если требуется удалить также связи с адресами
+        event.addresses.filter(assigned_user=request.user).update(assigned_user=None)
         return redirect('assigned_events_list')
 
     return redirect('assigned_events_list')
@@ -442,13 +442,12 @@ def update_event_executors(request, event_id):
 
     return JsonResponse({'error': 'Invalid request'}, status=400)
 
-# Удаляем пользователя из исполнителей события
+# Удаляем пользователя из исполнителей события и отвязываем адреса
 def remove_executor(request):
     if request.method == 'POST':
         executor_id = request.POST.get('executor_id')
         event_id = request.POST.get('event_id')
 
-        # Получаем событие и пользователя на удаление
         try:
             event = Event.objects.get(id=event_id)
             user = User.objects.get(id=executor_id)
@@ -458,5 +457,34 @@ def remove_executor(request):
         # Удаляем пользователя из исполнителей события
         event.assigned_users.remove(user)
 
+        # Находим все EventAddress, связанные с этим событием и этим пользователем, и отвязываем пользователя
+        EventAddress.objects.filter(event=event, assigned_user=user).update(assigned_user=None)
+
         return JsonResponse({'success': True})
+
     return JsonResponse({'error': 'Invalid request'}, status=400)
+
+@csrf_exempt
+@require_POST
+# назначение исполнителя
+def assign_executor(request):
+    event_id = request.POST.get('event_id')
+    user_id = request.POST.get('user_id')
+
+    if not event_id or not user_id:
+        return HttpResponseBadRequest("Invalid data")
+
+    try:
+        event = Event.objects.get(id=event_id)
+        user = User.objects.get(id=user_id)
+
+        # Связываем адреса с пользователем
+        event_addresses = EventAddress.objects.filter(event=event)
+        event_addresses.update(assigned_user=user)
+
+        return JsonResponse({"success": True})
+
+    except Event.DoesNotExist:
+        return HttpResponseBadRequest("Event not found")
+    except User.DoesNotExist:
+        return HttpResponseBadRequest("User not found")

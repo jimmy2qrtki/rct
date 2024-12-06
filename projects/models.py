@@ -57,6 +57,7 @@ class EventAddress(models.Model):
     latitude = models.FloatField()
     longitude = models.FloatField()
     order = models.PositiveIntegerField(default=0)  # Добавляем поле для сортировки
+    assigned_user = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)  # Новое поле
 
     class Meta:
         ordering = ['order']

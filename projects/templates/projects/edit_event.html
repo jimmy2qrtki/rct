@@ -27,6 +27,13 @@
             <span class="latitude">{{ address.latitude }}</span> | 
             <span class="longitude">{{ address.longitude }}</span>
             <button class="delete-address-btn" data-id="{{ address.id }}">Удалить</button>
+            {% if address.assigned_user %}
+                {% with address.assigned_user.executorprofile as profile %}
+                    <span class="executor-name">{{ profile.name|default:address.assigned_user.username }}</span>
+                {% endwith %}
+            {% else %}
+                <span class="executor-name">Не назначен</span>
+            {% endif %}
         </li>
         {% empty %}
         <li>Нет адресов.</li>
@@ -482,8 +489,28 @@
             });
             
             // Это для логики назначения исполнителя к события
-            $('#assign-btn').click(function() {
-                // Логика для передачи данных на сервер
+            $('.assign-btn').click(function(){
+                var userId = $(this).data('id');
+                var eventId = {{ event.id }};
+
+                $.ajax({
+                    url: "{% url 'assign_executor' %}",
+                    type: "POST",
+                    data: {
+                        'user_id': userId,
+                        'event_id': eventId,
+                        'csrfmiddlewaretoken': '{{ csrf_token }}'
+                    },
+                    success: function(data) {
+                        if(data.success) {
+                            alert("Addresses successfully assigned to the executor.");
+                            // Обновляем отображение исполнителя у каждого адреса
+                            $('#event-addresses-list li').each(function() {
+                                $(this).find('.assigned-user').text(data.assigned_user_name);
+                            });
+                        }
+                    }
+                });
             });
         });
     </script>

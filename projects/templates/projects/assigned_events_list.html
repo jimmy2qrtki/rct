@@ -1,5 +1,4 @@
  <!-- templates/projects/assigned_events_list.html -->
- <!DOCTYPE html>
  <html>
  <head>
      <title>Назначенные события</title>
@@ -12,10 +11,11 @@
         <thead>
             <tr>
                 <th>Название проекта</th>
-                <th>Тип события</th>
+                <th>Организация</th>
+                <th>Продукция</th>
                 <th>Дата начала</th>
-                <th>Срок выполнения (дни)</th>
-                <th>Дата завершения</th>
+                <th>Дедлайн</th>
+                <th>Количество адресов</th>
                 <th>Действия</th>
             </tr>
         </thead>
@@ -23,10 +23,11 @@
             {% for event in assigned_events %}
             <tr>
                 <td>{{ event.project.name }}</td>
-                <td>{{ event.get_event_type_display }}</td>
+                <td>{{ event.project.organization }}</td>
+                <td>{{ event.project.product }}</td>
                 <td>{{ event.event_date|date:"Y-m-d" }}</td>
-                <td>{{ event.duration_days }}</td>
                 <td>{{ event.due_date|date:"Y-m-d" }}</td>
+                <td>{{ event.addresses.count }}</td>
                 <td>
                     <form action="{% url 'event_remove' event.id %}" method="post">
                         {% csrf_token %}
@@ -36,11 +37,10 @@
             </tr>
             {% empty %}
             <tr>
-                <td colspan="6">Нет назначенных событий.</td>
+                <td colspan="7">Нет назначенных событий.</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
-
 </body>
 </html>

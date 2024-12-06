@@ -23,4 +23,5 @@ urlpatterns = [
     path('assigned-events/remove/<int:event_id>/', views.remove_assigned_event, name='event_remove'),
     path('event/<int:event_id>/update-executors/', views.update_event_executors, name='update_event_executors'),
     path('remove_executor/', views.remove_executor, name='remove_executor'),
+    path('assign_executor/', views.assign_executor, name='assign_executor'),
 ]
