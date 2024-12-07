@@ -403,11 +403,16 @@ def update_address_order(request):
 # представление списка назначенных событий для исполнителя
 def assigned_events_list(request):
     current_user = request.user
-    event_addresses = EventAddress.objects.filter(assigned_user=current_user)
-    assigned_events = Event.objects.filter(addresses__in=event_addresses).distinct()
+    assigned_events = Event.objects.filter(addresses__assigned_user=current_user).distinct()
+
+    # Создаем список пар (событие, количество адресов), назначенных текущему пользователю
+    assigned_event_data = []
+    for event in assigned_events:
+        assigned_address_count = event.addresses.filter(assigned_user=current_user).count()
+        assigned_event_data.append((event, assigned_address_count))
 
     return render(request, 'projects/assigned_events_list.html', {
-        'assigned_events': assigned_events
+        'assigned_event_data': assigned_event_data
     })
 
 @login_required

@@ -498,6 +498,29 @@
                 });
 
             });
+
+            // функция для преобразования ввода в список индексов
+            function parseAddressIndexes(input) {
+                let indexes = [];
+                let parts = input.split(',');
+
+                parts.forEach(part => {
+                    if (part.includes('-')) {
+                        let range = part.split('-').map(Number);
+                        if (range.length === 2 && !isNaN(range[0]) && !isNaN(range[1])) {
+                            if (range[0] <= range[1]) {
+                                for (let i = range[0]; i <= range[1]; i++) {
+                                    indexes.push(i);
+                                }
+                            }
+                        }
+                    } else if (!isNaN(part)) {
+                        indexes.push(Number(part));
+                    }
+                });
+
+                return indexes;
+            }
             
             // Это для логики назначения исполнителя к события
             $('.assign-btn').click(function(){
@@ -506,7 +529,8 @@
 
                 var addressIndexes = [];
                 if ($('#address-indexes-' + userId).length) {
-                    addressIndexes = $('#address-indexes-' + userId).val().split(',').map(Number);
+                    var input = $('#address-indexes-' + userId).val();
+                    addressIndexes = parseAddressIndexes(input);
                 }
 
                 $.ajax({
@@ -520,10 +544,6 @@
                     },
                     success: function(data) {
                         if(data.success) {
-                            // Обновляем отображение исполнителя у каждого адреса
-                            $('#event-addresses-list li').each(function() {
-                                $(this).find('.assigned-user').text(data.assigned_user_name);
-                            });
                             location.reload(); 
                         }
                     }
