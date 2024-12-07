@@ -1,5 +1,5 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from .models import Address, EventAddress, Project, Event, RequestCounter
+from .models import Address, EventAddress, Project, Event, RequestCounter, EventUser
 from .forms import ProjectForm, EventForm
 from django.contrib.auth.decorators import login_required
 from openpyxl import load_workbook
@@ -89,12 +89,16 @@ def edit_event(request, event_id):
     executor_group = Group.objects.get(name='Исполнитель')
     executors = User.objects.filter(groups=executor_group).prefetch_related('executorprofile')
 
+    # Получаем всех EventUser для данного события
+    event_users = event.eventuser_set.select_related('user')
+
     return render(request, 'projects/edit_event.html', {
         'form': form,
         'project': project,
         'event': event,
         'project_addresses': project_addresses,
-        'executors': executors,  # Передаем исполнителей в шаблон
+        'executors': executors,
+        'event_users': event_users,  # Передаем EventUser в шаблон
     })
 
 # перестраивает порядок адресов для оптимального маршрута
@@ -410,10 +414,12 @@ def assigned_events_list(request):
 # представление для удаления назначенного события из списка назначенных событий
 def remove_assigned_event(request, event_id):
     event = get_object_or_404(Event, id=event_id)
-    
+
     if request.method == 'POST':
-        # Если требуется удалить также связи с адресами
-        event.addresses.filter(assigned_user=request.user).update(assigned_user=None)
+        # Изменяем статус на "отказ"
+        EventUser.objects.filter(event=event, user=request.user).update(status='declined')
+        # Убираем назначение пользователя
+        EventAddress.objects.filter(event=event, assigned_user=request.user).update(assigned_user=None)
         return redirect('assigned_events_list')
 
     return redirect('assigned_events_list')
@@ -478,7 +484,10 @@ def assign_executor(request):
         event = Event.objects.get(id=event_id)
         user = User.objects.get(id=user_id)
 
-        # Связываем адреса с пользователем
+        event_user, created = EventUser.objects.get_or_create(event=event, user=user)
+        event_user.status = 'assigned'
+        event_user.save()
+
         event_addresses = EventAddress.objects.filter(event=event)
         event_addresses.update(assigned_user=user)
 
@@ -488,3 +497,18 @@ def assign_executor(request):
         return HttpResponseBadRequest("Event not found")
     except User.DoesNotExist:
         return HttpResponseBadRequest("User not found")
+    
+@login_required
+@require_POST
+# функция для обработки подтверждения
+def confirm_executor(request):
+    event_id = request.POST.get('event_id')
+    user_id = request.POST.get('user_id')
+
+    try:
+        event_user = EventUser.objects.get(event_id=event_id, user_id=user_id)
+        event_user.status = 'confirmed'  # Устанавливаем статус на "подтверждён"
+        event_user.save()
+        return JsonResponse({"success": True})
+    except EventUser.DoesNotExist:
+        return JsonResponse({"error": "EventUser not found"}, status=404)

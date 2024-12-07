@@ -28,7 +28,7 @@ class Event(models.Model):
     photo_count = models.IntegerField()
     event_date = models.DateField()
     duration_days = models.IntegerField(help_text="Количество дней на выполнение")
-    assigned_users = models.ManyToManyField(User, blank=True, related_name='events_as_assignee')
+    assigned_users = models.ManyToManyField(User, through='EventUser', blank=True, related_name='events_as_assignee')
 
     def __str__(self):
         return f"{self.event_type} on {self.event_date}"
@@ -64,6 +64,18 @@ class EventAddress(models.Model):
 
     def __str__(self):
         return self.name
+    
+class EventUser(models.Model):
+     STATUS_CHOICES = [
+         ('chosen', 'Выбран'),
+         ('assigned', 'Назначен'),
+         ('confirmed', 'Подтвержден'),
+         ('declined', 'Отказ'),
+     ]
+
+     user = models.ForeignKey(User, on_delete=models.CASCADE)
+     event = models.ForeignKey('Event', on_delete=models.CASCADE)
+     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='chosen')
     
 class RequestCounter(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)

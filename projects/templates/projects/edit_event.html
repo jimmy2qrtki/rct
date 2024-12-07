@@ -49,16 +49,19 @@
     <!-- Список исполнителей -->
     <h2>Список исполнителей для события</h2>
     <ul id="event-executors-list">
-        {% for user in event.assigned_users.all %}
-            {% with user.executorprofile as profile %}
-            <li data-id="{{ profile.user.id }}">
-                <span class="user-name">{{ profile.name|default:user.email }}</span>
-                {% if profile.district %} | <span class="district">{{ profile.district }}</span>{% endif %}
-                {% if profile.phone_number %} | <span class="phone-number">{{ profile.phone_number }}</span>{% endif %}
-                <button class="assign-btn" data-id="{{ profile.user.id }}">Назначить</button>
-                <button class="delete-executor-btn" data-id="{{ profile.user.id }}">Удалить</button>
+        {% for event_user in event_users %}
+            {% if event_user.user.executorprofile %}
+            <li data-id="{{ event_user.user.id }}">
+                <span class="user-name">{{ event_user.user.executorprofile.name|default:event_user.user.email }}</span>
+                {% if event_user.user.executorprofile.district %} | <span class="district">{{ event_user.user.executorprofile.district }}</span>{% endif %}
+                {% if event_user.user.executorprofile.phone_number %} | <span class="phone-number">{{ event_user.user.executorprofile.phone_number }}</span>{% endif %}
+                <span class="status"> | статус: {{ event_user.get_status_display }}</span>
+                <button class="assign-btn" data-id="{{ event_user.user.id }}">Назначить</button>
+                <button class="delete-executor-btn" data-id="{{ event_user.user.id }}">Удалить</button>
             </li>
-            {% endwith %}
+            {% else %}
+            <li>У пользователя нет профиля исполнителя.</li>
+            {% endif %}
         {% empty %}
             <li>Нет исполнителей.</li>
         {% endfor %}
@@ -143,6 +146,7 @@
                             `;
                             $('#event-addresses-list').append(listItem);
                         });
+                        location.reload();
                     },
                     error: function(response) {
                         alert('Произошла ошибка при добавлении адресов');
@@ -454,6 +458,7 @@
                                 </li>`
                             );
                         });
+                        location.reload();
                     },
                     error: function(xhr, status, error) {
                         alert('Ошибка при сохранении исполнителей. Попробуйте еще раз.');
@@ -480,6 +485,7 @@
                     },
                     success: function(response) {
                         console.log('Исполнитель удален');
+                        location.reload();
                     },
                     error: function(xhr, status, error) {
                         console.error('Произошла ошибка при удалении исполнителя: ', error);
@@ -491,7 +497,7 @@
             // Это для логики назначения исполнителя к события
             $('.assign-btn').click(function(){
                 var userId = $(this).data('id');
-                var eventId = {{ event.id }};
+                var eventId = "{{ event.id }}";
 
                 $.ajax({
                     url: "{% url 'assign_executor' %}",
@@ -503,11 +509,11 @@
                     },
                     success: function(data) {
                         if(data.success) {
-                            alert("Addresses successfully assigned to the executor.");
                             // Обновляем отображение исполнителя у каждого адреса
                             $('#event-addresses-list li').each(function() {
                                 $(this).find('.assigned-user').text(data.assigned_user_name);
                             });
+                            location.reload(); 
                         }
                     }
                 });

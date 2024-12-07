@@ -1,7 +1,9 @@
  <!-- templates/projects/assigned_events_list.html -->
  <html>
  <head>
-     <title>Назначенные события</title>
+    <title>Назначенные события</title>
+    {% load static %}
+    <script src="{% static 'js/jquery-3.7.1.min.js' %}"></script>
  </head>
  <body>
     <a href="{% url 'executor_profile' %}">Профиль</a>
@@ -29,6 +31,11 @@
                 <td>{{ event.due_date|date:"Y-m-d" }}</td>
                 <td>{{ event.addresses.count }}</td>
                 <td>
+                    {% for event_user in event.eventuser_set.all %}
+                        {% if event_user.user == request.user %}
+                            <button type="button" class="confirm-btn" data-event-id="{{ event.id }}" data-user-id="{{ request.user.id }}">Подтвердить</button>
+                        {% endif %}
+                    {% endfor %}
                     <form action="{% url 'event_remove' event.id %}" method="post">
                         {% csrf_token %}
                         <button type="submit">Удалить</button>
@@ -42,5 +49,28 @@
             {% endfor %}
         </tbody>
     </table>
+    <script>
+        $(document).on('click', '.confirm-btn', function() {
+            var event_id = $(this).data('event-id');
+            var user_id = $(this).data('user-id');
+            
+            $.ajax({
+                url: "{% url 'confirm_executor' %}",
+                method: "POST",
+                data: {
+                    event_id: event_id,
+                    user_id: user_id,
+                    csrfmiddlewaretoken: '{{ csrf_token }}'
+                },
+                success: function(response) {
+                    if (response.success) {
+                        location.reload();
+                    } else {
+                        alert('Ошибка: ' + response.error);
+                    }
+                }
+            });
+        });
+    </script>
 </body>
 </html>
