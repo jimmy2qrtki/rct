@@ -476,6 +476,7 @@ def remove_executor(request):
 def assign_executor(request):
     event_id = request.POST.get('event_id')
     user_id = request.POST.get('user_id')
+    address_indexes = request.POST.get('address_indexes')
 
     if not event_id or not user_id:
         return HttpResponseBadRequest("Invalid data")
@@ -488,10 +489,19 @@ def assign_executor(request):
         event_user.status = 'assigned'
         event_user.save()
 
-        event_addresses = EventAddress.objects.filter(event=event)
-        event_addresses.update(assigned_user=user)
+        address_indexes = json.loads(address_indexes) if address_indexes else None
 
-        return JsonResponse({"success": True})
+        if address_indexes:
+            event_addresses = list(event.addresses.all())
+            selected_addresses = [event_addresses[i-1] for i in address_indexes if 0 < i <= len(event_addresses)]
+            for address in selected_addresses:
+                address.assigned_user = user
+                address.save()
+        else:
+            event_addresses = EventAddress.objects.filter(event=event)
+            event_addresses.update(assigned_user=user)
+
+        return JsonResponse({"success": True, "assigned_user_name": user.username})
 
     except Event.DoesNotExist:
         return HttpResponseBadRequest("Event not found")
