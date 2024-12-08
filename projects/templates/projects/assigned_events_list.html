@@ -33,30 +33,33 @@
     <h2>События к исполнению</h2>
 
     <div id="tabs">
-        <div class="tab active" data-status="assigned">Назначенные</div>
-        <div class="tab" data-status="confirmed">Подтвержденные</div>
-        <div class="tab" data-status="in_progress">В работе</div>
-        <div class="tab" data-status="completed">Завершённые</div>
+        {% for status, data in event_data_by_status.items %}
+            <div class="tab {% if forloop.first %}active{% endif %}" data-status="{{ status }}">
+                {{ data.display }} ({{ data.count }})
+            </div>
+        {% endfor %}
     </div>
 
     <div id="tab-contents">
-        {% for status, events in event_data_by_status.items %}
+        {% for status, data in event_data_by_status.items %}
         <div class="tab-content {% if forloop.first %}active{% endif %}" id="content-{{ status }}">
             <table>
-                <thead>
-                    <tr>
-                        <th>Название проекта</th>
-                        <th>Организация</th>
-                        <th>Продукция</th>
-                        <th>Тип события</th>
-                        <th>Дата начала</th>
-                        <th>Дедлайн</th>
-                        <th>Кол-во адресов</th>
-                        <th>Действия</th>
-                    </tr>
-                </thead>
+                {% if data.events %}
+                    <thead>
+                        <tr>
+                            <th>Название проекта</th>
+                            <th>Организация</th>
+                            <th>Продукция</th>
+                            <th>Тип события</th>
+                            <th>Дата начала</th>
+                            <th>Дедлайн</th>
+                            <th>Кол-во адресов</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                {% endif %}
                 <tbody>
-                    {% for event, assigned_address_count in events %}
+                    {% for event, assigned_address_count in data.events %}
                     <tr>
                         <td>{{ event.project.name }}</td>
                         <td>{{ event.project.organization }}</td>
@@ -85,7 +88,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="8">Нет событий со статусом {{ status|lower }}.</td>
+                        <td colspan="8">Нет событий со статусом "{{ data.display|lower }}".</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -96,22 +99,37 @@
 
     <script>
         $(document).ready(function() {
-            $('.tab').click(function() {
-                var status = $(this).data('status');
-                
+            // Функция для переключения вкладок
+            function switchTab(status) {
                 // Переключение активной вкладки
                 $('.tab').removeClass('active');
-                $(this).addClass('active');
-                
+                $('.tab[data-status="' + status + '"]').addClass('active');
                 // Показываем/скрываем контент
                 $('.tab-content').removeClass('active');
                 $('#content-' + status).addClass('active');
+            }
+    
+            // Загружаем последнюю выбранную вкладку из localStorage
+            var savedStatus = localStorage.getItem('selectedTab');
+            if (savedStatus) {
+                switchTab(savedStatus);
+            } else {
+                // Если ничего не сохранено, по умолчанию показываем первую вкладку
+                switchTab('assigned');
+            }
+    
+            $('.tab').click(function() {
+                var status = $(this).data('status');
+                switchTab(status);
+    
+                // Сохраняем выбранную вкладку в localStorage
+                localStorage.setItem('selectedTab', status);
             });
-
+    
             $(document).on('click', '.confirm-btn', function() {
                 var event_id = $(this).data('event-id');
                 var user_id = $(this).data('user-id');
-                
+    
                 $.ajax({
                     url: "{% url 'confirm_executor' %}",
                     method: "POST",
@@ -129,14 +147,14 @@
                     }
                 });
             });
-
+    
             $(document).on('click', '.start-btn', function() {
                 var event_id = $(this).data('event-id');
                 var start_date = new Date($(this).data('start-date'));
                 var today = new Date();
                 var threeDaysBeforeStart = new Date(start_date);
                 threeDaysBeforeStart.setDate(start_date.getDate() - 3);
-
+    
                 if (today >= threeDaysBeforeStart) {
                     $.ajax({
                         url: "{% url 'start_event' %}",
@@ -154,23 +172,23 @@
                         }
                     });
                 } else {
-                    alert('Вы сможете начать событие не раньше, чем за три дня до запланированной даты.');
+                    alert('Вы сможете начать событие не раньше, чем за два дня до запланированной даты.');
                 }
             });
-
+    
             $(document).on('click', '.remove-btn', function() {
                 var form = $(this).closest('.remove-form');
                 var eventName = $(this).data('event-name');
                 var eventType = $(this).data('event-type');
-
+    
                 if (confirm("Вы уверены, что хотите отказаться от события - " + eventType + ", " + eventName + "?")) {
                     form.submit();
                 }
             });
-
+    
             $(document).on('click', '.complete-btn', function() {
                 var event_id = $(this).data('event-id');
-
+    
                 $.ajax({
                     url: "{% url 'complete_event' %}",
                     method: "POST",

@@ -1,3 +1,4 @@
+from datetime import datetime, time
 from django.utils import timezone
 from django.shortcuts import render, get_object_or_404, redirect
 from .models import Address, EventAddress, Project, Event, RequestCounter, EventUser
@@ -12,6 +13,7 @@ from .utils import reset_request_counter, get_time_until_midnight
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.models import User, Group
 from scipy.spatial.distance import euclidean
+from django.utils.timezone import make_aware
 
 @login_required
 def manage_projects(request):
@@ -409,24 +411,28 @@ def assigned_events_list(request):
     event_users_by_status = {
         'assigned': EventUser.objects.filter(user=current_user, status='assigned'),
         'confirmed': EventUser.objects.filter(user=current_user, status='confirmed'),
-        'in_progress': EventUser.objects.filter(
-            user=current_user,
-            status='in_progress',
-            event__event_date__lte=timezone.now()
-        ),
+        'in_progress': EventUser.objects.filter(user=current_user, status='in_progress'),
         'completed': EventUser.objects.filter(user=current_user, status='completed'),
     }
     
-    # Подсчёт количества адресов
+    # Подсчёт количества адресов и преобразование статусов
     event_data_by_status = {}
+    status_display_map = dict(EventUser.STATUS_CHOICES)
+    
     for status, events in event_users_by_status.items():
-        event_data_by_status[status] = [
-            (
-                e.event,
-                e.event.addresses.filter(assigned_user=current_user).count()
-            )
-            for e in events
-        ]
+        # Получаем отображаемое значение статуса
+        status_display = status_display_map.get(status, status)
+        event_data_by_status[status] = {
+            'display': status_display,
+            'count': events.count(),
+            'events': [
+                (
+                    e.event,
+                    e.event.addresses.filter(assigned_user=current_user).count()
+                )
+                for e in events
+            ]
+        }
 
     return render(request, 'projects/assigned_events_list.html', {
         'event_data_by_status': event_data_by_status,
@@ -561,24 +567,37 @@ def complete_event(request):
     return JsonResponse({'success': False, 'error': 'Некорректный запрос'})
 
 # для смены статуса назначенного и подтверждённого события на "в работе"
+import logging
+
+logger = logging.getLogger(__name__)
+
 def start_event(request):
     if request.method == 'POST':
         event_id = request.POST.get('event_id')
+        user = request.user
 
         try:
-            event_user = EventUser.objects.get(event_id=event_id, user=request.user)
-            current_time = timezone.now()
-            event_start_date = event_user.event.event_date
+            event_user = EventUser.objects.get(event_id=event_id, user=user)
 
-            # Проверка на то, что можно начать событие
-            if (event_start_date - current_time).days <= 3:
+            # Превращаем дату события в объект datetime и делаем её aware
+            event_start_date_naive = datetime.combine(event_user.event.event_date, time.min)
+            event_start_date = make_aware(event_start_date_naive)
+
+            current_time = timezone.now()
+
+            # Проверка: можем ли мы начать событие
+            if (event_start_date - current_time).days <= 2:
                 event_user.status = 'in_progress'
                 event_user.save()
                 return JsonResponse({"success": True})
             else:
-                return JsonResponse({"success": False, "error": "Событие можно будет начать не ранее чем через 3 дня до запланированной даты"})
+                return JsonResponse({"success": False, "error": "Событие можно будет начать не ранее за 2 дня до запланированной даты"})
 
         except EventUser.DoesNotExist:
             return JsonResponse({"error": "EventUser not found"}, status=404)
+        except Exception as e:
+            # Логирование исключений для отслеживания
+            print(f"Exception occurred: {str(e)}")
+            return JsonResponse({"error": str(e)}, status=500)
 
     return JsonResponse({"error": "Некорректный запрос"}, status=400)
