@@ -1,3 +1,4 @@
+from django.utils import timezone
 from django.shortcuts import render, get_object_or_404, redirect
 from .models import Address, EventAddress, Project, Event, RequestCounter, EventUser
 from .forms import ProjectForm, EventForm
@@ -403,16 +404,32 @@ def update_address_order(request):
 # представление списка назначенных событий для исполнителя
 def assigned_events_list(request):
     current_user = request.user
-    assigned_events = Event.objects.filter(addresses__assigned_user=current_user).distinct()
-
-    # Создаем список пар (событие, количество адресов), назначенных текущему пользователю
-    assigned_event_data = []
-    for event in assigned_events:
-        assigned_address_count = event.addresses.filter(assigned_user=current_user).count()
-        assigned_event_data.append((event, assigned_address_count))
+    
+    # Получаем все события пользователя с разбивкой по статусам
+    event_users_by_status = {
+        'assigned': EventUser.objects.filter(user=current_user, status='assigned'),
+        'confirmed': EventUser.objects.filter(user=current_user, status='confirmed'),
+        'in_progress': EventUser.objects.filter(
+            user=current_user,
+            status='in_progress',
+            event__event_date__lte=timezone.now()
+        ),
+        'completed': EventUser.objects.filter(user=current_user, status='completed'),
+    }
+    
+    # Подсчёт количества адресов
+    event_data_by_status = {}
+    for status, events in event_users_by_status.items():
+        event_data_by_status[status] = [
+            (
+                e.event,
+                e.event.addresses.filter(assigned_user=current_user).count()
+            )
+            for e in events
+        ]
 
     return render(request, 'projects/assigned_events_list.html', {
-        'assigned_event_data': assigned_event_data
+        'event_data_by_status': event_data_by_status,
     })
 
 @login_required
@@ -515,7 +532,7 @@ def assign_executor(request):
     
 @login_required
 @require_POST
-# функция для обработки подтверждения
+# функция для обработки статуса подтверждения
 def confirm_executor(request):
     event_id = request.POST.get('event_id')
     user_id = request.POST.get('user_id')
@@ -527,3 +544,41 @@ def confirm_executor(request):
         return JsonResponse({"success": True})
     except EventUser.DoesNotExist:
         return JsonResponse({"error": "EventUser not found"}, status=404)
+    
+# функция для обработки статуса завершения
+def complete_event(request):
+    if request.method == 'POST':
+        event_id = request.POST.get('event_id')
+        event_user = EventUser.objects.get(user=request.user, event_id=event_id)
+        
+        if event_user:
+            event_user.status = 'completed'
+            event_user.save()
+            return JsonResponse({'success': True})
+        else:
+            return JsonResponse({'success': False, 'error': 'Событие не найдено'})
+
+    return JsonResponse({'success': False, 'error': 'Некорректный запрос'})
+
+# для смены статуса назначенного и подтверждённого события на "в работе"
+def start_event(request):
+    if request.method == 'POST':
+        event_id = request.POST.get('event_id')
+
+        try:
+            event_user = EventUser.objects.get(event_id=event_id, user=request.user)
+            current_time = timezone.now()
+            event_start_date = event_user.event.event_date
+
+            # Проверка на то, что можно начать событие
+            if (event_start_date - current_time).days <= 3:
+                event_user.status = 'in_progress'
+                event_user.save()
+                return JsonResponse({"success": True})
+            else:
+                return JsonResponse({"success": False, "error": "Событие можно будет начать не ранее чем через 3 дня до запланированной даты"})
+
+        except EventUser.DoesNotExist:
+            return JsonResponse({"error": "EventUser not found"}, status=404)
+
+    return JsonResponse({"error": "Некорректный запрос"}, status=400)

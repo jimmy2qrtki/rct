@@ -66,16 +66,18 @@ class EventAddress(models.Model):
         return self.name
     
 class EventUser(models.Model):
-     STATUS_CHOICES = [
-         ('chosen', 'Выбран'),
-         ('assigned', 'Назначен'),
-         ('confirmed', 'Подтвержден'),
-         ('declined', 'Отказ'),
-     ]
+    STATUS_CHOICES = [
+        ('chosen', 'Выбран'),
+        ('assigned', 'Назначен'),
+        ('confirmed', 'Подтвержден'),
+        ('declined', 'Отказ'),
+        ('in_progress', 'В работе'),
+        ('completed', 'Завершён'),
+    ]
 
-     user = models.ForeignKey(User, on_delete=models.CASCADE)
-     event = models.ForeignKey('Event', on_delete=models.CASCADE)
-     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='chosen')
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    event = models.ForeignKey('Event', on_delete=models.CASCADE)
+    status = models.CharField(max_length=11, choices=STATUS_CHOICES, default='chosen')
     
 class RequestCounter(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)

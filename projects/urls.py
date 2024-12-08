@@ -25,4 +25,6 @@ urlpatterns = [
     path('remove_executor/', views.remove_executor, name='remove_executor'),
     path('assign_executor/', views.assign_executor, name='assign_executor'),
     path('confirm_executor/', views.confirm_executor, name='confirm_executor'),
+    path('complete-event/', views.complete_event, name='complete_event'),
+    path('start-event/', views.start_event, name='start_event'),
 ]
