@@ -1,0 +1,146 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Детали события</title>
+    {% load static %}
+    <script src="{% static 'js/jquery-3.7.1.min.js' %}"></script>
+    <script src="//code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <script src="https://api-maps.yandex.ru/2.1/?apikey=<212ad00a-2b33-4742-9805-36eb9352e2df>&lang=ru_RU" type="text/javascript"></script>
+</head>
+<body>
+    <h1>Детали события</h1>
+    <div>
+        <h2>{{ event.project.name }}</h2>
+        <p>Организация: {{ event.project.organization }}</p>
+        <p>Продукт: {{ event.project.product }}</p>
+        <p>Тип события: {{ event.get_event_type_display }}</p>
+        <p>Описание: {{ event.description }}</p>
+        <p>Кол-во фото: {{ event.photo_count }}</p>
+        <p>Дата начала: {{ event.event_date }}</p>
+        <p>Срок выполнения (в днях): {{ event.duration_days }}</p>
+    </div>
+
+    <h3>Назначенные адреса</h3>
+    <div id="map" style="width: 100%; height: 400px; margin-bottom: 20px;"></div>
+    <ul id="assigned-event-addresses-list">
+        {% for address in event_addresses %}
+        <li data-id="{{ address.id }}">
+            <span class="address-number">{{ forloop.counter }}.</span> 
+            <span class="address-name">{{ address.name }}</span> | 
+            <span class="latitude">{{ address.latitude }}</span> | 
+            <span class="longitude">{{ address.longitude }}</span>
+        </li>
+        {% empty %}
+        <li>Нет назначенных адресов.</li>
+        {% endfor %}
+    </ul>
+
+    <a href="{% url 'assigned_events_list' %}">Назад к списку событий</a>
+
+    <script>
+        ymaps.ready(initMap);
+    
+        let map;
+        let placemarks = [];
+        let polyline;
+    
+        function initMap() {
+            if (!map) {
+                map = new ymaps.Map('map', {
+                    center: [55.76, 37.64],
+                    zoom: 10
+                });
+            }
+    
+            updateMap();
+        }
+    
+        function updateMap() {
+            map.geoObjects.removeAll();
+            placemarks = [];
+            let coordinates = [];
+    
+            $('#assigned-event-addresses-list li').each(function() {
+                const latitude = parseFloat($(this).find('.latitude').text().trim().replace(',', '.'));
+                const longitude = parseFloat($(this).find('.longitude').text().trim().replace(',', '.'));
+                const name = $(this).find('.address-name').text().trim();
+                const addressNumber = $(this).find('.address-number').text().trim().replace('.', '');
+    
+                if (!isNaN(latitude) && !isNaN(longitude)) {
+                    const placemark = new ymaps.Placemark(
+                        [latitude, longitude],
+                        {
+                            balloonContent: `<strong>Адрес ${addressNumber}</strong>: ${name}`,
+                            iconContent: addressNumber
+                        },
+                        {
+                            preset: 'islands#redStretchyIcon'
+                        }
+                    );
+    
+                    map.geoObjects.add(placemark);
+                    placemarks.push(placemark);
+                    coordinates.push([latitude, longitude]);
+                } else {
+                    console.warn('Некорректные координаты для адреса:', name);
+                }
+            });
+    
+            if (polyline) {
+                map.geoObjects.remove(polyline);
+            }
+    
+            if (coordinates.length > 1) {
+                polyline = new ymaps.Polyline(coordinates, {}, {
+                    strokeColor: '#0000FF',
+                    strokeWidth: 3,
+                    strokeOpacity: 0.5
+                });
+                map.geoObjects.add(polyline);
+            }
+        }
+    
+        function updateAddressNumbers() {
+            $('#assigned-event-addresses-list .address-number').each(function(index) {
+                $(this).text((index + 1) + '.');
+            });
+        }
+    
+        function saveNewOrder(selector) {
+            const orderData = [];
+            $(selector + ' li').each(function(index) {
+                const addressId = $(this).data('id');
+                orderData.push({ id: addressId, order: index });
+            });
+    
+            $.ajax({
+                url: "{% url 'update_address_order' %}",
+                type: "POST",
+                data: {
+                    order: JSON.stringify(orderData),
+                    model: 'EventAddress',
+                    csrfmiddlewaretoken: "{{ csrf_token }}"
+                },
+                success: function(response) {
+                    console.log('Порядок адресов события успешно сохранен.');
+                },
+                error: function(response) {
+                    console.error('Ошибка при сохранении порядка адресов события');
+                }
+            });
+        }
+    
+        $("#assigned-event-addresses-list").sortable({
+            placeholder: 'ui-state-highlight',
+            update: function(event, ui) {
+                updateAddressNumbers();
+                saveNewOrder('#assigned-event-addresses-list');
+                updateMap();
+            }
+        }).disableSelection();
+    </script>
+
+</body>
+</html>

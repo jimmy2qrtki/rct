@@ -601,3 +601,16 @@ def start_event(request):
             return JsonResponse({"error": str(e)}, status=500)
 
     return JsonResponse({"error": "Некорректный запрос"}, status=400)
+
+# детали для назначенного события
+@login_required
+def event_detail(request, event_id):
+    event = get_object_or_404(Event, pk=event_id)
+
+    # Фильтруем адреса, назначенные текущему пользователю
+    event_addresses = event.addresses.filter(assigned_user=request.user)
+
+    return render(request, 'projects/event_detail.html', {
+        'event': event,
+        'event_addresses': event_addresses,
+    })

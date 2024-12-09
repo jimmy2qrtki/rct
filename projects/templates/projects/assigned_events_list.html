@@ -60,11 +60,11 @@
                 {% endif %}
                 <tbody>
                     {% for event, assigned_address_count in data.events %}
-                    <tr>
-                        <td>{{ event.project.name }}</td>
-                        <td>{{ event.project.organization }}</td>
-                        <td>{{ event.project.product }}</td>
-                        <td>{{ event.get_event_type_display }}</td>
+                    <tr data-url="{% url 'event_detail' event.id %}">
+                        <td class="clickable">{{ event.project.name }}</td>
+                        <td class="clickable">{{ event.project.organization }}</td>
+                        <td class="clickable">{{ event.project.product }}</td>
+                        <td class="clickable">{{ event.get_event_type_display }}</td>
                         <td>{{ event.event_date|date:"Y-m-d" }}</td>
                         <td>{{ event.due_date|date:"Y-m-d" }}</td>
                         <td>{{ assigned_address_count }}</td>
@@ -145,6 +145,14 @@
                             alert('Ошибка: ' + response.error);
                         }
                     }
+                });
+            });
+
+            // ссылка для открытия деталей события
+            document.querySelectorAll('td.clickable').forEach((td) => {
+                td.addEventListener('click', (event) => {
+                    const url = event.currentTarget.closest('tr').dataset.url;
+                    window.location.href = url;
                 });
             });
     
