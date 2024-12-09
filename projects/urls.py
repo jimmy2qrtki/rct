@@ -28,5 +28,5 @@ urlpatterns = [
     path('complete-event/', views.complete_event, name='complete_event'),
     path('start-event/', views.start_event, name='start_event'),
     path('event/<int:event_id>/', views.event_detail, name='event_detail'),
-    
+    path('calculate_optimal_route/', views.calculate_optimal_route, name='calculate_optimal_route'),
 ]

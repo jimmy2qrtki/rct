@@ -567,10 +567,6 @@ def complete_event(request):
     return JsonResponse({'success': False, 'error': 'Некорректный запрос'})
 
 # для смены статуса назначенного и подтверждённого события на "в работе"
-import logging
-
-logger = logging.getLogger(__name__)
-
 def start_event(request):
     if request.method == 'POST':
         event_id = request.POST.get('event_id')
@@ -586,12 +582,12 @@ def start_event(request):
             current_time = timezone.now()
 
             # Проверка: можем ли мы начать событие
-            if (event_start_date - current_time).days <= 2:
+            if (event_start_date - current_time).days <= 1:
                 event_user.status = 'in_progress'
                 event_user.save()
                 return JsonResponse({"success": True})
             else:
-                return JsonResponse({"success": False, "error": "Событие можно будет начать не ранее за 2 дня до запланированной даты"})
+                return JsonResponse({"success": False, "error": "Событие можно будет начать не раньше, чем за день до запланированной даты"})
 
         except EventUser.DoesNotExist:
             return JsonResponse({"error": "EventUser not found"}, status=404)
@@ -602,7 +598,7 @@ def start_event(request):
 
     return JsonResponse({"error": "Некорректный запрос"}, status=400)
 
-# детали для назначенного события
+# назначенные адреса для event_detail.html
 @login_required
 def event_detail(request, event_id):
     event = get_object_or_404(Event, pk=event_id)
@@ -614,3 +610,13 @@ def event_detail(request, event_id):
         'event': event,
         'event_addresses': event_addresses,
     })
+
+# Оптимальный маршрут для event_detail.html
+@csrf_exempt
+def calculate_optimal_route(request):
+    if request.method == 'POST':
+        data = json.loads(request.POST['coordinates'])
+        optimal_route = nearest_neighbor(data)
+        return JsonResponse({'route': optimal_route})
+
+    return JsonResponse({'error': 'Invalid request method.'}, status=400)

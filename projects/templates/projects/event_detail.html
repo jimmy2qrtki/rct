@@ -8,29 +8,36 @@
     <script src="//code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
     <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
     <script src="https://api-maps.yandex.ru/2.1/?apikey=<212ad00a-2b33-4742-9805-36eb9352e2df>&lang=ru_RU" type="text/javascript"></script>
+    <style>
+        .hidden-coordinates {
+            display: none;
+        }
+    </style>
 </head>
 <body>
-    <h1>Детали события</h1>
+    <h1>{{ event.get_event_type_display }}: {{ event.project.name }}</h1>
     <div>
-        <h2>{{ event.project.name }}</h2>
         <p>Организация: {{ event.project.organization }}</p>
         <p>Продукт: {{ event.project.product }}</p>
-        <p>Тип события: {{ event.get_event_type_display }}</p>
-        <p>Описание: {{ event.description }}</p>
         <p>Кол-во фото: {{ event.photo_count }}</p>
         <p>Дата начала: {{ event.event_date }}</p>
         <p>Срок выполнения (в днях): {{ event.duration_days }}</p>
+        <p>Описание: {{ event.description }}</p>
     </div>
 
     <h3>Назначенные адреса</h3>
     <div id="map" style="width: 100%; height: 400px; margin-bottom: 20px;"></div>
+    <button id="update-route">Обновить маршрут</button>
+    <button id="print-addresses">Печать маршрута</button>
     <ul id="assigned-event-addresses-list">
         {% for address in event_addresses %}
         <li data-id="{{ address.id }}">
             <span class="address-number">{{ forloop.counter }}.</span> 
-            <span class="address-name">{{ address.name }}</span> | 
-            <span class="latitude">{{ address.latitude }}</span> | 
-            <span class="longitude">{{ address.longitude }}</span>
+            <span class="address-name">{{ address.name }}</span>
+            <span class="hidden-coordinates">
+                <span class="latitude">{{ address.latitude }}</span> | 
+                <span class="longitude">{{ address.longitude }}</span>
+            </span>
         </li>
         {% empty %}
         <li>Нет назначенных адресов.</li>
@@ -140,6 +147,79 @@
                 updateMap();
             }
         }).disableSelection();
+
+        function calculateOptimalRoute() {
+            const coords = [];
+            $('#assigned-event-addresses-list li').each(function() {
+                const latitude = parseFloat($(this).find('.latitude').text().trim().replace(',', '.'));
+                const longitude = parseFloat($(this).find('.longitude').text().trim().replace(',', '.'));
+                if (!isNaN(latitude) && !isNaN(longitude)) {
+                    coords.push([latitude, longitude]);
+                }
+            });
+
+            const addressOrder = getOptimalRoute(coords);
+
+            reorderAddresses(addressOrder);
+            updateAddressNumbers();
+            saveNewOrder('#assigned-event-addresses-list');
+            updateMap();
+        }
+
+        function reorderAddresses(order) {
+            const $list = $('#assigned-event-addresses-list');
+            const items = $list.children('li').get();
+            order.forEach((index) => {
+                $list.append(items[index]);
+            });
+        }
+
+        function getOptimalRoute(coords) {
+            let order;
+            $.ajax({
+                url: "{% url 'calculate_optimal_route' %}",  // Make sure this URL pattern is created
+                type: "POST",
+                data: {
+                    coordinates: JSON.stringify(coords),
+                    csrfmiddlewaretoken: "{{ csrf_token }}"
+                },
+                async: false,  // To make the call synchronous and get the result immediately
+                success: function(response) {
+                    order = response.route;
+                },
+                error: function(response) {
+                    console.error('Ошибка при обновлении маршрута');
+                }
+            });
+            return order;
+        }
+
+        $('#update-route').on('click', calculateOptimalRoute);
+
+        document.getElementById('print-addresses').addEventListener('click', function() {
+        printAddressList();
+    });
+
+    function printAddressList() {
+        let printWindow = window.open('', '_blank', 'width=600,height=400');
+        let content = '<html><head><title>{{ event.get_event_type_display }} {{ event.project.name }}</title></head><body><h2>{{ event.project.name }}: {{ event.get_event_type_display }}</h2><p>{{ event.project.organization }} | {{ event.project.product }} | Дата: {{ event.event_date }}</p><ul>';
+        
+        // Формируем список адресов без координат
+        $('#assigned-event-addresses-list li').each(function() {
+            const addressName = $(this).find('.address-name').text().trim();
+            const addressNumber = $(this).find('.address-number').text().trim();
+            content += `<li>${addressNumber} ${addressName}</li>`;
+        });
+        
+        content += '</ul></body></html>';
+        
+        printWindow.document.open();
+        printWindow.document.write(content);
+        printWindow.document.close();
+        printWindow.focus();
+        printWindow.print();
+        printWindow.close();
+    }
     </script>
 
 </body>
