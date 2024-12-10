@@ -34,6 +34,19 @@
         <li data-id="{{ address.id }}">
             <span class="address-number">{{ forloop.counter }}.</span> 
             <span class="address-name">{{ address.name }}</span>
+
+            {% if is_manager %}
+                {% if address.assigned_user %}
+                    {% if address.assigned_user.username %}
+                        <span class="executor-name"> - {{ address.assigned_user.executorprofile.name }}</span>
+                    {% else %}
+                        <span class="executor-email"> - {{ address.assigned_user.email }}</span>
+                    {% endif %}
+                {% else %}
+                    <span class="executor-none"> - Исполнитель не назначен</span>
+                {% endif %}
+            {% endif %}
+
             <span class="hidden-coordinates">
                 <span class="latitude">{{ address.latitude }}</span> | 
                 <span class="longitude">{{ address.longitude }}</span>
@@ -44,7 +57,9 @@
         {% endfor %}
     </ul>
 
-    <a href="{% url 'assigned_events_list' %}">Назад к списку событий</a>
+    <a href="{% if is_executor %}{% url 'assigned_events_list' %}{% elif is_manager %}{% url 'events_control' %}{% else %}{% url 'home' %}{% endif %}">
+        Закрыть
+    </a>
 
     <script>
         ymaps.ready(initMap);

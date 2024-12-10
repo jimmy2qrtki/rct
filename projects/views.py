@@ -1,6 +1,8 @@
 from datetime import datetime, time
 from django.utils import timezone
 from django.shortcuts import render, get_object_or_404, redirect
+
+from rct.models import ExecutorProfile
 from .models import Address, EventAddress, Project, Event, RequestCounter, EventUser
 from .forms import ProjectForm, EventForm
 from django.contrib.auth.decorators import login_required
@@ -37,6 +39,7 @@ def edit_project(request, project_id):
                 form.instance.organization = new_org
             else:
                 form.instance.organization = form.cleaned_data['organization']
+            # form.instance.manager остается без изменений, если это вдруг не предусмотрено в форме
             form.save()
             return redirect('edit_project', project_id=project.id)
     else:
@@ -602,13 +605,24 @@ def start_event(request):
 @login_required
 def event_detail(request, event_id):
     event = get_object_or_404(Event, pk=event_id)
+    current_user = request.user
 
-    # Фильтруем адреса, назначенные текущему пользователю
-    event_addresses = event.addresses.filter(assigned_user=request.user)
+    # Допустим, у вас есть поле project.manager, которое указывает на менеджера проекта
+    is_manager = current_user.groups.filter(name='Менеджер').exists()
+    is_executor = current_user.groups.filter(name='Исполнитель').exists()
+    
+    # Добавляем условие для отображения адресов менеджеру, назначающему событие
+    if is_manager and event.project.user == current_user:
+        event_addresses = event.addresses.filter(assigned_user__isnull=False).select_related('assigned_user')
+    else:
+        # Если пользователь - исполнитель, отображаем лишь назначенные ему адреса
+        event_addresses = event.addresses.filter(assigned_user=request.user)
 
     return render(request, 'projects/event_detail.html', {
         'event': event,
         'event_addresses': event_addresses,
+        'is_executor': is_executor,
+        'is_manager': is_manager,
     })
 
 # Оптимальный маршрут для event_detail.html
@@ -620,3 +634,41 @@ def calculate_optimal_route(request):
         return JsonResponse({'route': optimal_route})
 
     return JsonResponse({'error': 'Invalid request method.'}, status=400)
+
+@login_required
+def events_control(request):
+    current_user = request.user
+    
+    # Получаем все события, где проекты принадлежат текущему пользователю
+    # Предполагаем, что в модели Project поле user связывает его с User как менеджера
+    event_users_by_status = {
+        'assigned': EventUser.objects.filter(event__project__user=current_user, status='assigned'),
+        'confirmed': EventUser.objects.filter(event__project__user=current_user, status='confirmed'),
+        'in_progress': EventUser.objects.filter(event__project__user=current_user, status='in_progress'),
+        'completed': EventUser.objects.filter(event__project__user=current_user, status='completed'),
+    }
+    
+    # Подсчёт количества адресов и преобразование статусов
+    event_data_by_status = {}
+    status_display_map = dict(EventUser.STATUS_CHOICES)
+    
+    for status, events in event_users_by_status.items():
+        # Получаем отображаемое значение статуса
+        status_display = status_display_map.get(status, status)
+        event_data_by_status[status] = {
+            'display': status_display,
+            'count': events.count(),
+            'events': [
+                (
+                    e.event,
+                    e.event.addresses.filter(assigned_user=e.user).count(),
+                    e.user  # добавляем пользователя в кортеж, чтобы показать исполнителя
+                )
+                for e in events.select_related('user', 'event__project')  # оптимизируем запрос
+            ]
+        }
+
+    return render(request, 'projects/events_control.html', {
+        'event_data_by_status': event_data_by_status,
+        'current_user': current_user,
+    })

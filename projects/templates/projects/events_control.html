@@ -1,0 +1,134 @@
+<!-- templates/projects/events_control.html -->
+<html>
+<head>
+    <title>Контроль событий</title>
+    {% load static %}
+    <script src="{% static 'js/jquery-3.7.1.min.js' %}"></script>
+    <style>
+        .tab {
+            display: inline-block;
+            padding: 10px 20px;
+            cursor: pointer;
+            border: 1px solid #ccc;
+            margin-right: -1px;
+            background-color: #f9f9f9;
+        }
+        .tab.active {
+            background-color: #fff;
+            border-bottom: none;
+        }
+        .tab-content {
+            display: none;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-top: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <a href="{% url 'profile' %}">Профиль</a>
+    <h2>Контроль событий</h2>
+
+    <div id="tabs">
+        {% for status, data in event_data_by_status.items %}
+            <div class="tab {% if forloop.first %}active{% endif %}" data-status="{{ status }}">
+                {{ data.display }} ({{ data.count }})
+            </div>
+        {% endfor %}
+    </div>
+    
+    <div id="tab-contents">
+        {% for status, data in event_data_by_status.items %}
+        <div class="tab-content {% if forloop.first %}active{% endif %}" id="content-{{ status }}">
+            <table>
+                {% if data.events %}
+                    <thead>
+                        <tr>
+                            <th>Название проекта</th>
+                            <th>Организация</th>
+                            <th>Продукция</th>
+                            <th>Тип события</th>
+                            <th>Дата начала</th>
+                            <th>Дедлайн</th>
+                            <th>Кол-во адресов</th>
+                            <th>Исполнитель</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                {% endif %}
+                <tbody>
+                    {% for event, assigned_address_count, assigned_user in data.events %}
+                    <tr data-url="{% url 'event_detail' event.id %}">
+                        <td>{{ event.project.name }}</td>
+                        <td>{{ event.project.organization }}</td>
+                        <td>{{ event.project.product }}</td>
+                        <td>{{ event.get_event_type_display }}</td>
+                        <td>{{ event.event_date|date:"Y-m-d" }}</td>
+                        <td>{{ event.due_date|date:"Y-m-d" }}</td>
+                        <td>{{ assigned_address_count }}</td>
+                        <td>{{ assigned_user.executorprofile.name|default:assigned_user.email }} <br>
+                            {{ assigned_user.executorprofile.phone_number }}</td>
+                        <td class="clickable">
+                            <button class="data-button">Детали</button>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9">Нет событий со статусом "{{ data.display|lower }}".</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endfor %}
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            // Функция для переключения вкладок
+            function switchTab(status) {
+                // Переключение активной вкладки
+                $('.tab').removeClass('active');
+                $('.tab[data-status="' + status + '"]').addClass('active');
+                // Показываем/скрываем контент
+                $('.tab-content').removeClass('active');
+                $('#content-' + status).addClass('active');
+            }
+    
+            // Загружаем последнюю выбранную вкладку из localStorage
+            var savedStatus = localStorage.getItem('selectedTab');
+            if (savedStatus) {
+                switchTab(savedStatus);
+            } else {
+                // Если ничего не сохранено, по умолчанию показываем первую вкладку
+                switchTab('assigned');
+            }
+    
+            $('.tab').click(function() {
+                var status = $(this).data('status');
+                switchTab(status);
+    
+                // Сохраняем выбранную вкладку в localStorage
+                localStorage.setItem('selectedTab', status);
+            });
+    
+            // ссылка для открытия деталей события
+            document.querySelectorAll('button.data-button').forEach((button) => {
+                button.addEventListener('click', (event) => {
+                    // Останавливаем распространение события, чтобы не срабатывал другой код
+                    event.stopPropagation(); 
+                    
+                    // Получаем URL из родительского элемента <tr>
+                    const url = event.currentTarget.closest('tr').dataset.url;
+                    
+                    // Перенаправляем на URL
+                    window.location.href = url;
+                });
+            });
+        });
+    </script>
+</body>
+</html>

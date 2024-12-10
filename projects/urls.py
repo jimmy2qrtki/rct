@@ -29,4 +29,5 @@ urlpatterns = [
     path('start-event/', views.start_event, name='start_event'),
     path('event/<int:event_id>/', views.event_detail, name='event_detail'),
     path('calculate_optimal_route/', views.calculate_optimal_route, name='calculate_optimal_route'),
+    path('events/control/', views.events_control, name='events_control'),
 ]
