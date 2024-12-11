@@ -149,10 +149,6 @@
                 alert('Ошибка сети');
             });
         });
-
-        function updateRemainingRequestsCount(count) {
-            document.getElementById('remaining-requests').innerText = `Осталось ${count} запросов`;
-        }
     
         function addDeleteEventListeners() {
             document.querySelectorAll('.delete-address-btn').forEach(button => {
@@ -162,10 +158,6 @@
                     li.remove(); // Удаление элемента из DOM
                 });
             });
-        }
-    
-        function updateRemainingRequestsCount(count) {
-            document.getElementById('remaining-requests').textContent = `Осталось ${count} запросов`;
         }
     </script>
     <script>
@@ -293,6 +285,7 @@
             }
         };
 
+        // функция сортировки списка адресов
         $(document).ready(function() {
             $('#addresses-list').sortable({
                 placeholder: 'ui-state-highlight',

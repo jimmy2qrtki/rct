@@ -14,6 +14,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.models import User, Group
 from scipy.spatial.distance import euclidean
 from django.utils.timezone import make_aware
+from django.db.models import Max
 
 @login_required
 def manage_projects(request):
@@ -358,34 +359,72 @@ def delete_event_address(request, address_id):
 # сохранение новых адресов в событии    
 @csrf_exempt
 def add_new_addresses(request, event_id):
-    if request.method == 'POST':
+    reset_request_counter(request)
+    counter = RequestCounter.objects.get(user=request.user)
+
+    if counter.count <= 0:
+        time_left = get_time_until_midnight()
+        return JsonResponse({
+            'status': 'error',
+            'message': f'Закончились запросы для координат - запросы будут доступны через {time_left}',
+            'remaining_requests': counter.count
+        })
+
+    try:
         event = get_object_or_404(Event, id=event_id)
-        data = json.loads(request.POST.get('addresses', '[]'))
-        new_addresses = []
-        
-        for item in data:
-            new_address = EventAddress.objects.create(
-                event=event,
-                name=item['name'],
-                latitude=item['latitude'],
-                longitude=item['longitude']
-            )
-            new_addresses.append(new_address)
-        
-        # Подготавливаем данные для ответа
+        data = json.loads(request.body)
+        new_addresses = data.get('new_addresses', [])
+        num_processed = 0
+
+        # Получаем наибольший order среди существующих адресов
+        max_order = EventAddress.objects.filter(event=event).aggregate(Max('order'))['order__max'] or 0
+
+        addresses_created = []
+        for item in new_addresses:
+            if item['name']:
+                if counter.count <= 0:
+                    time_left = get_time_until_midnight()
+                    return JsonResponse({
+                        'status': 'error',
+                        'message': f'Закончились запросы для координат - запросы будут доступны через {time_left}',
+                        'remaining_requests': counter.count
+                    })
+
+                coordinates = get_coordinates_from_yandex(request, item['name'])
+                # Увеличьте max_order для нового адреса
+                new_order = max_order + 1
+                max_order = new_order  # Обновление для следующего адреса
+                
+                new_address = EventAddress.objects.create(
+                    event=event,
+                    name=item['name'],
+                    latitude=coordinates['lat'],
+                    longitude=coordinates['lon'],
+                    order=new_order
+                )
+                addresses_created.append(new_address)
+                num_processed += 1
+
+        counter.count -= num_processed
+        counter.save()
+
         response_data = {
+            'status': 'ok',
+            'remaining_requests': counter.count,
             'addresses': [
                 {
-                    'id': addr.id, 
-                    'name': addr.name, 
-                    'latitude': addr.latitude, 
+                    'id': addr.id,
+                    'name': addr.name,
+                    'latitude': addr.latitude,
                     'longitude': addr.longitude
-                } 
-                for addr in event.addresses.all()
+                }
+                for addr in addresses_created
             ]
         }
-        
+
         return JsonResponse(response_data)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
 # обновление порядка адресов в событии
 def update_address_order(request):
@@ -419,10 +458,10 @@ def assigned_events_list(request):
     
     # Получаем все события пользователя с разбивкой по статусам
     event_users_by_status = {
-        'assigned': EventUser.objects.filter(user=current_user, status='assigned'),
-        'confirmed': EventUser.objects.filter(user=current_user, status='confirmed'),
-        'in_progress': EventUser.objects.filter(user=current_user, status='in_progress'),
-        'completed': EventUser.objects.filter(user=current_user, status='completed'),
+        'assigned': EventUser.objects.filter(user=current_user, status='assigned').order_by('event__event_date'),
+        'confirmed': EventUser.objects.filter(user=current_user, status='confirmed').order_by('event__event_date'),
+        'in_progress': EventUser.objects.filter(user=current_user, status='in_progress').order_by('event__event_date'),
+        'completed': EventUser.objects.filter(user=current_user, status='completed').order_by('event__event_date'),
     }
     
     # Подсчёт количества адресов и преобразование статусов
@@ -619,7 +658,7 @@ def event_detail(request, event_id):
     
     # Добавляем условие для отображения адресов менеджеру, назначающему событие
     if is_manager and event.project.user == current_user:
-        event_addresses = event.addresses.filter(assigned_user__isnull=False).select_related('assigned_user')
+        event_addresses = event.addresses.all().select_related('assigned_user')
     else:
         # Если пользователь - исполнитель, отображаем лишь назначенные ему адреса
         event_addresses = event.addresses.filter(assigned_user=request.user)
@@ -645,13 +684,12 @@ def calculate_optimal_route(request):
 def events_control(request):
     current_user = request.user
     
-    # Получаем все события, где проекты принадлежат текущему пользователю
-    # Предполагаем, что в модели Project поле user связывает его с User как менеджера
+    # Получаем все события, где проекты принадлежат текущему пользователю, с проверкой на статус события
     event_users_by_status = {
-        'assigned': EventUser.objects.filter(event__project__user=current_user, status='assigned'),
-        'confirmed': EventUser.objects.filter(event__project__user=current_user, status='confirmed'),
-        'in_progress': EventUser.objects.filter(event__project__user=current_user, status='in_progress'),
-        'completed': EventUser.objects.filter(event__project__user=current_user, status='completed'),
+        'assigned': EventUser.objects.filter(event__project__user=current_user, status='assigned').order_by('event__event_date'),
+        'confirmed': EventUser.objects.filter(event__project__user=current_user, status='confirmed').order_by('event__event_date'),
+        'in_progress': EventUser.objects.filter(event__project__user=current_user, status='in_progress').order_by('event__event_date'),
+        'completed': EventUser.objects.filter(event__project__user=current_user, status='completed').order_by('event__event_date'),
     }
     
     # Подсчёт количества адресов и преобразование статусов
