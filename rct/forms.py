@@ -13,7 +13,7 @@ class UserUpdateForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
 
 class ProfileUpdateForm(forms.ModelForm):
-    api_key = forms.CharField(widget=forms.PasswordInput(), required=False)
+    api_key = forms.CharField(widget=forms.PasswordInput(render_value=True), required=False)
 
     class Meta:
         model = Profile
@@ -64,10 +64,7 @@ class ExecutorRegistrationForm(UserCreationForm):
 class ExecutorProfileForm(forms.ModelForm):
     class Meta:
         model = ExecutorProfile
-        fields = ('name', 'phone_number', 'start_address', 'district', 'api_key')
-        widgets = {
-            'api_key': forms.PasswordInput(),  # скроет вводимый ключ
-        }
+        fields = ('name', 'phone_number', 'district')
 
 class EmailAuthenticationForm(AuthenticationForm):
     email = forms.EmailField()

@@ -1,8 +1,6 @@
 from datetime import datetime, time
 from django.utils import timezone
 from django.shortcuts import render, get_object_or_404, redirect
-
-from rct.models import ExecutorProfile
 from .models import Address, EventAddress, Project, Event, RequestCounter, EventUser
 from .forms import ProjectForm, EventForm
 from django.contrib.auth.decorators import login_required
@@ -98,6 +96,10 @@ def edit_event(request, event_id):
     # Получаем всех EventUser для данного события
     event_users = event.eventuser_set.select_related('user')
 
+    # Получаем API ключ из профиля текущего пользователя
+    user_profile = request.user.profile
+    api_key = user_profile.api_key if user_profile else None
+
     return render(request, 'projects/edit_event.html', {
         'form': form,
         'project': project,
@@ -105,6 +107,7 @@ def edit_event(request, event_id):
         'project_addresses': project_addresses,
         'executors': executors,
         'event_users': event_users,  # Передаем EventUser в шаблон
+        'api_key': api_key,  # Передаем API ключ в шаблон
     })
 
 # перестраивает порядок адресов для оптимального маршрута
@@ -186,10 +189,13 @@ def delete_event(request, event_id):
     event.delete()
     return redirect('edit_project', project_id=project_id)
 
-def get_coordinates_from_yandex(address):
+def get_coordinates_from_yandex(request, address):
+    # Берём ключ с профиля
+    profile = request.user.profile
+    api_key = profile.api_key
     # Выполняем запрос к Yandex Geocoding API (вставьте свой API ключ)
     response = requests.get("https://geocode-maps.yandex.ru/1.x/", params={
-        'apikey': '212ad00a-2b33-4742-9805-36eb9352e2df',
+        'apikey': api_key,
         'geocode': address,
         'format': 'json',
     })
@@ -233,7 +239,7 @@ def get_coordinates(request, project_id):
                             'remaining_requests': counter.count
                         })
                     
-                    coordinates = get_coordinates_from_yandex(row[0])
+                    coordinates = get_coordinates_from_yandex(request, row[0])
                     address = Address.objects.create(
                         project=project,
                         name=row[0],
@@ -294,6 +300,7 @@ def delete_address(request, project_id):
     except Address.DoesNotExist:
         return JsonResponse({'status': 'error', 'message': 'Address not found'}, status=404)
     
+@login_required
 @require_POST
 def update_addresses(request, project_id):
     reset_request_counter(request)
@@ -323,7 +330,7 @@ def update_addresses(request, project_id):
                         'remaining_requests': counter.count
                     })
 
-                coordinates = get_coordinates_from_yandex(name)
+                coordinates = get_coordinates_from_yandex(request, name)
                 Address.objects.create(
                     project=project, 
                     name=name, 
@@ -607,7 +614,6 @@ def event_detail(request, event_id):
     event = get_object_or_404(Event, pk=event_id)
     current_user = request.user
 
-    # Допустим, у вас есть поле project.manager, которое указывает на менеджера проекта
     is_manager = current_user.groups.filter(name='Менеджер').exists()
     is_executor = current_user.groups.filter(name='Исполнитель').exists()
     

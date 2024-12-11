@@ -5,7 +5,7 @@
     {% load static %}
     <script src="{% static 'js/jquery-3.7.1.min.js' %}"></script>
     <link rel="stylesheet" type="text/css" href="{% static 'projects/yandex-map-modal.css' %}">
-    <script src="https://api-maps.yandex.ru/2.1/?apikey=<212ad00a-2b33-4742-9805-36eb9352e2df>&lang=ru_RU" type="text/javascript"></script>
+    <script src="https://api-maps.yandex.ru/2.1/?apikey={{ api_key }}&lang=ru_RU" type="text/javascript"></script>
     <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
     <script src="//code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
 </head>
@@ -221,7 +221,7 @@
 
                     try {
                         // Получаем координаты через Яндекс Геокодер
-                        const response = await fetch(`https://geocode-maps.yandex.ru/1.x/?apikey=212ad00a-2b33-4742-9805-36eb9352e2df&format=json&geocode=${encodeURIComponent(addressNameInput.value)}`);
+                        const response = await fetch(`https://geocode-maps.yandex.ru/1.x/?apikey={{ api_key }}&format=json&geocode=${encodeURIComponent(addressNameInput.value)}`);
                         const data = await response.json();
                         
                         if (data.response.GeoObjectCollection.metaDataProperty.GeocoderResponseMetaData.found > 0) {
@@ -261,7 +261,6 @@
                                         <span class="address-number">${index + 1}.</span> 
                                         <input class="address-name" value="${address.name}" data-id="${address.id}"> |
                                         <span class="latitude">${address.latitude}</span>
-                                        <button class="show-map-btn" data-latitude="${address.latitude}" data-longitude="${address.longitude}">Карта</button> 
                                         <span class="longitude">${address.longitude}</span>
                                         <button class="delete-address-btn" data-id="${address.id}">Удалить</button>
                                     </li>

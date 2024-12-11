@@ -19,7 +19,9 @@
     {% endif %}
     
     {% if p_form.api_key.value %}
-    <p>API Key: {{ p_form.api_key.value }}</p>
+    <p>API Key: установлено</p>
+    {% else %}
+    <p>API Key: не установлено</p>
     {% endif %}
     <button onclick="toggleEdit(true)">Редактировать</button>
 </div>

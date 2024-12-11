@@ -14,7 +14,6 @@ class ExecutorProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     name = models.CharField(max_length=255, blank=True)
     phone_number = models.CharField(max_length=15, blank=True)
-    start_address = models.CharField(max_length=255)
     district_choices = [
         ('САО', 'САО'),
         ('ВАО', 'ВАО'),
@@ -22,4 +21,3 @@ class ExecutorProfile(models.Model):
         ('ЗАО', 'ЗАО'),
     ]
     district = models.CharField(max_length=3, choices=district_choices)
-    api_key = models.CharField(max_length=255, blank=True)

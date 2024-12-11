@@ -1,12 +1,10 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login, logout, get_backends, authenticate
-from .forms import UserUpdateForm, ProfileUpdateForm, CustomUserCreationForm, ExecutorRegistrationForm, ExecutorProfileForm, EmailAuthenticationForm
+from .forms import UserUpdateForm, ProfileUpdateForm, CustomUserCreationForm, ExecutorRegistrationForm, ExecutorProfileForm
 from django.contrib import messages
 from django.contrib.auth.models import Group
 from .models import ExecutorProfile
-from django.http import HttpResponse
-from django.contrib.auth.forms import AuthenticationForm
 
 def register(request):
     if request.method == 'POST':
@@ -46,14 +44,24 @@ def login_view(request):
             messages.error(request, 'Неверный Email или пароль.')
     return render(request, 'registration/login.html')
 
-@login_required 
+@login_required
 def profile(request):
     if request.method == 'POST':
         u_form = UserUpdateForm(request.POST, instance=request.user)
         p_form = ProfileUpdateForm(request.POST, instance=request.user.profile)
+        
         if u_form.is_valid() and p_form.is_valid():
             u_form.save()
-            p_form.save()
+
+            profile_instance = p_form.save(commit=False)
+            # Проверяем, есть ли новый API KEY, если нет, оставляем старое значение
+            new_api_key = p_form.cleaned_data['api_key']
+
+            if new_api_key:
+                profile_instance.api_key = new_api_key  # обновляем только если введён новый ключ
+
+            profile_instance.save()  # Сохраняем изменения в профиле
+
             messages.success(request, 'Ваш профиль был успешно обновлен!')
             return redirect('profile')
         else:
