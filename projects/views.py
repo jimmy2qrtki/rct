@@ -114,6 +114,9 @@ def edit_event(request, event_id):
 # перестраивает порядок адресов для оптимального маршрута
 def nearest_neighbor(coords):
     n = len(coords)
+    if n == 0:
+        return []  # Возвращаем пустой путь, если нет координат
+
     visited = [False] * n
     path = [0]  # Начинаем с первой точки
     visited[0] = True
@@ -139,20 +142,24 @@ def nearest_neighbor(coords):
 def copy_addresses(request, event_id):
     event = get_object_or_404(Event, id=event_id)
 
+    # Получаем адреса из проекта
+    project_addresses = list(event.project.addresses.all())
+
+    # Проверяем наличие адресов в проекте
+    if not project_addresses:
+        return JsonResponse({"error": "Нету адресов для синхронизации. Добавьте адреса в проект!"}, status=400)
+
     # Удаляем все существующие адреса для события
     event.addresses.all().delete()
 
-    # Получаем адреса из проекта
-    project_addresses = list(event.project.addresses.all())
-    
     # Подготавливаем координаты для оптимизации
     coordinates = [(addr.latitude, addr.longitude) for addr in project_addresses]
     
-    # Находим оптимальный порядок адресов
+    # Находим оптимальный порядок адресов только если есть координаты
     if coordinates:
         optimal_order = nearest_neighbor(coordinates)
         sorted_project_addresses = [project_addresses[i] for i in optimal_order]
-    
+
         # Копируем адреса из проекта в событие в оптимальном порядке
         for addr in sorted_project_addresses:
             EventAddress.objects.create(
@@ -164,7 +171,7 @@ def copy_addresses(request, event_id):
 
     # Подготавливаем данные для возврата через JSON
     event_addresses = list(event.addresses.values('name', 'latitude', 'longitude'))
-    return JsonResponse({"message": "Addresses copied successfully", "addresses": event_addresses})
+    return JsonResponse({"message": "Addresses copied successfully", "addresses": event_addresses}, status=200)
 
 def create_event(request, project_id):
     project = get_object_or_404(Project, pk=project_id)
@@ -190,26 +197,36 @@ def delete_event(request, event_id):
     event.delete()
     return redirect('edit_project', project_id=project_id)
 
+@login_required
 def get_coordinates_from_yandex(request, address):
-    # Берём ключ с профиля
     profile = request.user.profile
     api_key = profile.api_key
-    # Выполняем запрос к Yandex Geocoding API (вставьте свой API ключ)
-    response = requests.get("https://geocode-maps.yandex.ru/1.x/", params={
-        'apikey': api_key,
-        'geocode': address,
-        'format': 'json',
-    })
-    geo_object = response.json()['response']['GeoObjectCollection']['featureMember'][0]['GeoObject']
-    coordinates = geo_object['Point']['pos'].split()
-    return {
-        'lat': float(coordinates[1]),
-        'lon': float(coordinates[0]),
-    }
+
+    try:
+        response = requests.get("https://geocode-maps.yandex.ru/1.x/", params={
+            'apikey': api_key,
+            'geocode': address,
+            'format': 'json',
+        })
+        
+        response_data = response.json()
+        # Проверяем наличие данных в ответе
+        if 'featureMember' not in response_data['response']['GeoObjectCollection'] or not response_data['response']['GeoObjectCollection']['featureMember']:
+            raise ValueError("Invalid API Key or Geocode failed")
+        
+        geo_object = response_data['response']['GeoObjectCollection']['featureMember'][0]['GeoObject']
+        coordinates = geo_object['Point']['pos'].split()
+        return {
+            'lat': float(coordinates[1]),
+            'lon': float(coordinates[0]),
+        }
+    
+    except Exception as e:
+        raise ValueError("Invalid API Key or Geocode failed")
 
 @login_required
 def get_coordinates(request, project_id):
-    reset_request_counter(request)  # Передайте request для доступа к пользователю
+    reset_request_counter(request)  # Обновляем счётчик запросов
     counter = RequestCounter.objects.get(user=request.user)
 
     if counter.count <= 0:
@@ -220,6 +237,10 @@ def get_coordinates(request, project_id):
             'remaining_requests': counter.count
         })
     
+    profile = request.user.profile
+    if not profile.api_key:
+        return JsonResponse({'status': 'error', 'message': 'Вам нужно заполнить поле API Key в профиле'})
+
     if request.method == 'POST' and request.FILES.get('excel_file'):
         project = get_object_or_404(Project, pk=project_id)
         uploaded_file = request.FILES['excel_file']
@@ -239,25 +260,28 @@ def get_coordinates(request, project_id):
                             'message': f'Закончились запросы для координат - запросы будут доступны через {time_left}',
                             'remaining_requests': counter.count
                         })
-                    
-                    coordinates = get_coordinates_from_yandex(request, row[0])
-                    address = Address.objects.create(
-                        project=project,
-                        name=row[0],
-                        latitude=coordinates['lat'],
-                        longitude=coordinates['lon']
-                    )
-                    html = f"""
-                    <li data-id="{address.id}">
-                        <span class="address-number">{index + 1}.</span>
-                        <input class="address-name" value="{escape(address.name)}" data-id="{address.id}"> |
-                        <span class="latitude">{address.latitude}</span> |
-                        <span class="longitude">{address.longitude}</span>
-                        <button class="delete-address-btn" data-id="{address.id}">Удалить</button>
-                    </li>
-                    """
-                    addresses_list.append(html)
-                    num_processed += 1
+
+                    try:
+                        coordinates = get_coordinates_from_yandex(request, row[0])
+                        address = Address.objects.create(
+                            project=project,
+                            name=row[0],
+                            latitude=coordinates['lat'],
+                            longitude=coordinates['lon']
+                        )
+                        html = f"""
+                        <li data-id="{address.id}">
+                            <span class="address-number">{index + 1}.</span>
+                            <input class="address-name" value="{escape(address.name)}" data-id="{address.id}"> |
+                            <span class="latitude">{address.latitude}</span> |
+                            <span class="longitude">{address.longitude}</span>
+                            <button class="delete-address-btn" data-id="{address.id}">Удалить</button>
+                        </li>
+                        """
+                        addresses_list.append(html)
+                        num_processed += 1
+                    except Exception as e:
+                        return JsonResponse({'status': 'error', 'message': 'Некорректный API Key', 'remaining_requests': counter.count})
             
             counter.count -= num_processed
             counter.save()
@@ -315,6 +339,10 @@ def update_addresses(request, project_id):
             'remaining_requests': counter.count
         })
 
+    profile = request.user.profile
+    if not profile.api_key:
+        return JsonResponse({'status': 'error', 'message': 'Вам нужно заполнить поле API Key в профиле'})
+
     try:
         project = get_object_or_404(Project, pk=project_id)
         data = json.loads(request.body)
@@ -330,20 +358,23 @@ def update_addresses(request, project_id):
                         'message': f'Закончились запросы для координат - запросы будут доступны через {time_left}',
                         'remaining_requests': counter.count
                     })
-
-                coordinates = get_coordinates_from_yandex(request, name)
-                Address.objects.create(
-                    project=project, 
-                    name=name, 
-                    latitude=coordinates['lat'], 
-                    longitude=coordinates['lon']
-                )
-                num_processed += 1  # Увеличиваем счетчик обработанных адресов
-
+                
+                try:
+                    coordinates = get_coordinates_from_yandex(request, name)
+                    Address.objects.create(
+                        project=project, 
+                        name=name, 
+                        latitude=coordinates['lat'], 
+                        longitude=coordinates['lon']
+                    )
+                    num_processed += 1  # Увеличиваем счетчик обработанных адресов
+                except ValueError as ve:
+                    return JsonResponse({'status': 'error', 'message': str(ve), 'remaining_requests': counter.count})
+        
         counter.count -= num_processed  # Уменьшаем количество запросов на количество обработанных адресов
         counter.save()
         
-        return JsonResponse({'status': 'ok', 'remaining_requests': counter.count})
+        return JsonResponse({'status': 'ok', 'remaining_requests': counter.count}, status=200)
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
@@ -561,9 +592,18 @@ def assign_executor(request):
     try:
         event = Event.objects.get(id=event_id)
         user = User.objects.get(id=user_id)
-
+        
+        # Проверяем, есть ли уже назначенные адреса для этого пользователя
+        already_assigned_addresses = EventAddress.objects.filter(
+            event=event, assigned_user=user
+        ).exists()
+        
         event_user, created = EventUser.objects.get_or_create(event=event, user=user)
-        event_user.status = 'assigned'
+        
+        # Меняем статус только если у пользователя нет назначенных адресов
+        if not already_assigned_addresses:
+            event_user.status = 'assigned'
+            
         event_user.save()
 
         address_indexes = json.loads(address_indexes) if address_indexes else None
@@ -716,3 +756,10 @@ def events_control(request):
         'event_data_by_status': event_data_by_status,
         'current_user': current_user,
     })
+
+# обновление счётчика запросов в шаблоне
+def get_remaining_requests(request):
+    user = request.user
+    counter, created = RequestCounter.objects.get_or_create(user=user)
+    reset_request_counter(request)  # Обновляем состояние счетчика
+    return JsonResponse({'remaining_requests': counter.count})

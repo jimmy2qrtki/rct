@@ -101,6 +101,29 @@
                 }
             }).change(); // Trigger change to update on load
         });
+
+        // обновление счётчика запросов
+        function updateRemainingRequests() {
+            fetch('{% url "get_remaining_requests" %}', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}', // Если включена защита CSRF
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('remaining-requests').innerText = `Осталось ${data.remaining_requests} запросов`;
+            })
+            .catch(error => console.error('Ошибка при обновлении оставшихся запросов:', error));
+        }
+
+        // Запрашиваем сервер каждый час, чтобы обновить данные
+        setInterval(updateRemainingRequests, 60 * 60 * 1000);  // Каждые 60 минут
+
+        // Проверяем время до полуночи и запускаем обновление в полночь
+        const timeUntilMidnight = '{{ seconds_until_midnight }}';
+        setTimeout(updateRemainingRequests, timeUntilMidnight * 1000);
     </script>
     <script>
         document.getElementById('get-coordinates-btn').addEventListener('click', function() {

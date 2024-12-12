@@ -30,4 +30,5 @@ urlpatterns = [
     path('event/<int:event_id>/', views.event_detail, name='event_detail'),
     path('calculate_optimal_route/', views.calculate_optimal_route, name='calculate_optimal_route'),
     path('events/control/', views.events_control, name='events_control'),
+    path('get-remaining-requests/', views.get_remaining_requests, name='get_remaining_requests'),
 ]
