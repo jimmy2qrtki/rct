@@ -291,8 +291,22 @@
 
         // Открытие модального окна и обновление меток
         $('#show-map-btn').click(function() {
+            // Проверка на наличие адресов
+            if ($('#modal-event-addresses-list li').length === 0 || $('#modal-event-addresses-list li:contains("Нет адресов.")').length > 0) {
+                alert("Нет доступных адресов для отображения.");
+                return;
+            }
+
+            // Проверка на наличие API Key
+            const apiKey = "{{ user.profile.api_key }}"; // Предполагаем, что API Key передан в контекст
+            if (!apiKey) {
+                alert("Вам нужно заполнить поле API Key в профиле.");
+                return;
+            }
+
+            // Показ карты
             $('#map-modal').show();
-            ymaps.ready(initMap); // Инициализация или обновление карты
+            ymaps.ready(initMap);
         });
 
         // Закрытие модального окна
