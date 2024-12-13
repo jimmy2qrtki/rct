@@ -15,6 +15,9 @@ from django.contrib.auth.models import User, Group
 from scipy.spatial.distance import euclidean
 from django.utils.timezone import make_aware
 from django.db.models import Max
+import os
+import re
+from django.core.files.storage import default_storage
 
 @login_required
 def manage_projects(request):
@@ -703,9 +706,35 @@ def event_detail(request, event_id):
         # Если пользователь - исполнитель, отображаем лишь назначенные ему адреса
         event_addresses = event.addresses.filter(assigned_user=request.user)
 
+    addresses_with_photos = []
+    for address in event_addresses:
+        # Проверяем, есть ли исполнитель и имя профиля
+        executor_name = address.assigned_user.executorprofile.name if address.assigned_user else None
+        project_user = event.project.user.username
+        project_name = re.sub(r'[\\/*?:"<>|]', "_", event.project.name)
+        event_type = event.get_event_type_display()
+        address_name = re.sub(r'[\\/*?:"<>|]', "_", address.name)
+
+        # Путь до директории, где хранятся фото для конкретного адреса
+        base_path = f"media/{project_user}/{project_name}/{event_type}/{executor_name}"
+        
+        # Проверяем существование директории
+        has_photos = False
+        if executor_name and os.path.exists(base_path):
+            # Проходим по файлам в директории и проверяем, есть ли файл, начинающийся с имени адреса
+            for file_name in os.listdir(base_path):
+                if file_name.startswith(address_name):
+                    has_photos = True
+                    break
+
+        addresses_with_photos.append({
+            'address': address,
+            'has_photos': has_photos
+        })
+
     return render(request, 'projects/event_detail.html', {
         'event': event,
-        'event_addresses': event_addresses,
+        'addresses_with_photos': addresses_with_photos,
         'is_executor': is_executor,
         'is_manager': is_manager,
     })
@@ -763,3 +792,75 @@ def get_remaining_requests(request):
     counter, created = RequestCounter.objects.get_or_create(user=user)
     reset_request_counter(request)  # Обновляем состояние счетчика
     return JsonResponse({'remaining_requests': counter.count})
+
+@login_required
+def upload_photos(request, event_id, address_id):
+    if request.method == 'POST' and request.user.groups.filter(name='Исполнитель').exists():
+        event = get_object_or_404(Event, pk=event_id)
+        address = get_object_or_404(EventAddress, pk=address_id, event=event)
+        photos = request.FILES.getlist('photos')
+
+        # Получение пути назначения для фотографий
+        executor_name = request.user.executorprofile.name
+        project_user = event.project.user.username
+        project_name = re.sub(r'[\\/*?:"<>|]', "_", event.project.name)
+        event_type = event.get_event_type_display()
+        address_name = re.sub(r'[\\/*?:"<>|]', "_", address.name)
+
+        # Создание вложенной структуры папок
+        base_path = f"media/{project_user}/{project_name}/{event_type}/{executor_name}"
+
+        if not os.path.exists(base_path):
+            os.makedirs(base_path)
+
+        # Функция для генерации уникального имени файла
+        def generate_unique_file_path(base_path, base_name, extension):
+            counter = 0
+            unique_file_path = os.path.join(base_path, f"{base_name}{extension}")
+            
+            while default_storage.exists(unique_file_path):
+                counter += 1
+                unique_file_path = os.path.join(base_path, f"{base_name}_{counter}{extension}")
+            
+            return unique_file_path
+
+        # Сохранение фотографий
+        for photo in photos:
+            file_extension = os.path.splitext(photo.name)[1]
+            unique_file_path = generate_unique_file_path(base_path, address_name, file_extension)
+            
+            with default_storage.open(unique_file_path, 'wb+') as destination:
+                for chunk in photo.chunks():
+                    destination.write(chunk)
+
+        return redirect('event_detail', event_id=event_id)
+
+    return JsonResponse({'error': 'Invalid request'}, status=400)
+
+@login_required
+def view_photos(request, event_id):
+    if request.method == 'GET' and request.user.groups.filter(name='Менеджер').exists():
+        event = get_object_or_404(Event, pk=event_id)
+        address_id = request.GET.get('address_id')
+        address = get_object_or_404(EventAddress, pk=address_id, event=event)
+
+        executor_name = address.assigned_user.executorprofile.name
+        project_user = event.project.user.username
+        project_name = re.sub(r'[\\/*?:"<>|]', "_", event.project.name)
+        event_type = event.get_event_type_display()
+        address_name = re.sub(r'[\\/*?:"<>|]', "_", address.name)
+
+        base_path = f"media/{project_user}/{project_name}/{event_type}/{executor_name}"
+        photos = []
+
+        for file_name in os.listdir(base_path):
+            if file_name.startswith(address_name):
+                photos.append({
+                    'url': default_storage.url(os.path.join(base_path, file_name)),
+                    'name': file_name,
+                    'address_name': address_name
+                })
+
+        return JsonResponse({'photos': photos})
+
+    return JsonResponse({'error': 'Invalid request'}, status=400)

@@ -30,26 +30,38 @@
     <button id="update-route">Обновить маршрут</button>
     <button id="print-addresses">Печать маршрута</button>
     <ul id="assigned-event-addresses-list">
-        {% for address in event_addresses %}
-        <li data-id="{{ address.id }}">
+        {% for item in addresses_with_photos %}
+        <li data-id="{{ item.address.id }}">
             <span class="address-number">{{ forloop.counter }}.</span> 
-            <span class="address-name">{{ address.name }}</span>
-
+            <span class="address-name">{{ item.address.name }}</span>
+    
             {% if is_manager %}
-                {% if address.assigned_user %}
-                    {% if address.assigned_user.username %}
-                        <span class="executor-name"> - {{ address.assigned_user.executorprofile.name }}</span>
+                {% if item.address.assigned_user %}
+                    {% if item.address.assigned_user.username %}
+                        <span class="executor-name"> - {{ item.address.assigned_user.executorprofile.name }}</span>
                     {% else %}
-                        <span class="executor-email"> - {{ address.assigned_user.email }}</span>
+                        <span class="executor-email"> - {{ item.address.assigned_user.email }}</span>
                     {% endif %}
                 {% else %}
                     <span class="executor-none"> - Исполнитель не назначен</span>
                 {% endif %}
             {% endif %}
-
+    
+            {% if is_manager and item.has_photos %}
+                <!-- Кнопка "Детали" для менеджера, только если есть фото -->
+                <button class="view-details" data-address-id="{{ item.address.id }}">Детали</button>
+            {% elif is_executor %}
+                <!-- Кнопка "Загрузить фото" для исполнителя -->
+                <form method="post" enctype="multipart/form-data" action="{% url 'upload_photos' event.id item.address.id %}">
+                    {% csrf_token %}
+                    <input type="file" name="photos" accept="image/*" multiple>
+                    <button type="submit">Загрузить фото</button>
+                </form>
+            {% endif %}
+    
             <span class="hidden-coordinates">
-                <span class="latitude">{{ address.latitude }}</span> | 
-                <span class="longitude">{{ address.longitude }}</span>
+                <span class="latitude">{{ item.address.latitude }}</span> | 
+                <span class="longitude">{{ item.address.longitude }}</span>
             </span>
         </li>
         {% empty %}
@@ -62,6 +74,28 @@
     </a>
 
     <script>
+        $(document).on('click', '.view-details', function() {
+            const addressId = $(this).data('address-id');
+
+            // Сделать AJAX-запрос для получения картинок
+            $.ajax({
+                url: `{% url 'view_photos' event.id %}?address_id=${addressId}`,
+                method: 'GET',
+                success: function(data) {
+                    let photosHtml = '';
+                    data.photos.forEach(photo => {
+                        photosHtml += `<img src="${photo.url}" alt="Фото ${photo.name} для ${photo.address_name}"/><br>`;
+                    });
+
+                    // Показываем изображения в модальном окне
+                    $('#photosModal .modal-body').html(photosHtml);
+                    $('#photosModal').modal('show');
+                },
+                error: function() {
+                    alert('Ошибка при загрузке фотографий.');
+                }
+            });
+        });
         ymaps.ready(initMap);
     
         let map;

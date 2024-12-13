@@ -31,4 +31,6 @@ urlpatterns = [
     path('calculate_optimal_route/', views.calculate_optimal_route, name='calculate_optimal_route'),
     path('events/control/', views.events_control, name='events_control'),
     path('get-remaining-requests/', views.get_remaining_requests, name='get_remaining_requests'),
+    path('event/<int:event_id>/address/<int:address_id>/upload/', views.upload_photos, name='upload_photos'),
+    path('event/<int:event_id>/view_photos/', views.view_photos, name='view_photos'),
 ]
