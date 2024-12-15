@@ -18,6 +18,7 @@ from django.db.models import Max
 import os
 import re
 from django.core.files.storage import default_storage
+from django.conf import settings
 
 @login_required
 def manage_projects(request):
@@ -708,20 +709,15 @@ def event_detail(request, event_id):
 
     addresses_with_photos = []
     for address in event_addresses:
-        # Проверяем, есть ли исполнитель и имя профиля
-        executor_name = address.assigned_user.executorprofile.name if address.assigned_user else None
-        project_user = event.project.user.username
-        project_name = re.sub(r'[\\/*?:"<>|]', "_", event.project.name)
+        executor_id = address.assigned_user.executorprofile.id if address.assigned_user else None
+        project_user_id = event.project.user.id
+        project_id = str(event.project.id)
         event_type = event.get_event_type_display()
         address_name = re.sub(r'[\\/*?:"<>|]', "_", address.name)
 
-        # Путь до директории, где хранятся фото для конкретного адреса
-        base_path = f"media/{project_user}/{project_name}/{event_type}/{executor_name}"
-        
-        # Проверяем существование директории
+        base_path = f"media/{project_user_id}/{project_id}/{event_type}/{executor_id}"
         has_photos = False
-        if executor_name and os.path.exists(base_path):
-            # Проходим по файлам в директории и проверяем, есть ли файл, начинающийся с имени адреса
+        if executor_id and os.path.exists(base_path):
             for file_name in os.listdir(base_path):
                 if file_name.startswith(address_name):
                     has_photos = True
@@ -800,18 +796,17 @@ def upload_photos(request, event_id, address_id):
         address = get_object_or_404(EventAddress, pk=address_id, event=event)
         photos = request.FILES.getlist('photos')
 
-        # Получение пути назначения для фотографий
-        executor_name = request.user.executorprofile.name
-        project_user = event.project.user.username
-        project_name = re.sub(r'[\\/*?:"<>|]', "_", event.project.name)
+        executor_id = request.user.executorprofile.id
+        project_user_id = event.project.user.id
+        project_id = str(event.project.id)
         event_type = event.get_event_type_display()
         address_name = re.sub(r'[\\/*?:"<>|]', "_", address.name)
 
-        # Создание вложенной структуры папок
-        base_path = f"media/{project_user}/{project_name}/{event_type}/{executor_name}"
+        # Определяем абсолютный путь к директории
+        base_path = os.path.join(settings.MEDIA_ROOT, str(project_user_id), project_id, event_type, str(executor_id))
 
-        if not os.path.exists(base_path):
-            os.makedirs(base_path)
+        # Создаем директорию, если она не существует
+        os.makedirs(base_path, exist_ok=True)
 
         # Функция для генерации уникального имени файла
         def generate_unique_file_path(base_path, base_name, extension):
@@ -844,22 +839,25 @@ def view_photos(request, event_id):
         address_id = request.GET.get('address_id')
         address = get_object_or_404(EventAddress, pk=address_id, event=event)
 
-        executor_name = address.assigned_user.executorprofile.name
-        project_user = event.project.user.username
-        project_name = re.sub(r'[\\/*?:"<>|]', "_", event.project.name)
+        executor_id = address.assigned_user.executorprofile.id if address.assigned_user else None
+        project_user_id = event.project.user.id
+        project_id = str(event.project.id)
         event_type = event.get_event_type_display()
         address_name = re.sub(r'[\\/*?:"<>|]', "_", address.name)
 
-        base_path = f"media/{project_user}/{project_name}/{event_type}/{executor_name}"
+        base_path = os.path.join(settings.MEDIA_ROOT, str(project_user_id), project_id, event_type, str(executor_id))
         photos = []
 
-        for file_name in os.listdir(base_path):
-            if file_name.startswith(address_name):
-                photos.append({
-                    'url': default_storage.url(os.path.join(base_path, file_name)),
-                    'name': file_name,
-                    'address_name': address_name
-                })
+        if os.path.exists(base_path):
+            for file_name in os.listdir(base_path):
+                if file_name.startswith(address_name):
+                    file_path = os.path.join(base_path, file_name)
+                    url = default_storage.url(os.path.relpath(file_path, settings.MEDIA_ROOT))
+                    photos.append({
+                        'url': url,
+                        'name': file_name,
+                        'address_name': address_name
+                    })
 
         return JsonResponse({'photos': photos})
 

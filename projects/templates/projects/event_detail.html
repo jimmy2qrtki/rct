@@ -1,4 +1,5 @@
-<html lang="en">
+<!-- templates/projects/event_detail.html -->
+<html lang="ru_RU">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -6,7 +7,9 @@
     {% load static %}
     <script src="{% static 'js/jquery-3.7.1.min.js' %}"></script>
     <script src="//code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
     <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://api-maps.yandex.ru/2.1/?apikey={{ api_key }}&lang=ru_RU" type="text/javascript"></script>
     <style>
         .hidden-coordinates {
@@ -69,6 +72,26 @@
         {% endfor %}
     </ul>
 
+    <!-- Модальное окно для просмотра фото -->
+    <div id="photosModal" class="modal fade" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Просмотр фотографий</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <!-- Сюда будут вставлены фото -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Закрыть</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <a href="{% if is_executor %}{% url 'assigned_events_list' %}{% elif is_manager %}{% url 'events_control' %}{% else %}{% url 'home' %}{% endif %}">
         Закрыть
     </a>
@@ -77,19 +100,29 @@
         $(document).on('click', '.view-details', function() {
             const addressId = $(this).data('address-id');
 
+            // Сохраняем ссылку на элемент, который открыл модальное окно
+            let $trigger = $(this);
+
             // Сделать AJAX-запрос для получения картинок
             $.ajax({
                 url: `{% url 'view_photos' event.id %}?address_id=${addressId}`,
                 method: 'GET',
                 success: function(data) {
                     let photosHtml = '';
-                    data.photos.forEach(photo => {
-                        photosHtml += `<img src="${photo.url}" alt="Фото ${photo.name} для ${photo.address_name}"/><br>`;
-                    });
+                    if (data.photos && data.photos.length > 0) {
+                        data.photos.forEach(photo => {
+                            photosHtml += `<img src="${photo.url}" alt="Фото ${photo.name} для ${photo.address_name}" style="max-width: 100%;"/><br>`;
+                        });
+                    } else {
+                        photosHtml = '<p>Нет доступных фотографий.</p>';
+                    }
 
                     // Показываем изображения в модальном окне
                     $('#photosModal .modal-body').html(photosHtml);
-                    $('#photosModal').modal('show');
+                    $('#photosModal').modal('show').on('hidden.bs.modal', function() {
+                        // Возвращаем фокус на кнопку, открывшую модальное окно
+                        $trigger.focus();
+                    });
                 },
                 error: function() {
                     alert('Ошибка при загрузке фотографий.');
