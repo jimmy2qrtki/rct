@@ -800,14 +800,14 @@ def upload_photos(request, event_id, address_id):
         if len(photos) != event.photo_count:
             return JsonResponse({
                 'error': f'Количество фотографий должно быть равно {event.photo_count}.'
-            }, status=200)  # Возвращаем статус 200
+            }, status=200)
 
         executor_id = request.user.executorprofile.id
         project_user_id = event.project.user.id
         project_id = str(event.project.id)
         event_type = event.get_event_type_display()
         address_name = re.sub(r'[\\/*?:"<>|]', "_", address.name)
-        
+
         base_path = os.path.join(settings.MEDIA_ROOT, str(project_user_id), project_id, event_type, str(executor_id))
 
         # Удаление старых фотографий
@@ -816,7 +816,7 @@ def upload_photos(request, event_id, address_id):
                 if file_name.startswith(address_name):
                     file_path = os.path.join(base_path, file_name)
                     default_storage.delete(file_path)
-        
+
         # Создаем директорию, если она не существует
         os.makedirs(base_path, exist_ok=True)
 
@@ -839,7 +839,7 @@ def upload_photos(request, event_id, address_id):
                 for chunk in photo.chunks():
                     destination.write(chunk)
 
-        return redirect('event_detail', event_id=event_id)
+        return JsonResponse({'success': 'Фотографии успешно обновлены'}, status=200)
 
     return JsonResponse({'error': 'Invalid request'}, status=400)
 

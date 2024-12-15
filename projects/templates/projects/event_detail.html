@@ -34,7 +34,7 @@
     <button id="print-addresses">Печать маршрута</button>
     <ul id="assigned-event-addresses-list">
         {% for item in addresses_with_photos %}
-        <li data-id="{{ item.address.id }}">
+        <li data-id="{{ item.address.id }}" class="accordion-header">
             <span class="address-number">{{ forloop.counter }}.</span> 
             <span class="address-name">{{ item.address.name }}</span>
     
@@ -51,16 +51,24 @@
             {% endif %}
     
             {% if is_manager and item.has_photos %}
-                <!-- Кнопка "Детали" для менеджера, только если есть фото -->
+                <!-- Кнопка "Детали" остается снаружи -->
                 <button class="view-details" data-address-id="{{ item.address.id }}">Детали</button>
-            {% elif is_executor %}
-                <!-- Кнопка "Загрузить фото" для исполнителя -->
-                <form method="post" enctype="multipart/form-data" action="{% url 'upload_photos' event.id item.address.id %}">
-                    {% csrf_token %}
-                    <input type="file" name="photos" accept="image/*" multiple>
-                    <button type="submit">Загрузить фото</button>
-                </form>
             {% endif %}
+            
+            <div class="photo-upload-section" style="display: none;">
+                {% if is_executor %}
+                    {% if item.has_photos %}
+                        <span>Фото загружено</span>
+                        <button class="refresh-upload-form" data-url="{% url 'upload_photos' event.id item.address.id %}">Перезагрузить</button>
+                    {% else %}
+                        <form method="post" enctype="multipart/form-data" action="{% url 'upload_photos' event.id item.address.id %}">
+                            {% csrf_token %}
+                            <input type="file" name="photos" accept="image/*" multiple>
+                            <button type="submit">Загрузить фото</button>
+                        </form>
+                    {% endif %}
+                {% endif %}
+            </div>
     
             <span class="hidden-coordinates">
                 <span class="latitude">{{ item.address.latitude }}</span> | 
@@ -97,59 +105,82 @@
     </a>
 
     <script>
-        $(document).on('submit', 'form', function(event) {
-            event.preventDefault();
-            const form = $(this);
-            const formData = new FormData(this);
-
-            $.ajax({
-                url: form.attr('action'),
-                type: form.attr('method'),
-                data: formData,
-                processData: false,
-                contentType: false,
-                success: function(response) {
-                    if (response.error) {
-                        alert(response.error);  // Отобразим сообщение об ошибке
-                    } else {
-                        window.location.reload();  // Перезагружаем страницу в случае успеха
-                    }
-                },
-                error: function() {
-                    alert('Произошла ошибка. Повторите попытку позже.');
+        $(document).ready(function() {
+            // Toggle accordion sections by clicking on the header
+            $('#assigned-event-addresses-list').on('click', 'li.accordion-header', function(event) {
+                // Only toggle if the click is not on the form or refresh button
+                if (!$(event.target).is('form') && !$(event.target).is('input') && !$(event.target).is('button')) {
+                    $(this).find('.photo-upload-section').slideToggle();
                 }
             });
-        });
-        $(document).on('click', '.view-details', function() {
-            const addressId = $(this).data('address-id');
 
-            // Сохраняем ссылку на элемент, который открыл модальное окно
-            let $trigger = $(this);
+            // Handle refresh and re-upload
+            $(document).on('click', '.refresh-upload-form', function() {
+                const action = $(this).data('url');
+                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                const formHtml = `
+                    <form method="post" enctype="multipart/form-data" action="${action}">
+                        <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
+                        <input type="file" name="photos" accept="image/*" multiple>
+                        <button type="submit">Загрузить фото</button>
+                    </form>
+                `;
+                $(this).parent().html(formHtml);
+            });
 
-            // Сделать AJAX-запрос для получения картинок
-            $.ajax({
-                url: `{% url 'view_photos' event.id %}?address_id=${addressId}`,
-                method: 'GET',
-                success: function(data) {
-                    let photosHtml = '';
-                    if (data.photos && data.photos.length > 0) {
-                        data.photos.forEach(photo => {
-                            photosHtml += `<img src="${photo.url}" alt="Фото ${photo.name} для ${photo.address_name}" style="max-width: 100%;"/><br>`;
+            // AJAX-запрос для получения и отображения фото в модальном окне
+            $(document).on('click', '.view-details', function() {
+                const addressId = $(this).data('address-id');
+                let $trigger = $(this);
+
+                $.ajax({
+                    url: `{% url 'view_photos' event.id %}?address_id=${addressId}`,
+                    method: 'GET',
+                    success: function(data) {
+                        let photosHtml = '';
+                        if (data.photos && data.photos.length > 0) {
+                            data.photos.forEach(photo => {
+                                photosHtml += `<img src="${photo.url}" alt="Фото ${photo.name} для ${photo.address_name}" style="max-width: 100%;"/><br>`;
+                            });
+                        } else {
+                            photosHtml = '<p>Нет доступных фотографий.</p>';
+                        }
+
+                        $('#photosModal .modal-body').html(photosHtml);
+                        $('#photosModal').modal('show').on('hidden.bs.modal', function() {
+                            $trigger.focus();
                         });
-                    } else {
-                        photosHtml = '<p>Нет доступных фотографий.</p>';
+                    },
+                    error: function() {
+                        alert('Ошибка при загрузке фотографий.');
                     }
+                });
+            });
 
-                    // Показываем изображения в модальном окне
-                    $('#photosModal .modal-body').html(photosHtml);
-                    $('#photosModal').modal('show').on('hidden.bs.modal', function() {
-                        // Возвращаем фокус на кнопку, открывшую модальное окно
-                        $trigger.focus();
-                    });
-                },
-                error: function() {
-                    alert('Ошибка при загрузке фотографий.');
-                }
+            // Handle form submission via AJAX
+            $(document).on('submit', 'form', function(event) {
+                event.preventDefault();
+                const form = $(this);
+                const formData = new FormData(this);
+
+                $.ajax({
+                    url: form.attr('action'),
+                    type: form.attr('method'),
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function(response) {
+                        if (response.error) {
+                            alert(response.error);
+                        } else {
+                            alert(response.success);
+                            window.location.reload();
+                        }
+                    },
+                    error: function() {
+                        alert('Произошла ошибка. Повторите попытку позже.');
+                    }
+                });
             });
         });
         ymaps.ready(initMap);
