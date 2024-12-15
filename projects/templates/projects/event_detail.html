@@ -97,6 +97,29 @@
     </a>
 
     <script>
+        $(document).on('submit', 'form', function(event) {
+            event.preventDefault();
+            const form = $(this);
+            const formData = new FormData(this);
+
+            $.ajax({
+                url: form.attr('action'),
+                type: form.attr('method'),
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    if (response.error) {
+                        alert(response.error);  // Отобразим сообщение об ошибке
+                    } else {
+                        window.location.reload();  // Перезагружаем страницу в случае успеха
+                    }
+                },
+                error: function() {
+                    alert('Произошла ошибка. Повторите попытку позже.');
+                }
+            });
+        });
         $(document).on('click', '.view-details', function() {
             const addressId = $(this).data('address-id');
 

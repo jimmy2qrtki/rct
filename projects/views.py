@@ -796,19 +796,31 @@ def upload_photos(request, event_id, address_id):
         address = get_object_or_404(EventAddress, pk=address_id, event=event)
         photos = request.FILES.getlist('photos')
 
+        # Проверка на количество фото
+        if len(photos) != event.photo_count:
+            return JsonResponse({
+                'error': f'Количество фотографий должно быть равно {event.photo_count}.'
+            }, status=200)  # Возвращаем статус 200
+
         executor_id = request.user.executorprofile.id
         project_user_id = event.project.user.id
         project_id = str(event.project.id)
         event_type = event.get_event_type_display()
         address_name = re.sub(r'[\\/*?:"<>|]', "_", address.name)
-
-        # Определяем абсолютный путь к директории
+        
         base_path = os.path.join(settings.MEDIA_ROOT, str(project_user_id), project_id, event_type, str(executor_id))
 
+        # Удаление старых фотографий
+        if os.path.exists(base_path):
+            for file_name in os.listdir(base_path):
+                if file_name.startswith(address_name):
+                    file_path = os.path.join(base_path, file_name)
+                    default_storage.delete(file_path)
+        
         # Создаем директорию, если она не существует
         os.makedirs(base_path, exist_ok=True)
 
-        # Функция для генерации уникального имени файла
+        # Сохранение новых фотографий
         def generate_unique_file_path(base_path, base_name, extension):
             counter = 0
             unique_file_path = os.path.join(base_path, f"{base_name}{extension}")
@@ -819,7 +831,6 @@ def upload_photos(request, event_id, address_id):
             
             return unique_file_path
 
-        # Сохранение фотографий
         for photo in photos:
             file_extension = os.path.splitext(photo.name)[1]
             unique_file_path = generate_unique_file_path(base_path, address_name, file_extension)
