@@ -57,18 +57,22 @@
             
             <div class="photo-upload-section" style="display: none;">
                 {% if is_executor %}
-                    {% if item.has_photos %}
-                        <span>Фото загружено</span>
-                        <button class="refresh-upload-form" data-url="{% url 'upload_photos' event.id item.address.id %}">Перезагрузить</button>
+                    {% if user_event_status == 'completed' %}
+                        <span>Фотографии приняты</span>
                     {% else %}
-                        <form method="post" enctype="multipart/form-data" action="{% url 'upload_photos' event.id item.address.id %}">
-                            {% csrf_token %}
-                            <input type="file" name="photos" accept="image/*" multiple>
-                            <label>
-                                <input type="checkbox" name="force_mjeure"> Форс-мажор
-                            </label>
-                            <button type="submit">Загрузить фото</button>
-                        </form>
+                        {% if item.has_photos %}
+                            <span>Фото загружено</span>
+                            <button class="refresh-upload-form" data-url="{% url 'upload_photos' event.id item.address.id %}">Перезагрузить</button>
+                        {% else %}
+                            <form method="post" enctype="multipart/form-data" action="{% url 'upload_photos' event.id item.address.id %}">
+                                {% csrf_token %}
+                                <input type="file" name="photos" accept="image/*" multiple>
+                                <label>
+                                    <input type="checkbox" name="force_mjeure"> Форс-мажор
+                                </label>
+                                <button type="submit">Загрузить фото</button>
+                            </form>
+                        {% endif %}
                     {% endif %}
                 {% endif %}
             </div>
@@ -102,12 +106,21 @@
             </div>
         </div>
     </div>
+    
+    {% if is_executor %}
+        {% if user_event_status == 'completed' %}
+            <p>{{ event.get_event_type_display }}: завершён</p>
+        {% else %}
+            <button id="complete-event">Завершить</button>
+        {% endif %}
+    {% endif %}
 
     <a href="{% if is_executor %}{% url 'assigned_events_list' %}{% elif is_manager %}{% url 'events_control' %}{% else %}{% url 'home' %}{% endif %}">
         Закрыть
     </a>
 
     <script>
+        window.csrfToken = '{{ csrf_token }}'; // Глобальная переменная с CSRF-токеном
         $(document).ready(function() {
             // Toggle accordion sections by clicking on the header
             $('#assigned-event-addresses-list').on('click', 'li.accordion-header', function(event) {
@@ -120,9 +133,13 @@
             // Handle refresh and re-upload
             $(document).on('click', '.refresh-upload-form', function() {
                 const action = $(this).data('url');
-                const csrfToken = document.querySelector('input[name=csrfmiddlewaretoken]').value;
-                
-                // Создаем новую HTML-форму с обновленными данными
+                const csrfToken = window.csrfToken;
+
+                if (!csrfToken) {
+                    alert('CSRF token not found!');
+                    return; // Прекращаем выполнение, если токен не найден
+                }
+
                 const formHtml = `
                     <form method="post" enctype="multipart/form-data" action="${action}">
                         <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
@@ -133,8 +150,7 @@
                         <button type="submit">Загрузить фото</button>
                     </form>
                 `;
-                
-                // Замена текущего содержимого контейнера формы
+
                 $(this).parent().html(formHtml);
             });
 
@@ -185,6 +201,36 @@
                         } else {
                             alert(response.success);
                             window.location.reload();
+                        }
+                    },
+                    error: function() {
+                        alert('Произошла ошибка. Повторите попытку позже.');
+                    }
+                });
+            });
+
+            $('#complete-event').on('click', function() {
+                $.ajax({
+                    url: '{% url "complete_event" %}', // Не забудьте создать URL-шаблон для 'complete_event'
+                    method: 'POST',
+                    data: {
+                        'event_id': '{{ event.id }}',
+                        'csrfmiddlewaretoken': window.csrfToken,
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            // Изменяем отображение на странице
+                            $('#assigned-event-addresses-list .photo-upload-section:has(.refresh-upload-form)').each(function() {
+                                $(this).html('<span>Фотографии приняты</span>');
+                            });
+                            alert('Мероприятие успешно завершено.');
+                        } else {
+                            if (response.error_addresses) {
+                                const addressesWithoutPhotos = response.error_addresses.join('\n');
+                                alert('Следующие адреса не содержат фотографий:\n' + addressesWithoutPhotos);
+                            } else {
+                                alert(response.error || 'Ошибка завершения мероприятия.');
+                            }
                         }
                     },
                     error: function() {

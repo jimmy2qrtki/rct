@@ -645,19 +645,51 @@ def confirm_executor(request):
         return JsonResponse({"error": "EventUser not found"}, status=404)
     
 # функция для обработки статуса завершения
+@require_POST
+@login_required
 def complete_event(request):
-    if request.method == 'POST':
-        event_id = request.POST.get('event_id')
-        event_user = EventUser.objects.get(user=request.user, event_id=event_id)
-        
-        if event_user:
-            event_user.status = 'completed'
-            event_user.save()
-            return JsonResponse({'success': True})
-        else:
-            return JsonResponse({'success': False, 'error': 'Событие не найдено'})
+    event_id = request.POST.get('event_id')
+    executor_profile = getattr(request.user, 'executorprofile', None)
 
-    return JsonResponse({'success': False, 'error': 'Некорректный запрос'})
+    if not executor_profile:
+        return JsonResponse({'success': False, 'error': 'Вы не являетесь исполнителем.'}, status=400)
+
+    event = get_object_or_404(Event, pk=event_id)
+    assigned_event_addresses = event.addresses.filter(assigned_user=request.user)
+    addresses_without_photos = []
+
+    for address in assigned_event_addresses:
+        executor_id = executor_profile.id
+        project_user_id = event.project.user.id
+        project_id = str(event.project.id)
+        event_type = event.get_event_type_display()
+        address_name = re.sub(r'[\\/*?:"<>|]', "_", address.name)
+
+        base_path = os.path.join(
+            settings.MEDIA_ROOT, str(project_user_id), project_id, event_type, str(executor_id)
+        )
+        problems_path = os.path.join(base_path, "problems")
+
+        has_photos = False
+        for path in [base_path, problems_path]:
+            if os.path.exists(path):
+                for file_name in os.listdir(path):
+                    if file_name.startswith(address_name):
+                        has_photos = True
+                        break
+
+        if not has_photos:
+            addresses_without_photos.append(address.name)
+
+    if addresses_without_photos:
+        return JsonResponse({'success': False, 'error_addresses': addresses_without_photos}, status=200)
+
+    # Update status to 'completed'
+    event_user = EventUser.objects.get(user=request.user, event=event)
+    event_user.status = 'completed'
+    event_user.save()
+
+    return JsonResponse({'success': True}, status=200)
 
 # для смены статуса назначенного и подтверждённого события на "в работе"
 def start_event(request):
@@ -699,7 +731,7 @@ def event_detail(request, event_id):
 
     is_manager = current_user.groups.filter(name='Менеджер').exists()
     is_executor = current_user.groups.filter(name='Исполнитель').exists()
-    
+
     if is_manager and event.project.user == current_user:
         event_addresses = event.addresses.all().select_related('assigned_user')
     else:
@@ -718,14 +750,12 @@ def event_detail(request, event_id):
         
         has_photos = False
 
-        # Проверка в обычной папке
         if executor_id and os.path.exists(base_path):
             for file_name in os.listdir(base_path):
                 if file_name.startswith(address_name):
                     has_photos = True
                     break
         
-        # Проверка в папке проблем
         if executor_id and os.path.exists(problems_path):
             for file_name in os.listdir(problems_path):
                 if file_name.startswith(address_name):
@@ -737,11 +767,21 @@ def event_detail(request, event_id):
             'has_photos': has_photos
         })
 
+    # Проверка статуса исполнителя
+    user_event_status = None
+    if is_executor:
+        try:
+            event_user = EventUser.objects.get(user=current_user, event=event)
+            user_event_status = event_user.status
+        except EventUser.DoesNotExist:
+            user_event_status = None
+
     return render(request, 'projects/event_detail.html', {
         'event': event,
         'addresses_with_photos': addresses_with_photos,
         'is_executor': is_executor,
         'is_manager': is_manager,
+        'user_event_status': user_event_status,  # Добавляем статус в контекст
     })
 
 # Оптимальный маршрут для event_detail.html
