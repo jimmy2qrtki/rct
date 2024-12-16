@@ -700,11 +700,9 @@ def event_detail(request, event_id):
     is_manager = current_user.groups.filter(name='Менеджер').exists()
     is_executor = current_user.groups.filter(name='Исполнитель').exists()
     
-    # Добавляем условие для отображения адресов менеджеру, назначающему событие
     if is_manager and event.project.user == current_user:
         event_addresses = event.addresses.all().select_related('assigned_user')
     else:
-        # Если пользователь - исполнитель, отображаем лишь назначенные ему адреса
         event_addresses = event.addresses.filter(assigned_user=request.user)
 
     addresses_with_photos = []
@@ -715,10 +713,21 @@ def event_detail(request, event_id):
         event_type = event.get_event_type_display()
         address_name = re.sub(r'[\\/*?:"<>|]', "_", address.name)
 
-        base_path = f"media/{project_user_id}/{project_id}/{event_type}/{executor_id}"
+        base_path = os.path.join(settings.MEDIA_ROOT, str(project_user_id), project_id, event_type, str(executor_id))
+        problems_path = os.path.join(base_path, "problems")
+        
         has_photos = False
+
+        # Проверка в обычной папке
         if executor_id and os.path.exists(base_path):
             for file_name in os.listdir(base_path):
+                if file_name.startswith(address_name):
+                    has_photos = True
+                    break
+        
+        # Проверка в папке проблем
+        if executor_id and os.path.exists(problems_path):
+            for file_name in os.listdir(problems_path):
                 if file_name.startswith(address_name):
                     has_photos = True
                     break
@@ -795,9 +804,10 @@ def upload_photos(request, event_id, address_id):
         event = get_object_or_404(Event, pk=event_id)
         address = get_object_or_404(EventAddress, pk=address_id, event=event)
         photos = request.FILES.getlist('photos')
+        force_mjeure = request.POST.get('force_mjeure') == "on"
 
-        # Проверка на количество фото
-        if len(photos) != event.photo_count:
+        # Проверка на количество фото только если не форс-мажор
+        if not force_mjeure and len(photos) != event.photo_count:
             return JsonResponse({
                 'error': f'Количество фотографий должно быть равно {event.photo_count}.'
             }, status=200)
@@ -808,33 +818,40 @@ def upload_photos(request, event_id, address_id):
         event_type = event.get_event_type_display()
         address_name = re.sub(r'[\\/*?:"<>|]', "_", address.name)
 
+        # Определите пути для главной и "проблемной" папок
         base_path = os.path.join(settings.MEDIA_ROOT, str(project_user_id), project_id, event_type, str(executor_id))
+        problems_path = os.path.join(base_path, "problems")
 
-        # Удаление старых фотографий
-        if os.path.exists(base_path):
-            for file_name in os.listdir(base_path):
-                if file_name.startswith(address_name):
-                    file_path = os.path.join(base_path, file_name)
-                    default_storage.delete(file_path)
+        # Удалить все существующие фотографии для этого адреса из обеих папок
+        for path in [base_path, problems_path]:
+            if os.path.exists(path):
+                for file_name in os.listdir(path):
+                    if file_name.startswith(address_name):
+                        file_path = os.path.join(path, file_name)
+                        default_storage.delete(file_path)
 
-        # Создаем директорию, если она не существует
+        # Установление пути сохранения в зависимости от флага "Форс-мажор"
+        if force_mjeure:
+            base_path = problems_path
+            
+        # Создать дирректорию если не существует
         os.makedirs(base_path, exist_ok=True)
 
         # Сохранение новых фотографий
         def generate_unique_file_path(base_path, base_name, extension):
             counter = 0
             unique_file_path = os.path.join(base_path, f"{base_name}{extension}")
-            
+
             while default_storage.exists(unique_file_path):
                 counter += 1
                 unique_file_path = os.path.join(base_path, f"{base_name}_{counter}{extension}")
-            
+
             return unique_file_path
 
         for photo in photos:
             file_extension = os.path.splitext(photo.name)[1]
             unique_file_path = generate_unique_file_path(base_path, address_name, file_extension)
-            
+
             with default_storage.open(unique_file_path, 'wb+') as destination:
                 for chunk in photo.chunks():
                     destination.write(chunk)
@@ -856,20 +873,22 @@ def view_photos(request, event_id):
         event_type = event.get_event_type_display()
         address_name = re.sub(r'[\\/*?:"<>|]', "_", address.name)
 
-        base_path = os.path.join(settings.MEDIA_ROOT, str(project_user_id), project_id, event_type, str(executor_id))
+        # Проверка обеих директорий: обычной и проблемной
         photos = []
+        for subfolder in ["", "problems"]:
+            base_path = os.path.join(settings.MEDIA_ROOT, str(project_user_id), project_id, event_type, str(executor_id), subfolder)
 
-        if os.path.exists(base_path):
-            for file_name in os.listdir(base_path):
-                if file_name.startswith(address_name):
-                    file_path = os.path.join(base_path, file_name)
-                    url = default_storage.url(os.path.relpath(file_path, settings.MEDIA_ROOT))
-                    photos.append({
-                        'url': url,
-                        'name': file_name,
-                        'address_name': address_name
-                    })
-
+            if os.path.exists(base_path):
+                for file_name in os.listdir(base_path):
+                    if file_name.startswith(address_name):
+                        file_path = os.path.join(base_path, file_name)
+                        url = default_storage.url(os.path.relpath(file_path, settings.MEDIA_ROOT))
+                        photos.append({
+                            'url': url,
+                            'name': file_name,
+                            'address_name': address_name
+                        })
+        
         return JsonResponse({'photos': photos})
 
     return JsonResponse({'error': 'Invalid request'}, status=400)

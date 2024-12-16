@@ -64,6 +64,9 @@
                         <form method="post" enctype="multipart/form-data" action="{% url 'upload_photos' event.id item.address.id %}">
                             {% csrf_token %}
                             <input type="file" name="photos" accept="image/*" multiple>
+                            <label>
+                                <input type="checkbox" name="force_mjeure"> Форс-мажор
+                            </label>
                             <button type="submit">Загрузить фото</button>
                         </form>
                     {% endif %}
@@ -117,14 +120,21 @@
             // Handle refresh and re-upload
             $(document).on('click', '.refresh-upload-form', function() {
                 const action = $(this).data('url');
-                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                const csrfToken = document.querySelector('input[name=csrfmiddlewaretoken]').value;
+                
+                // Создаем новую HTML-форму с обновленными данными
                 const formHtml = `
                     <form method="post" enctype="multipart/form-data" action="${action}">
                         <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
                         <input type="file" name="photos" accept="image/*" multiple>
+                        <label>
+                            <input type="checkbox" name="force_mjeure"> Форс-мажор
+                        </label>
                         <button type="submit">Загрузить фото</button>
                     </form>
                 `;
+                
+                // Замена текущего содержимого контейнера формы
                 $(this).parent().html(formHtml);
             });
 
