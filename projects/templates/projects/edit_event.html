@@ -21,7 +21,7 @@
     <h2>Адреса для события</h2>
     <ul id="event-addresses-list">
         {% for address in event.addresses.all %}
-        <li data-id="{{ address.id }}">
+        <li data-id="{{ address.id }}" data-user-assigned="{% if address.assigned_user %}true{% else %}false{% endif %}">
             <span class="address-number">{{ forloop.counter }}.</span> 
             <input class="address-name" value="{{ address.name }}" data-id="{{ address.id }}"> |
             <span class="latitude">{{ address.latitude }}</span> | 
@@ -51,7 +51,7 @@
     <ul id="event-executors-list">
         {% for event_user in event_users %}
             {% if event_user.user.executorprofile %}
-            <li data-id="{{ event_user.user.id }}">
+            <li data-id="{{ event_user.user.id }}" data-status="{{ event_user.status }}">
                 <span class="user-name">{{ event_user.user.executorprofile.name|default:event_user.user.email }}</span>
                 {% if event_user.user.executorprofile.district %} | <span class="district">{{ event_user.user.executorprofile.district }}</span>{% endif %}
                 {% if event_user.user.executorprofile.phone_number %} | <span class="phone-number">{{ event_user.user.executorprofile.phone_number }}</span>{% endif %}
@@ -59,7 +59,7 @@
     
                 {% if event_users.count > 1 %}
                     <label for="address-indexes-{{ event_user.user.id }}">Номера адресов: </label>
-                    <input type="text" id="address-indexes-{{ event_user.user.id }}" placeholder="Например: 1,3,5">
+                    <input type="text" id="address-indexes-{{ event_user.user.id }}" placeholder="Например: 1,3-5,10-20,25">
                 {% endif %}
                 <button class="assign-btn" data-id="{{ event_user.user.id }}">Назначить</button>
                 <button class="delete-executor-btn" data-id="{{ event_user.user.id }}">Удалить</button>
@@ -212,15 +212,32 @@
             $('#event-addresses-list').on('click', '.delete-address-btn', function() {
                 const listItem = $(this).closest('li');
                 const addressId = listItem.data('id');
-                
+                const isUserAssigned = listItem.attr('data-user-assigned') === 'true'; // Используйте attr, если data возвращает unexpected results
+
+                // Добавьте отладочный вывод
+                console.log('Удаление адреса: ', addressId);
+                console.log('Назначен исполнитель:', isUserAssigned);
+
+                if (isUserAssigned) {
+                    const confirmationMessage = "Вы действительно хотите удалить адрес, который назначен исполнителю? Будут удалены имеющиеся фото к этому адресу!";
+                    
+                    // Еще один отладочный вывод для подтверждения
+                    console.log('Отображаем подтверждение');
+                    
+                    if (!confirm(confirmationMessage)) {
+                        console.log('Удаление отменено');
+                        return; // Если пользователь отменил подтверждение, ничего не делаем
+                    }
+                }
+
+                // Если дошли до сюда, значит, пользователь подтвердил или подтверждение не требовалось
                 $.ajax({
-                    url: "{% url 'delete_event_address' 0 %}".replace('/0/', '/' + addressId + '/'),  // URL для удаления адреса
+                    url: "{% url 'delete_event_address' 0 %}".replace('/0/', '/' + addressId + '/'),
                     type: "POST",
                     data: {
                         csrfmiddlewaretoken: "{{ csrf_token }}",
                     },
                     success: function(response) {
-                        alert('Адрес удален');
                         listItem.remove();  // Удаляем элемент из DOM после успешного удаления из БД
                         updateAddressNumbers(); // Обновляем нумерацию оставшихся адресов
                     },
@@ -556,11 +573,34 @@
 
             // Удаление исполнителя из списка
             $(document).on('click', '.delete-executor-btn', function() {
-                var executorId = $(this).data('id');
+                var $executorItem = $(this).closest('li');
+                var executorId = $executorItem.data('id');
+                var executorStatus = $executorItem.data('status');
                 var eventId = "{{ event.id }}";  // Замените на динамические данные, если требуется
 
+                var confirmationMessage;
+                switch (executorStatus) {
+                    case 'confirmed':
+                        confirmationMessage = "Вы действительно хотите удалить исполнителя, который подтвердил готовность выполнения назначенных адресов?";
+                        break;
+                    case 'in_progress':
+                        confirmationMessage = "Вы действительно хотите удалить исполнителя, который начал выполнение назначенных адресов? Будут потеряны имеющиеся фотографии от данного исполнителя к данному событию!";
+                        break;
+                    case 'completed':
+                        confirmationMessage = "Вы действительно хотите удалить исполнителя, который завершил выполнение назначенных адресов? Будут потеряны все фотографии от данного исполнителя к данному событию!";
+                        break;
+                    default:
+                        confirmationMessage = null;
+                }
+
+                if (confirmationMessage) {
+                    if (!confirm(confirmationMessage)) {
+                        return; // Если пользователь отменил подтверждение, ничего не делаем
+                    }
+                }
+
                 // Удаляем элемент из списка на странице
-                $(this).closest('li').remove();
+                $executorItem.remove();
 
                 // Отправляем запрос на сервер для удаления
                 $.ajax({
@@ -579,7 +619,6 @@
                         console.error('Произошла ошибка при удалении исполнителя: ', error);
                     }
                 });
-
             });
 
             // функция для преобразования ввода в список индексов
