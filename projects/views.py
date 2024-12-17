@@ -932,3 +932,34 @@ def view_photos(request, event_id):
         return JsonResponse({'photos': photos})
 
     return JsonResponse({'error': 'Invalid request'}, status=400)
+
+@login_required
+def fetch_executor_photos(request):
+    user_id = request.GET.get('user_id')
+    event_id = request.GET.get('event_id')
+
+    event = get_object_or_404(Event, id=event_id)
+    user = get_object_or_404(User, id=user_id)
+    executor_id = user.executorprofile.id
+
+    base_path = os.path.join(settings.MEDIA_ROOT, str(event.project.user.id), str(event.project.id), event.get_event_type_display(), str(executor_id))
+    problems_path = os.path.join(base_path, "problems")
+    
+    photos = []
+    problems = []
+
+    if os.path.exists(base_path):
+        for file_name in os.listdir(base_path):
+            file_path = os.path.join(base_path, file_name)
+            if os.path.isfile(file_path):
+                photo_url = default_storage.url(file_path)
+                photos.append({'url': photo_url, 'name': file_name})
+
+    if os.path.exists(problems_path):
+        for file_name in os.listdir(problems_path):
+            file_path = os.path.join(problems_path, file_name)
+            if os.path.isfile(file_path):
+                photo_url = default_storage.url(file_path)
+                problems.append({'url': photo_url, 'name': f"problems/{file_name}"})
+
+    return JsonResponse({'photos': photos, 'problems': problems})

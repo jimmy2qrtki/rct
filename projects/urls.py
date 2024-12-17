@@ -33,4 +33,5 @@ urlpatterns = [
     path('get-remaining-requests/', views.get_remaining_requests, name='get_remaining_requests'),
     path('event/<int:event_id>/address/<int:address_id>/upload/', views.upload_photos, name='upload_photos'),
     path('event/<int:event_id>/view_photos/', views.view_photos, name='view_photos'),
+    path('fetch_executor_photos/', views.fetch_executor_photos, name='fetch_executor_photos'),
 ]
