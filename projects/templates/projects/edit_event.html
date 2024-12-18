@@ -100,7 +100,12 @@
                 <input type="text" id="address-indexes-{{ event_user.user.id }}" placeholder="Например: 1,3-5,10-20,25">
                 <button class="assign-btn" data-id="{{ event_user.user.id }}">Назначить</button>
                 <button class="details-btn" data-id="{{ event_user.user.id }}">Детали</button>
-                <button class="delete-executor-btn" data-id="{{ event_user.user.id }}">Удалить</button>
+                {% if event_user.status == 'completed' %}
+                    <button id="download-photos-btn">Скачать фото</button>
+                {% endif %}
+                {% if event_user.status != 'completed' %}
+                    <button class="delete-executor-btn" data-id="{{ event_user.user.id }}">Удалить</button>
+                {% endif %}
             </li>
             {% else %}
             <li>У пользователя нет профиля исполнителя.</li>
@@ -163,6 +168,7 @@
             <div id="problems-gallery-content" class="photo-gallery" style="display: none;">
                 <!-- Проблемные фото будут загружаться сюда -->
             </div>
+            <button id="download-photos-btn">Скачать все фото</button>
         </div>
     </div>
 
@@ -250,6 +256,15 @@
 
                 $('body').append(modalOverlay);
             }
+
+            $('#download-photos-btn').click(function() {
+                const userId = $('.details-btn').data('id');
+                const eventId = "{{ event.id }}";
+                const downloadUrl = "{% url 'download_executor_photos' %}";
+
+                // Отправка запроса на сервер для создания и получения архива
+                window.location.href = `${downloadUrl}?user_id=${userId}&event_id=${eventId}`;
+            });
         });
         // обновление счётчика запросов
         function updateRemainingRequests() {

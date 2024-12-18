@@ -6,7 +6,7 @@ from .forms import ProjectForm, EventForm
 from django.contrib.auth.decorators import login_required
 from openpyxl import load_workbook
 import requests, json
-from django.http import JsonResponse, HttpResponseBadRequest
+from django.http import JsonResponse, HttpResponseBadRequest, HttpResponse
 from django.views.decorators.http import require_POST, require_http_methods
 from django.utils.html import escape
 from .utils import reset_request_counter, get_time_until_midnight
@@ -17,8 +17,10 @@ from django.utils.timezone import make_aware
 from django.db.models import Max
 import os
 import re
+import zipfile
 from django.core.files.storage import default_storage
 from django.conf import settings
+from django.utils.encoding import iri_to_uri
 
 @login_required
 def manage_projects(request):
@@ -989,3 +991,52 @@ def fetch_executor_photos(request):
 
     # Вернуть данные о фотографиях
     return JsonResponse({'photos': photos, 'problems': problems})
+
+def download_executor_photos(request):
+    user_id = request.GET.get('user_id')
+    event_id = request.GET.get('event_id')
+
+    event = get_object_or_404(Event, id=event_id)
+    user = get_object_or_404(User, id=user_id)
+    event_user = get_object_or_404(EventUser, user=user, event=event)
+    executor_id = user.executorprofile.id
+
+    # Формируем название архива
+    project_name = event.project.name
+    event_type = event.get_event_type_display()
+    executor_name = user.executorprofile.name
+    zip_filename = f"{project_name} - {event_type} - {executor_name}.zip"
+
+    # Определяем пути к фотографиям
+    base_path = os.path.join(settings.MEDIA_ROOT, str(event.project.user.id), str(event.project.id),
+                             event.get_event_type_display(), str(executor_id))
+    problems_path = os.path.join(base_path, "problems")
+    photos = []
+
+    # Собираем все фотографии из основной директории
+    if os.path.exists(base_path):
+        for file_name in os.listdir(base_path):
+            file_path = os.path.join(base_path, file_name)
+            if os.path.isfile(file_path):
+                photos.append((file_path, file_name))
+
+    # Собираем все фотографии из директории "problems" при её существовании
+    if os.path.exists(problems_path):
+        for file_name in os.listdir(problems_path):
+            file_path = os.path.join(problems_path, file_name)
+            if os.path.isfile(file_path):
+                photos.append((file_path, os.path.join("problems", file_name)))
+
+    # Создаем архив с фотографиями
+    if photos:
+        resp = HttpResponse(content_type='application/zip')
+        # Используем iri_to_uri для экранирования возможно неподдерживаемых символов в HTTP заголовках
+        resp['Content-Disposition'] = f'attachment; filename*=UTF-8\'\'{iri_to_uri(zip_filename)}'
+
+        with zipfile.ZipFile(resp, 'w') as zf:
+            for file_path, arc_name in photos:
+                zf.write(file_path, arc_name)
+
+        return resp
+    else:
+        return HttpResponse("No photos available for download.", status=404)
