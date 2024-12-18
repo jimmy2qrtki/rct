@@ -101,7 +101,7 @@
                 <button class="assign-btn" data-id="{{ event_user.user.id }}">Назначить</button>
                 <button class="details-btn" data-id="{{ event_user.user.id }}">Детали</button>
                 {% if event_user.status == 'completed' %}
-                    <button id="download-photos-btn">Скачать фото</button>
+                    <button class="download-photos-btn" data-id="{{ event_user.user.id }}">Скачать фото</button>
                 {% endif %}
                 {% if event_user.status != 'completed' %}
                     <button class="delete-executor-btn" data-id="{{ event_user.user.id }}">Удалить</button>
@@ -168,7 +168,6 @@
             <div id="problems-gallery-content" class="photo-gallery" style="display: none;">
                 <!-- Проблемные фото будут загружаться сюда -->
             </div>
-            <button id="download-photos-btn">Скачать все фото</button>
         </div>
     </div>
 
@@ -190,9 +189,11 @@
                         'event_id': eventId
                     },
                     success: function(data) {
+                        console.log(data); // Добавьте эту строку для отладки
+
                         const galleryContent = $('#gallery-content');
                         const problemsGalleryContent = $('#problems-gallery-content');
-                        
+
                         galleryContent.empty();
                         problemsGalleryContent.empty();
 
@@ -257,8 +258,9 @@
                 $('body').append(modalOverlay);
             }
 
-            $('#download-photos-btn').click(function() {
-                const userId = $('.details-btn').data('id');
+            // Обработчик для кнопки скачивания в списке исполнителей
+            $('.download-photos-btn').click(function() {
+                const userId = $(this).data('id');
                 const eventId = "{{ event.id }}";
                 const downloadUrl = "{% url 'download_executor_photos' %}";
 

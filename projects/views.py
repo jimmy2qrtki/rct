@@ -958,29 +958,32 @@ def fetch_executor_photos(request):
     photos = []
     problems = []
 
-    def load_and_filter_photos(directory_path, assigned_names, is_problem=False):
-        removed_files = []
+    def load_and_filter_photos(directory_path, assigned_names=None, is_problem=False):
+        if assigned_names is None:
+            assigned_names = []
+
         if os.path.exists(directory_path):
             for file_name in os.listdir(directory_path):
                 file_path = os.path.join(directory_path, file_name)
                 if os.path.isfile(file_path):
                     photo_url = default_storage.url(file_path)
-                    if any(file_name.startswith(addr_name) for addr_name in assigned_names):
+                    # Добавляем фото, если:
+                    # - (статус "completed" и имя начинается с одного из assigned_names), или
+                    # - (статус не "completed" и нам нужно загрузить все)
+                    if (event_user.status == 'completed' and any(file_name.startswith(addr_name) for addr_name in assigned_names)) or event_user.status != 'completed':
                         if is_problem:
                             problems.append({'url': photo_url, 'name': file_name})
                         else:
                             photos.append({'url': photo_url, 'name': file_name})
-                    else:
-                        # Удаляем файл, так как он не соответствует критериям
+                    elif event_user.status == 'completed':
+                        # Удаляем файл, если статус "completed" и он не соответствует именам
                         os.remove(file_path)
-                        removed_files.append(file_name)
-        return removed_files
 
     if event_user.status == 'completed':
         assigned_addresses = event.addresses.filter(assigned_user=user)
         assigned_address_names = [re.sub(r'[\\/*?:"<>|]', "_", address.name) for address in assigned_addresses]
 
-        # Загружаем и фильтруем файлы
+        # Загружаем и фильтруем файлы. Удаляем только при статусе "completed".
         removed_photos = load_and_filter_photos(base_path, assigned_address_names)
         removed_problems = load_and_filter_photos(problems_path, assigned_address_names, is_problem=True)
 
