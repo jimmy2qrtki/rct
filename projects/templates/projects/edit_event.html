@@ -96,11 +96,9 @@
                 {% if event_user.user.executorprofile.phone_number %} | <span class="phone-number">{{ event_user.user.executorprofile.phone_number }}</span>{% endif %}
                 <span class="status"> | статус: {{ event_user.get_status_display }}</span>
                 <br>
-                {% if event_user.status != 'completed' %}
-                    <label for="address-indexes-{{ event_user.user.id }}">Номера адресов: </label>
-                    <input type="text" id="address-indexes-{{ event_user.user.id }}" placeholder="Например: 1,3-5,10-20,25">
-                    <button class="assign-btn" data-id="{{ event_user.user.id }}">Назначить</button>
-                {% endif %}
+                <label for="address-indexes-{{ event_user.user.id }}">Номера адресов: </label>
+                <input type="text" id="address-indexes-{{ event_user.user.id }}" placeholder="Например: 1,3-5,10-20,25">
+                <button class="assign-btn" data-id="{{ event_user.user.id }}">Назначить</button>
                 <button class="details-btn" data-id="{{ event_user.user.id }}">Детали</button>
                 <button class="delete-executor-btn" data-id="{{ event_user.user.id }}">Удалить</button>
             </li>
@@ -781,9 +779,9 @@
             }
             
             // Это для логики назначения исполнителя к события
-            $('.assign-btn').click(function(){
+            $('.assign-btn').click(function() {
                 var userId = $(this).data('id');
-                var eventId = "{{ event.id }}";
+                var eventId = '{{ event.id }}';
 
                 var addressIndexes = [];
                 if ($('#address-indexes-' + userId).length) {
@@ -801,8 +799,10 @@
                         'csrfmiddlewaretoken': '{{ csrf_token }}'
                     },
                     success: function(data) {
-                        if(data.success) {
-                            location.reload(); 
+                        if (data.success) {
+                            location.reload();
+                        } else if (data.message) {
+                            alert(data.message);  // Выводим сообщение об ошибке
                         }
                     }
                 });

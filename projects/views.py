@@ -596,31 +596,38 @@ def assign_executor(request):
     try:
         event = Event.objects.get(id=event_id)
         user = User.objects.get(id=user_id)
-        
-        # Проверяем, есть ли уже назначенные адреса для этого пользователя
-        already_assigned_addresses = EventAddress.objects.filter(
-            event=event, assigned_user=user
-        ).exists()
-        
+
         event_user, created = EventUser.objects.get_or_create(event=event, user=user)
-        
-        # Меняем статус только если у пользователя нет назначенных адресов
-        if not already_assigned_addresses:
-            event_user.status = 'assigned'
-            
+
+        address_indexes = json.loads(address_indexes) if address_indexes else []
+
+        restricted_statuses = ['confirmed', 'in_progress', 'completed']
+        selected_addresses = []
+        event_addresses = list(event.addresses.all())
+
+        for index in address_indexes:
+            if 0 < index <= len(event_addresses):
+                address = event_addresses[index-1]
+                if (address.assigned_user and
+                    address.assigned_user != user and
+                    EventUser.objects.filter(user=address.assigned_user, event=event, status__in=restricted_statuses).exists()):
+                    # Если адрес принадлежит другому пользователю с защищенным статусом
+                    return JsonResponse({"success": False, "message": "К выбранным адресам уже назначен другой исполнитель."})
+
+                selected_addresses.append(address)
+
+        # Обновляем назначения пользователя
+        for address in selected_addresses:
+            address.assigned_user = user
+            address.save()
+
+        # Обновляем статус event_user
+        if event_user.status == 'completed' and selected_addresses:
+            event_user.status = 'in_progress'
+        elif event_user.status not in ['confirmed', 'in_progress']:
+            event_user.status = 'assigned' if selected_addresses else 'chosen'
+
         event_user.save()
-
-        address_indexes = json.loads(address_indexes) if address_indexes else None
-
-        if address_indexes:
-            event_addresses = list(event.addresses.all())
-            selected_addresses = [event_addresses[i-1] for i in address_indexes if 0 < i <= len(event_addresses)]
-            for address in selected_addresses:
-                address.assigned_user = user
-                address.save()
-        else:
-            event_addresses = EventAddress.objects.filter(event=event)
-            event_addresses.update(assigned_user=user)
 
         return JsonResponse({"success": True, "assigned_user_name": user.username})
 
@@ -940,26 +947,45 @@ def fetch_executor_photos(request):
 
     event = get_object_or_404(Event, id=event_id)
     user = get_object_or_404(User, id=user_id)
-    executor_id = user.executorprofile.id
+    event_user = get_object_or_404(EventUser, user=user, event=event)
 
+    executor_id = user.executorprofile.id
     base_path = os.path.join(settings.MEDIA_ROOT, str(event.project.user.id), str(event.project.id), event.get_event_type_display(), str(executor_id))
     problems_path = os.path.join(base_path, "problems")
-    
+
     photos = []
     problems = []
 
-    if os.path.exists(base_path):
-        for file_name in os.listdir(base_path):
-            file_path = os.path.join(base_path, file_name)
-            if os.path.isfile(file_path):
-                photo_url = default_storage.url(file_path)
-                photos.append({'url': photo_url, 'name': file_name})
+    def load_and_filter_photos(directory_path, assigned_names, is_problem=False):
+        removed_files = []
+        if os.path.exists(directory_path):
+            for file_name in os.listdir(directory_path):
+                file_path = os.path.join(directory_path, file_name)
+                if os.path.isfile(file_path):
+                    photo_url = default_storage.url(file_path)
+                    if any(file_name.startswith(addr_name) for addr_name in assigned_names):
+                        if is_problem:
+                            problems.append({'url': photo_url, 'name': file_name})
+                        else:
+                            photos.append({'url': photo_url, 'name': file_name})
+                    else:
+                        # Удаляем файл, так как он не соответствует критериям
+                        os.remove(file_path)
+                        removed_files.append(file_name)
+        return removed_files
 
-    if os.path.exists(problems_path):
-        for file_name in os.listdir(problems_path):
-            file_path = os.path.join(problems_path, file_name)
-            if os.path.isfile(file_path):
-                photo_url = default_storage.url(file_path)
-                problems.append({'url': photo_url, 'name': f"problems/{file_name}"})
+    if event_user.status == 'completed':
+        assigned_addresses = event.addresses.filter(assigned_user=user)
+        assigned_address_names = [re.sub(r'[\\/*?:"<>|]', "_", address.name) for address in assigned_addresses]
 
+        # Загружаем и фильтруем файлы
+        removed_photos = load_and_filter_photos(base_path, assigned_address_names)
+        removed_problems = load_and_filter_photos(problems_path, assigned_address_names, is_problem=True)
+
+    else:
+        # Просто загружаем все фото, без фильтрации и удаления
+        load_and_filter_photos(base_path, [])
+        load_and_filter_photos(problems_path, [], is_problem=True)
+
+    # Вернуть данные о фотографиях
     return JsonResponse({'photos': photos, 'problems': problems})
