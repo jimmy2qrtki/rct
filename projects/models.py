@@ -27,7 +27,7 @@ class Event(models.Model):
     description = models.TextField(blank=True)
     photo_count = models.IntegerField()
     event_date = models.DateField()
-    duration_days = models.IntegerField(help_text="Количество дней на выполнение")
+    duration_days = models.IntegerField()
     assigned_users = models.ManyToManyField(User, through='EventUser', blank=True, related_name='events_as_assignee')
 
     def __str__(self):

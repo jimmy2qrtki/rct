@@ -9,7 +9,7 @@
      <form method="POST">
          {% csrf_token %}
          {{ form.as_p }}
-         <button type="submit">Сохранить</button>
+         <button type="submit">Далее</button>
      </form>
      <a href="{% url 'edit_project' project.id %}">Назад</a>
  </body>

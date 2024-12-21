@@ -9,7 +9,7 @@ import requests, json
 from django.http import JsonResponse, HttpResponseBadRequest, HttpResponse
 from django.views.decorators.http import require_POST, require_http_methods
 from django.utils.html import escape
-from .utils import reset_request_counter, get_time_until_midnight
+from .utils import reset_request_counter, get_time_until_midnight, has_photos
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.models import User, Group
 from scipy.spatial.distance import euclidean
@@ -95,17 +95,20 @@ def edit_event(request, event_id):
         form = EventForm(instance=event)
 
     project_addresses = project.addresses.all()
-
-    # Получаем пользователей, принадлежащих к группе "Исполнитель"
     executor_group = Group.objects.get(name='Исполнитель')
     executors = User.objects.filter(groups=executor_group).prefetch_related('executorprofile')
-
-    # Получаем всех EventUser для данного события
     event_users = event.eventuser_set.select_related('user')
 
-    # Получаем API ключ из профиля текущего пользователя
     user_profile = request.user.profile
     api_key = user_profile.api_key if user_profile else None
+
+    # Проверяем есть ли неназначенные адреса
+    has_unassigned_addresses = event.addresses.filter(assigned_user__isnull=True).exists()
+
+    executors_with_photo_status = []
+    for event_user in event_users:
+        has_photos_status = has_photos(event_user.user, event)
+        executors_with_photo_status.append((event_user, has_photos_status))
 
     return render(request, 'projects/edit_event.html', {
         'form': form,
@@ -113,8 +116,9 @@ def edit_event(request, event_id):
         'event': event,
         'project_addresses': project_addresses,
         'executors': executors,
-        'event_users': event_users,  # Передаем EventUser в шаблон
-        'api_key': api_key,  # Передаем API ключ в шаблон
+        'executors_with_photo_status': executors_with_photo_status,
+        'api_key': api_key,
+        'has_unassigned_addresses': has_unassigned_addresses,  # Передаем флаг в шаблон
     })
 
 # перестраивает порядок адресов для оптимального маршрута
@@ -187,7 +191,7 @@ def create_event(request, project_id):
             event = form.save(commit=False)
             event.project = project
             event.save()
-            return redirect('edit_project', project_id=project_id)
+            return redirect('edit_event', event_id=event.id)
     else:
         form = EventForm()
     return render(request, 'projects/create_event.html', {'form': form, 'project': project})
@@ -607,11 +611,26 @@ def assign_executor(request):
 
         event_user, created = EventUser.objects.get_or_create(event=event, user=user)
 
+        # Преобразуем полученные адреса в список целых чисел
         address_indexes = json.loads(address_indexes) if address_indexes else []
+
+        if any(not isinstance(i, int) for i in address_indexes):
+            return JsonResponse({"success": False, "message": "Введён некорректный номер адреса."})
+
+        # Используем количество адресов, принадлежащих этому событию
+        total_event_addresses = event.addresses.count()
+
+        # Добавляем проверку для положительных индексов
+        if any(index <= 0 for index in address_indexes):
+            return JsonResponse({"success": False, "message": f"Введите номера в диапазоне от 1 до {total_event_addresses}."})
+
+        if any(index > total_event_addresses for index in address_indexes):
+            return JsonResponse({"success": False, "message": f"Введите номера в существующем диапазоне от 1 до {total_event_addresses}."})
 
         restricted_statuses = ['confirmed', 'in_progress', 'completed']
         selected_addresses = []
-        event_addresses = list(event.addresses.all())
+        already_assigned = True
+        event_addresses = list(event.addresses.all())  # Получаем адреса для события
 
         for index in address_indexes:
             if 0 < index <= len(event_addresses):
@@ -619,17 +638,22 @@ def assign_executor(request):
                 if (address.assigned_user and
                     address.assigned_user != user and
                     EventUser.objects.filter(user=address.assigned_user, event=event, status__in=restricted_statuses).exists()):
-                    # Если адрес принадлежит другому пользователю с защищенным статусом
-                    return JsonResponse({"success": False, "message": "К выбранным адресам уже назначен другой исполнитель."})
+                    return JsonResponse({"success": False, "message": "Некоторые адреса уже назначены другому исполнителю."})
+
+                if address.assigned_user != user:
+                    already_assigned = False
 
                 selected_addresses.append(address)
 
-        # Обновляем назначения пользователя
+        # Если все выбранные адреса уже назначены данному пользователю
+        if already_assigned:
+            return JsonResponse({"success": False, "message": "Введённые адреса уже назначены данному исполнителю."})
+
+        # Назначение и изменение статуса
         for address in selected_addresses:
             address.assigned_user = user
             address.save()
 
-        # Обновляем статус event_user
         if event_user.status == 'completed' and selected_addresses:
             event_user.status = 'in_progress'
         elif event_user.status not in ['confirmed', 'in_progress']:
@@ -637,12 +661,14 @@ def assign_executor(request):
 
         event_user.save()
 
-        return JsonResponse({"success": True, "assigned_user_name": user.username})
+        return JsonResponse({"success": True})
 
     except Event.DoesNotExist:
-        return HttpResponseBadRequest("Event not found")
+        return HttpResponseBadRequest("Событие не найдено")
     except User.DoesNotExist:
-        return HttpResponseBadRequest("User not found")
+        return HttpResponseBadRequest("Пользователь не найден")
+    except json.JSONDecodeError:
+        return HttpResponseBadRequest("Некорректный формат данных")
     
 @login_required
 @require_POST
