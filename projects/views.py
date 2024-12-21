@@ -355,6 +355,8 @@ def update_addresses(request, project_id):
         new_addresses = data.get('new_addresses', [])
         num_processed = 0
 
+        max_order = Address.objects.filter(project=project).aggregate(Max('order'))['order__max'] or 0
+
         for name in new_addresses:
             if name:
                 if counter.count <= 0:
@@ -367,17 +369,21 @@ def update_addresses(request, project_id):
                 
                 try:
                     coordinates = get_coordinates_from_yandex(request, name)
+                    new_order = max_order + 1
+                    max_order = new_order
+
                     Address.objects.create(
-                        project=project, 
-                        name=name, 
-                        latitude=coordinates['lat'], 
-                        longitude=coordinates['lon']
+                        project=project,
+                        name=name,
+                        latitude=coordinates['lat'],
+                        longitude=coordinates['lon'],
+                        order=new_order
                     )
-                    num_processed += 1  # Увеличиваем счетчик обработанных адресов
+                    num_processed += 1
                 except ValueError as ve:
                     return JsonResponse({'status': 'error', 'message': str(ve), 'remaining_requests': counter.count})
         
-        counter.count -= num_processed  # Уменьшаем количество запросов на количество обработанных адресов
+        counter.count -= num_processed
         counter.save()
         
         return JsonResponse({'status': 'ok', 'remaining_requests': counter.count}, status=200)
