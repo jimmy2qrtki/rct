@@ -46,6 +46,7 @@
             <a href="{% url 'edit_event' event.id %}">
                 {{ event.get_event_type_display }} {{ event.event_date }}
             </a>
+            | Статус: {{ event.get_status_display }}
             <form method="POST" action="{% url 'delete_event' event.id %}" style="display:inline;">
                 {% csrf_token %}
                 <button type="submit" onclick="return confirm('Вы уверены что хотите удалить событие?');">Удалить</button>

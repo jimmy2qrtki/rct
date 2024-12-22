@@ -24,9 +24,24 @@ from django.utils.encoding import iri_to_uri
 
 @login_required
 def manage_projects(request):
+    # Получаем все проекты пользователя
     projects = Project.objects.filter(user=request.user)
-    projects_with_events = [(project, project.get_next_event()) for project in projects]
-    return render(request, 'projects/manage_projects.html', {'projects_with_events': projects_with_events})
+
+    # Отделяем проекты по состоянию их событий
+    active_projects = []
+    completed_projects = []
+
+    for project in projects:
+        # Проверяем имеют ли все события статус 'completed'
+        if all(event.status == 'completed' for event in project.events.all()):
+            completed_projects.append((project, project.get_next_event()))
+        else:
+            active_projects.append((project, project.get_next_event()))
+
+    return render(request, 'projects/manage_projects.html', {
+        'active_projects': active_projects,
+        'completed_projects': completed_projects
+    })
 
 @login_required
 def edit_project(request, project_id):
@@ -90,6 +105,7 @@ def edit_event(request, event_id):
         form = EventForm(request.POST, instance=event)
         if form.is_valid():
             form.save()
+            event.update_status()  # Обновление статуса события.
             return redirect('edit_event', event_id=event.id)
     else:
         form = EventForm(instance=event)
@@ -98,17 +114,18 @@ def edit_event(request, event_id):
     executor_group = Group.objects.get(name='Исполнитель')
     executors = User.objects.filter(groups=executor_group).prefetch_related('executorprofile')
     event_users = event.eventuser_set.select_related('user')
-
     user_profile = request.user.profile
     api_key = user_profile.api_key if user_profile else None
 
     # Проверяем есть ли неназначенные адреса
     has_unassigned_addresses = event.addresses.filter(assigned_user__isnull=True).exists()
-
     executors_with_photo_status = []
+
     for event_user in event_users:
         has_photos_status = has_photos(event_user.user, event)
         executors_with_photo_status.append((event_user, has_photos_status))
+
+    event.update_status()  # Обновление статуса события.
 
     return render(request, 'projects/edit_event.html', {
         'form': form,
@@ -118,7 +135,7 @@ def edit_event(request, event_id):
         'executors': executors,
         'executors_with_photo_status': executors_with_photo_status,
         'api_key': api_key,
-        'has_unassigned_addresses': has_unassigned_addresses,  # Передаем флаг в шаблон
+        'has_unassigned_addresses': has_unassigned_addresses,
     })
 
 # перестраивает порядок адресов для оптимального маршрута

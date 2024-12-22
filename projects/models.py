@@ -22,8 +22,17 @@ class Event(models.Model):
         ('audit', 'Аудит'),
         ('dismantle', 'Демонтаж'),
     )
+    
+    STATUS_CHOICES = [
+        ('created', 'Создано'),
+        ('assigned', 'Назначено'),
+        ('in_progress', 'В работе'),
+        ('completed', 'Завершено'),
+    ]
+
     project = models.ForeignKey(Project, related_name='events', on_delete=models.CASCADE)
     event_type = models.CharField(choices=EVENT_TYPES, max_length=20)
+    status = models.CharField(max_length=11, choices=STATUS_CHOICES, default='created')
     description = models.TextField(blank=True)
     photo_count = models.IntegerField()
     event_date = models.DateField()
@@ -36,6 +45,23 @@ class Event(models.Model):
     def due_date(self):
         """Вычислить дату завершения на основе даты начала и срока выполнения."""
         return self.event_date + timezone.timedelta(days=self.duration_days)
+
+    def update_status(self):
+        """Обновить статус события на основе статусов исполнителей."""
+        event_users = self.eventuser_set.all()
+
+        if not event_users.exists():
+            self.status = 'created'
+        elif all(user.status == 'completed' for user in event_users):
+            self.status = 'completed'
+        elif any(user.status == 'in_progress' for user in event_users):
+            self.status = 'in_progress'
+        elif any(user.status == 'confirmed' for user in event_users):
+            self.status = 'assigned'
+        else:
+            self.status = 'created'
+        
+        self.save()
 
     
 class Address(models.Model):
