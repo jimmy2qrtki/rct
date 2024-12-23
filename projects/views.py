@@ -802,9 +802,17 @@ def event_detail(request, event_id):
     else:
         event_addresses = event.addresses.filter(assigned_user=request.user)
 
+    # Создание карты цветов для исполнителей
+    executor_colors = {
+        'not_assigned': '#808080',  # Серый цвет для неназначенных
+    }
+    
+    color_palette = ['#FF5733', '#33FF57', '#3357FF', '#F3FF33', '#FF33A6']  # Добавьте больше цветов по необходимости
+    color_index = 0
+
     addresses_with_photos = []
     for address in event_addresses:
-        executor_id = address.assigned_user.executorprofile.id if address.assigned_user else None
+        executor_id = address.assigned_user.executorprofile.id if address.assigned_user else 'not_assigned'
         project_user_id = event.project.user.id
         project_id = str(event.project.id)
         event_type = event.get_event_type_display()
@@ -827,9 +835,16 @@ def event_detail(request, event_id):
                     has_photos = True
                     break
 
+        # Назначаем цвет исполнителю, если еще не назначен
+        if executor_id not in executor_colors:
+            executor_colors[executor_id] = color_palette[color_index % len(color_palette)]
+            color_index += 1
+
         addresses_with_photos.append({
             'address': address,
-            'has_photos': has_photos
+            'has_photos': has_photos,
+            'executor_id': executor_id,
+            'executor_color': executor_colors[executor_id]
         })
 
     # Проверка статуса исполнителя
@@ -847,6 +862,7 @@ def event_detail(request, event_id):
         'is_executor': is_executor,
         'is_manager': is_manager,
         'user_event_status': user_event_status,  # Добавляем статус в контекст
+        'addresses_with_photos': addresses_with_photos,
     })
 
 # Оптимальный маршрут для event_detail.html

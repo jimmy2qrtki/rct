@@ -34,7 +34,7 @@
     <button id="print-addresses">Печать маршрута</button>
     <ul id="assigned-event-addresses-list">
         {% for item in addresses_with_photos %}
-        <li data-id="{{ item.address.id }}" class="accordion-header">
+        <li data-id="{{ item.address.id }}" data-executor-id="{{ item.executor_id }}" data-executor-color="{{ item.executor_color }}" class="accordion-header">
             <span class="address-number">{{ forloop.counter }}.</span> 
             <span class="address-name">{{ item.address.name }}</span>
     
@@ -255,18 +255,30 @@
     
             updateMap();
         }
+
+        // Функция возвращает цвет для указанного ID исполнителя
+        const getColorForExecutor = (executorId) => {
+            const colorMap = {
+                'not_assigned': '#808080', // Серый для неназначенных
+                'executor1': '#FF0000', // Красный
+                'executor2': '#00FF00', // Зеленый
+                // Добавьте все необходимые связи для ваших исполнителей
+            };
+            return colorMap[executorId] || '#0000FF'; // Синий по умолчанию, если идентификатор не найден
+        };
     
         function updateMap() {
             map.geoObjects.removeAll();
             placemarks = [];
             let coordinates = [];
-    
+
             $('#assigned-event-addresses-list li').each(function() {
                 const latitude = parseFloat($(this).find('.latitude').text().trim().replace(',', '.'));
                 const longitude = parseFloat($(this).find('.longitude').text().trim().replace(',', '.'));
                 const name = $(this).find('.address-name').text().trim();
                 const addressNumber = $(this).find('.address-number').text().trim().replace('.', '');
-    
+                const executorColor = $(this).data('executor-color'); // Получаем цвет исполнителя
+
                 if (!isNaN(latitude) && !isNaN(longitude)) {
                     const placemark = new ymaps.Placemark(
                         [latitude, longitude],
@@ -275,10 +287,10 @@
                             iconContent: addressNumber
                         },
                         {
-                            preset: 'islands#redStretchyIcon'
+                            preset: 'islands#icon',
+                            iconColor: executorColor // Устанавливаем цвет метки
                         }
                     );
-    
                     map.geoObjects.add(placemark);
                     placemarks.push(placemark);
                     coordinates.push([latitude, longitude]);
@@ -286,18 +298,22 @@
                     console.warn('Некорректные координаты для адреса:', name);
                 }
             });
-    
+
             if (polyline) {
                 map.geoObjects.remove(polyline);
             }
-    
+
             if (coordinates.length > 1) {
-                polyline = new ymaps.Polyline(coordinates, {}, {
-                    strokeColor: '#0000FF',
-                    strokeWidth: 3,
-                    strokeOpacity: 0.5
-                });
-                map.geoObjects.add(polyline);
+                for (let i = 0; i < coordinates.length - 1; i++) {
+                    const startColor = $('#assigned-event-addresses-list li').eq(i).data('executor-color');
+                    const endColor = $('#assigned-event-addresses-list li').eq(i+1).data('executor-color');
+                    const segment = new ymaps.Polyline([coordinates[i], coordinates[i + 1]], {}, {
+                        strokeColor: startColor,  // Используем цвет начальной точки для линии
+                        strokeWidth: 3,
+                        strokeOpacity: 0.5
+                    });
+                    map.geoObjects.add(segment);
+                }
             }
         }
     
