@@ -27,16 +27,23 @@ def manage_projects(request):
     # Получаем все проекты пользователя
     projects = Project.objects.filter(user=request.user)
 
-    # Отделяем проекты по состоянию их событий
+    # Отделяем проекты по состоянию их событий, добавляя при этом ближайшее событие
     active_projects = []
     completed_projects = []
 
     for project in projects:
-        # Проверяем имеют ли все события статус 'completed'
+        # Получаем ближайшее событие для проекта
+        next_event = project.events.filter(event_date__gte=timezone.now()).order_by('event_date').first()
+
+        # Проверяем, имеют ли все события статус 'completed'
         if all(event.status == 'completed' for event in project.events.all()):
-            completed_projects.append((project, project.get_next_event()))
+            completed_projects.append((project, next_event))
         else:
-            active_projects.append((project, project.get_next_event()))
+            active_projects.append((project, next_event))
+
+    # Сортируем проекты по дате ближайшего события
+    active_projects.sort(key=lambda x: x[1].event_date if x[1] else timezone.datetime.max)
+    completed_projects.sort(key=lambda x: x[1].event_date if x[1] else timezone.datetime.max)
 
     return render(request, 'projects/manage_projects.html', {
         'active_projects': active_projects,

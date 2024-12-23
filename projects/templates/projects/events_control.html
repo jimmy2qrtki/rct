@@ -51,8 +51,7 @@
                             <th>Организация</th>
                             <th>Продукция</th>
                             <th>Тип события</th>
-                            <th>Дата начала</th>
-                            <th>Дедлайн</th>
+                            <th>Дата</th> <!-- Мы объединили две колонки в одну -->
                             <th>Кол-во адресов</th>
                             <th>Исполнитель</th>
                             <th>Действия</th>
@@ -66,8 +65,7 @@
                         <td>{{ event.project.organization }}</td>
                         <td>{{ event.project.product }}</td>
                         <td>{{ event.get_event_type_display }}</td>
-                        <td>{{ event.event_date|date:"Y-m-d" }}</td>
-                        <td>{{ event.due_date|date:"Y-m-d" }}</td>
+                        <td>{{ event.event_date|date:"d.m.y" }} - {{ event.due_date|date:"d.m.y" }}</td> <!-- Объединенная колонка -->
                         <td>{{ assigned_address_count }}</td>
                         <td>{{ assigned_user.executorprofile.name|default:assigned_user.email }} <br>
                             {{ assigned_user.executorprofile.phone_number }}</td>
@@ -77,7 +75,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="9">Нет событий со статусом "{{ data.display|lower }}".</td>
+                        <td colspan="8">Нет событий со статусом "{{ data.display|lower }}".</td>
                     </tr>
                     {% endfor %}
                 </tbody>

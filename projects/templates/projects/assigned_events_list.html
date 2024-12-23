@@ -26,6 +26,7 @@
         .tab-content.active {
             display: block;
         }
+        td.clickable { cursor: pointer; }
     </style>
 </head>
 <body>
@@ -51,8 +52,7 @@
                             <th>Организация</th>
                             <th>Продукция</th>
                             <th>Тип события</th>
-                            <th>Дата начала</th>
-                            <th>Дедлайн</th>
+                            <th>Дата</th>
                             <th>Кол-во адресов</th>
                             <th>Действия</th>
                         </tr>
@@ -65,30 +65,36 @@
                         <td class="clickable">{{ event.project.organization }}</td>
                         <td class="clickable">{{ event.project.product }}</td>
                         <td class="clickable">{{ event.get_event_type_display }}</td>
-                        <td>{{ event.event_date|date:"Y-m-d" }}</td>
-                        <td>{{ event.due_date|date:"Y-m-d" }}</td>
+                        <td>{{ event.event_date|date:"d.m.y" }} - {{ event.due_date|date:"d.m.y" }}</td>
                         <td>{{ assigned_address_count }}</td>
                         <td>
-                            {% if status == 'assigned' %}
+                            <!-- Условие для отображения ссылки "Детали" -->
+                            {% if status == 'in_progress' or status == 'completed' %}
+                                <a href="{% url 'event_detail' event.id %}">Детали</a>
+                            {% elif status == 'assigned' %}
                                 <button type="button" class="confirm-btn" data-event-id="{{ event.id }}" data-user-id="{{ request.user.id }}">Подтвердить</button>
+                                <form action="{% url 'event_remove' event.id %}" method="post" class="remove-form">
+                                    {% csrf_token %}
+                                    <button type="button" 
+                                            class="remove-btn" 
+                                            data-event-name="{{ event.project.name }}" 
+                                            data-event-type="{{ event.get_event_type_display }}">Отказаться</button>
+                                </form>
                             {% elif status == 'confirmed' %}
                                 <button type="button" class="start-btn" data-event-id="{{ event.id }}" data-start-date="{{ event.event_date|date:"Y-m-d" }}">Начать</button>
-                            {% elif status == 'in_progress' %}
-                                <button type="button" class="complete-btn" data-event-id="{{ event.id }}">Завершить</button>
+                                <form action="{% url 'event_remove' event.id %}" method="post" class="remove-form">
+                                    {% csrf_token %}
+                                    <button type="button" 
+                                            class="remove-btn" 
+                                            data-event-name="{{ event.project.name }}" 
+                                            data-event-type="{{ event.get_event_type_display }}">Отказаться</button>
+                                </form>
                             {% endif %}
-                            
-                            <form action="{% url 'event_remove' event.id %}" method="post" class="remove-form">
-                                {% csrf_token %}
-                                <button type="button" 
-                                        class="remove-btn" 
-                                        data-event-name="{{ event.project.name }}" 
-                                        data-event-type="{{ event.get_event_type_display }}">Отказаться</button>
-                            </form>
                         </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="8">Нет событий со статусом "{{ data.display|lower }}".</td>
+                        <td colspan="7">Нет событий со статусом "{{ data.display|lower }}".</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -148,7 +154,7 @@
                 });
             });
 
-            // ссылка для открытия деталей события
+            // Ссылка для открытия деталей события
             document.querySelectorAll('td.clickable').forEach((td) => {
                 td.addEventListener('click', (event) => {
                     const url = event.currentTarget.closest('tr').dataset.url;
