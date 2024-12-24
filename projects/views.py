@@ -788,66 +788,68 @@ def start_event(request):
 
     return JsonResponse({"error": "Некорректный запрос"}, status=400)
 
+from collections import defaultdict
 # назначенные адреса для event_detail.html
 @login_required
 def event_detail(request, event_id):
     event = get_object_or_404(Event, pk=event_id)
     current_user = request.user
-
     is_manager = current_user.groups.filter(name='Менеджер').exists()
     is_executor = current_user.groups.filter(name='Исполнитель').exists()
+    manager_addresses = defaultdict(list)
+    executor_addresses = []
+
+    def process_addresses(address_list):
+        addresses_with_photos = []
+        executor_colors = {'not_assigned': '#808080'}
+        color_palette = ['#FF5733', '#33FF57', '#3357FF', '#F3FF33', '#FF33A6']
+        color_index = 0
+        for address in address_list:
+            executor_id = address.assigned_user.executorprofile.id if address.assigned_user else 'not_assigned'
+            project_user_id = event.project.user.id
+            project_id = str(event.project.id)
+            event_type = event.get_event_type_display()
+            address_name = re.sub(r'[\\/*?:"<>|]', "_", address.name)
+            base_path = os.path.join(settings.MEDIA_ROOT, str(project_user_id), project_id, event_type, str(executor_id))
+            problems_path = os.path.join(base_path, "problems")
+            has_photos = False
+            if executor_id and os.path.exists(base_path):
+                for file_name in os.listdir(base_path):
+                    if file_name.startswith(address_name):
+                        has_photos = True
+                        break
+            if executor_id and os.path.exists(problems_path):
+                for file_name in os.listdir(problems_path):
+                    if file_name.startswith(address_name):
+                        has_photos = True
+                        break
+            if executor_id not in executor_colors:
+                executor_colors[executor_id] = color_palette[color_index % len(color_palette)]
+                color_index += 1
+            addresses_with_photos.append({
+                'address': address,
+                'has_photos': has_photos,
+                'executor_id': executor_id,
+                'executor_color': executor_colors[executor_id]
+            })
+        return addresses_with_photos
 
     if is_manager and event.project.user == current_user:
-        event_addresses = event.addresses.all().select_related('assigned_user')
+        for address in event.addresses.all().select_related('assigned_user'):
+            executor = address.assigned_user.executorprofile if address.assigned_user else None
+            manager_addresses[executor].append(address)
+        addresses_with_photos_manager = {executor: process_addresses(addresses) for executor, addresses in manager_addresses.items()}
+
+        # Add unassigned addresses as a category "None"
+        unassigned_addresses = manager_addresses.pop(None, [])
+        addresses_with_photos_manager[None] = process_addresses(unassigned_addresses)
     else:
-        event_addresses = event.addresses.filter(assigned_user=request.user)
+        addresses_with_photos_manager = {}
 
-    # Создание карты цветов для исполнителей
-    executor_colors = {
-        'not_assigned': '#808080',  # Серый цвет для неназначенных
-    }
-    
-    color_palette = ['#FF5733', '#33FF57', '#3357FF', '#F3FF33', '#FF33A6']  # Добавьте больше цветов по необходимости
-    color_index = 0
+    if is_executor:
+        executor_addresses = event.addresses.filter(assigned_user=current_user)
+    addresses_with_photos_executor = process_addresses(executor_addresses)
 
-    addresses_with_photos = []
-    for address in event_addresses:
-        executor_id = address.assigned_user.executorprofile.id if address.assigned_user else 'not_assigned'
-        project_user_id = event.project.user.id
-        project_id = str(event.project.id)
-        event_type = event.get_event_type_display()
-        address_name = re.sub(r'[\\/*?:"<>|]', "_", address.name)
-
-        base_path = os.path.join(settings.MEDIA_ROOT, str(project_user_id), project_id, event_type, str(executor_id))
-        problems_path = os.path.join(base_path, "problems")
-        
-        has_photos = False
-
-        if executor_id and os.path.exists(base_path):
-            for file_name in os.listdir(base_path):
-                if file_name.startswith(address_name):
-                    has_photos = True
-                    break
-        
-        if executor_id and os.path.exists(problems_path):
-            for file_name in os.listdir(problems_path):
-                if file_name.startswith(address_name):
-                    has_photos = True
-                    break
-
-        # Назначаем цвет исполнителю, если еще не назначен
-        if executor_id not in executor_colors:
-            executor_colors[executor_id] = color_palette[color_index % len(color_palette)]
-            color_index += 1
-
-        addresses_with_photos.append({
-            'address': address,
-            'has_photos': has_photos,
-            'executor_id': executor_id,
-            'executor_color': executor_colors[executor_id]
-        })
-
-    # Проверка статуса исполнителя
     user_event_status = None
     if is_executor:
         try:
@@ -858,11 +860,11 @@ def event_detail(request, event_id):
 
     return render(request, 'projects/event_detail.html', {
         'event': event,
-        'addresses_with_photos': addresses_with_photos,
+        'addresses_with_photos_manager': addresses_with_photos_manager,
+        'addresses_with_photos_executor': addresses_with_photos_executor,
         'is_executor': is_executor,
         'is_manager': is_manager,
-        'user_event_status': user_event_status,  # Добавляем статус в контекст
-        'addresses_with_photos': addresses_with_photos,
+        'user_event_status': user_event_status,
     })
 
 # Оптимальный маршрут для event_detail.html

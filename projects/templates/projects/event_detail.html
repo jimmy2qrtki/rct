@@ -32,31 +32,68 @@
     <div id="map" style="width: 100%; height: 400px; margin-bottom: 20px;"></div>
     <button id="update-route">Обновить маршрут</button>
     <button id="print-addresses">Печать маршрута</button>
-    <ul id="assigned-event-addresses-list">
-        {% for item in addresses_with_photos %}
-        <li data-id="{{ item.address.id }}" data-executor-id="{{ item.executor_id }}" data-executor-color="{{ item.executor_color }}" class="accordion-header">
-            <span class="address-number">{{ forloop.counter }}.</span> 
-            <span class="address-name">{{ item.address.name }}</span>
-    
-            {% if is_manager %}
-                {% if item.address.assigned_user %}
-                    {% if item.address.assigned_user.username %}
-                        <span class="executor-name"> - {{ item.address.assigned_user.executorprofile.name }}</span>
-                    {% else %}
-                        <span class="executor-email"> - {{ item.address.assigned_user.email }}</span>
-                    {% endif %}
-                {% else %}
-                    <span class="executor-none"> - Исполнитель не назначен</span>
-                {% endif %}
-            {% endif %}
-    
-            {% if is_manager and item.has_photos %}
-                <!-- Кнопка "Детали" остается снаружи -->
-                <button class="view-details" data-address-id="{{ item.address.id }}">Фото</button>
-            {% endif %}
-            
-            <div class="photo-upload-section" style="display: none;">
-                {% if is_executor %}
+    {% if is_manager %}
+        <div>
+            <ul class="nav nav-tabs" id="managerTabs" role="tablist">
+                {% for executor, addresses in addresses_with_photos_manager.items %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if forloop.first %}active{% endif %}"
+                        id="tab-{% if executor %}{{ executor.id }}{% else %}unassigned{% endif %}"
+                        data-toggle="tab"
+                        href="#executor-{% if executor %}{{ executor.id }}{% else %}unassigned{% endif %}"
+                        role="tab">
+
+                            {% if executor %}
+                                {{ executor.name }}
+                            {% else %}
+                                Без назначения
+                            {% endif %}
+
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+            <div class="tab-content" id="managerTabsContent">
+                {% for executor, addresses in addresses_with_photos_manager.items %}
+                    <div class="tab-pane fade {% if forloop.first %}show active{% endif %}"
+                        id="executor-{% if executor %}{{ executor.id }}{% else %}unassigned{% endif %}"
+                        role="tabpanel">
+                        <ul>
+                            {% for item in addresses %}
+                                <li data-id="{{ item.address.id }}" data-executor-id="{{ item.executor_id }}" data-executor-color="{{ item.executor_color }}">
+                                    <span class="address-number">{{ forloop.counter }}.</span>
+                                    <span class="address-name">{{ item.address.name }}</span>
+                                    {% if item.address.assigned_user %}
+                                        {% if item.address.assigned_user.username %}
+                                            <span class="executor-name"> - {{ item.address.assigned_user.executorprofile.name }}</span>
+                                        {% else %}
+                                            <span class="executor-email"> - {{ item.address.assigned_user.email }}</span>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="executor-none"> - Исполнитель не назначен</span>
+                                    {% endif %}
+                                    {% if item.has_photos %}
+                                    <button class="view-details" data-address-id="{{ item.address.id }}">Фото</button>
+                                    {% endif %}
+                                </li>
+                            {% empty %}
+                                <li>Нет назначенных адресов для {% if executor %}{{ executor.name }}{% else %}категории "Без назначения"{% endif %}.</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
+    {% if is_executor %}
+        <ul id="executor-event-addresses-list">
+            {% for item in addresses_with_photos_executor %}
+            <li data-id="{{ item.address.id }}" data-executor-id="{{ item.executor_id }}" data-executor-color="{{ item.executor_color }}" class="accordion-header">
+                <span class="address-number">{{ forloop.counter }}.</span> 
+                <span class="address-name">{{ item.address.name }}</span>
+
+                <div class="photo-upload-section" style="display: none;">
                     {% if user_event_status == 'completed' %}
                         <span>Фотографии приняты</span>
                     {% else %}
@@ -74,18 +111,18 @@
                             </form>
                         {% endif %}
                     {% endif %}
-                {% endif %}
-            </div>
-    
-            <span class="hidden-coordinates">
-                <span class="latitude">{{ item.address.latitude }}</span> | 
-                <span class="longitude">{{ item.address.longitude }}</span>
-            </span>
-        </li>
-        {% empty %}
-        <li>Нет назначенных адресов.</li>
-        {% endfor %}
-    </ul>
+                </div>
+
+                <span class="hidden-coordinates">
+                    <span class="latitude">{{ item.address.latitude }}</span> | 
+                    <span class="longitude">{{ item.address.longitude }}</span>
+                </span>
+            </li>
+            {% empty %}
+            <li>Нет назначенных адресов.</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
 
     <!-- Модальное окно для просмотра фото -->
     <div id="photosModal" class="modal fade" tabindex="-1" role="dialog">
@@ -123,7 +160,7 @@
         window.csrfToken = '{{ csrf_token }}'; // Глобальная переменная с CSRF-токеном
         $(document).ready(function() {
             // Toggle accordion sections by clicking on the header
-            $('#assigned-event-addresses-list').on('click', 'li.accordion-header', function(event) {
+            $('#executor-event-addresses-list').on('click', 'li.accordion-header', function(event) {
                 // Only toggle if the click is not on the form or refresh button
                 if (!$(event.target).is('form') && !$(event.target).is('input') && !$(event.target).is('button')) {
                     $(this).find('.photo-upload-section').slideToggle();
@@ -239,195 +276,7 @@
                 });
             });
         });
-        ymaps.ready(initMap);
-    
-        let map;
-        let placemarks = [];
-        let polyline;
-    
-        function initMap() {
-            if (!map) {
-                map = new ymaps.Map('map', {
-                    center: [55.76, 37.64],
-                    zoom: 10
-                });
-            }
-    
-            updateMap();
-        }
-
-        // Функция возвращает цвет для указанного ID исполнителя
-        const getColorForExecutor = (executorId) => {
-            const colorMap = {
-                'not_assigned': '#808080', // Серый для неназначенных
-                'executor1': '#FF0000', // Красный
-                'executor2': '#00FF00', // Зеленый
-                // Добавьте все необходимые связи для ваших исполнителей
-            };
-            return colorMap[executorId] || '#0000FF'; // Синий по умолчанию, если идентификатор не найден
-        };
-    
-        function updateMap() {
-            map.geoObjects.removeAll();
-            placemarks = [];
-            let coordinates = [];
-
-            $('#assigned-event-addresses-list li').each(function() {
-                const latitude = parseFloat($(this).find('.latitude').text().trim().replace(',', '.'));
-                const longitude = parseFloat($(this).find('.longitude').text().trim().replace(',', '.'));
-                const name = $(this).find('.address-name').text().trim();
-                const addressNumber = $(this).find('.address-number').text().trim().replace('.', '');
-                const executorColor = $(this).data('executor-color'); // Получаем цвет исполнителя
-
-                if (!isNaN(latitude) && !isNaN(longitude)) {
-                    const placemark = new ymaps.Placemark(
-                        [latitude, longitude],
-                        {
-                            balloonContent: `<strong>Адрес ${addressNumber}</strong>: ${name}`,
-                            iconContent: addressNumber
-                        },
-                        {
-                            preset: 'islands#icon',
-                            iconColor: executorColor // Устанавливаем цвет метки
-                        }
-                    );
-                    map.geoObjects.add(placemark);
-                    placemarks.push(placemark);
-                    coordinates.push([latitude, longitude]);
-                } else {
-                    console.warn('Некорректные координаты для адреса:', name);
-                }
-            });
-
-            if (polyline) {
-                map.geoObjects.remove(polyline);
-            }
-
-            if (coordinates.length > 1) {
-                for (let i = 0; i < coordinates.length - 1; i++) {
-                    const startColor = $('#assigned-event-addresses-list li').eq(i).data('executor-color');
-                    const endColor = $('#assigned-event-addresses-list li').eq(i+1).data('executor-color');
-                    const segment = new ymaps.Polyline([coordinates[i], coordinates[i + 1]], {}, {
-                        strokeColor: startColor,  // Используем цвет начальной точки для линии
-                        strokeWidth: 3,
-                        strokeOpacity: 0.5
-                    });
-                    map.geoObjects.add(segment);
-                }
-            }
-        }
-    
-        function updateAddressNumbers() {
-            $('#assigned-event-addresses-list .address-number').each(function(index) {
-                $(this).text((index + 1) + '.');
-            });
-        }
-    
-        function saveNewOrder(selector) {
-            const orderData = [];
-            $(selector + ' li').each(function(index) {
-                const addressId = $(this).data('id');
-                orderData.push({ id: addressId, order: index });
-            });
-    
-            $.ajax({
-                url: "{% url 'update_address_order' %}",
-                type: "POST",
-                data: {
-                    order: JSON.stringify(orderData),
-                    model: 'EventAddress',
-                    csrfmiddlewaretoken: "{{ csrf_token }}"
-                },
-                success: function(response) {
-                    console.log('Порядок адресов события успешно сохранен.');
-                },
-                error: function(response) {
-                    console.error('Ошибка при сохранении порядка адресов события');
-                }
-            });
-        }
-    
-        $("#assigned-event-addresses-list").sortable({
-            placeholder: 'ui-state-highlight',
-            update: function(event, ui) {
-                updateAddressNumbers();
-                saveNewOrder('#assigned-event-addresses-list');
-                updateMap();
-            }
-        }).disableSelection();
-
-        function calculateOptimalRoute() {
-            const coords = [];
-            $('#assigned-event-addresses-list li').each(function() {
-                const latitude = parseFloat($(this).find('.latitude').text().trim().replace(',', '.'));
-                const longitude = parseFloat($(this).find('.longitude').text().trim().replace(',', '.'));
-                if (!isNaN(latitude) && !isNaN(longitude)) {
-                    coords.push([latitude, longitude]);
-                }
-            });
-
-            const addressOrder = getOptimalRoute(coords);
-
-            reorderAddresses(addressOrder);
-            updateAddressNumbers();
-            saveNewOrder('#assigned-event-addresses-list');
-            updateMap();
-        }
-
-        function reorderAddresses(order) {
-            const $list = $('#assigned-event-addresses-list');
-            const items = $list.children('li').get();
-            order.forEach((index) => {
-                $list.append(items[index]);
-            });
-        }
-
-        function getOptimalRoute(coords) {
-            let order;
-            $.ajax({
-                url: "{% url 'calculate_optimal_route' %}",  // Make sure this URL pattern is created
-                type: "POST",
-                data: {
-                    coordinates: JSON.stringify(coords),
-                    csrfmiddlewaretoken: "{{ csrf_token }}"
-                },
-                async: false,  // To make the call synchronous and get the result immediately
-                success: function(response) {
-                    order = response.route;
-                },
-                error: function(response) {
-                    console.error('Ошибка при обновлении маршрута');
-                }
-            });
-            return order;
-        }
-
-        $('#update-route').on('click', calculateOptimalRoute);
-
-        document.getElementById('print-addresses').addEventListener('click', function() {
-        printAddressList();
-    });
-
-    function printAddressList() {
-        let printWindow = window.open('', '_blank', 'width=600,height=400');
-        let content = '<html><head><title>{{ event.get_event_type_display }} {{ event.project.name }}</title></head><body><h2>{{ event.project.name }}: {{ event.get_event_type_display }}</h2><p>{{ event.project.organization }} | {{ event.project.product }} | Дата: {{ event.event_date }}</p><ul>';
         
-        // Формируем список адресов без координат
-        $('#assigned-event-addresses-list li').each(function() {
-            const addressName = $(this).find('.address-name').text().trim();
-            const addressNumber = $(this).find('.address-number').text().trim();
-            content += `<li>${addressNumber} ${addressName}</li>`;
-        });
-        
-        content += '</ul></body></html>';
-        
-        printWindow.document.open();
-        printWindow.document.write(content);
-        printWindow.document.close();
-        printWindow.focus();
-        printWindow.print();
-        printWindow.close();
-    }
     </script>
 
 </body>
