@@ -36,51 +36,55 @@
         <div>
             <ul class="nav nav-tabs" id="managerTabs" role="tablist">
                 {% for executor, addresses in addresses_with_photos_manager.items %}
-                    <li class="nav-item">
-                        <a class="nav-link {% if forloop.first %}active{% endif %}"
-                        id="tab-{% if executor %}{{ executor.id }}{% else %}unassigned{% endif %}"
-                        data-toggle="tab"
-                        href="#executor-{% if executor %}{{ executor.id }}{% else %}unassigned{% endif %}"
-                        role="tab">
+                    {% if executor or addresses %}
+                        <li class="nav-item">
+                            <a class="nav-link {% if forloop.first %}active{% endif %}"
+                            id="tab-{% if executor %}{{ executor.id }}{% else %}unassigned{% endif %}"
+                            data-toggle="tab"
+                            href="#executor-{% if executor %}{{ executor.id }}{% else %}unassigned{% endif %}"
+                            role="tab">
 
-                            {% if executor %}
-                                {{ executor.name }}
-                            {% else %}
-                                Без назначения
-                            {% endif %}
+                                {% if executor %}
+                                    {{ executor.name }}
+                                {% else %}
+                                    Без назначения
+                                {% endif %}
 
-                        </a>
-                    </li>
+                            </a>
+                        </li>
+                    {% endif %}
                 {% endfor %}
             </ul>
             <div class="tab-content" id="managerTabsContent">
                 {% for executor, addresses in addresses_with_photos_manager.items %}
-                    <div class="tab-pane fade {% if forloop.first %}show active{% endif %}"
-                        id="executor-{% if executor %}{{ executor.id }}{% else %}unassigned{% endif %}"
-                        role="tabpanel">
-                        <ul>
-                            {% for item in addresses %}
-                                <li data-id="{{ item.address.id }}" data-executor-id="{{ item.executor_id }}" data-executor-color="{{ item.executor_color }}">
-                                    <span class="address-number">{{ forloop.counter }}.</span>
-                                    <span class="address-name">{{ item.address.name }}</span>
-                                    {% if item.address.assigned_user %}
-                                        {% if item.address.assigned_user.username %}
-                                            <span class="executor-name"> - {{ item.address.assigned_user.executorprofile.name }}</span>
+                    {% if executor or addresses %}
+                        <div class="tab-pane fade {% if forloop.first %}show active{% endif %}"
+                            id="executor-{% if executor %}{{ executor.id }}{% else %}unassigned{% endif %}"
+                            role="tabpanel">
+                            <ul>
+                                {% for item in addresses %}
+                                    <li data-id="{{ item.address.id }}" data-executor-id="{{ item.executor_id }}" data-executor-color="{{ item.executor_color }}">
+                                        <span class="address-number">{{ forloop.counter }}.</span>
+                                        <span class="address-name">{{ item.address.name }}</span>
+                                        {% if item.address.assigned_user %}
+                                            {% if item.address.assigned_user.username %}
+                                                <span class="executor-name"> - {{ item.address.assigned_user.executorprofile.name }}</span>
+                                            {% else %}
+                                                <span class="executor-email"> - {{ item.address.assigned_user.email }}</span>
+                                            {% endif %}
                                         {% else %}
-                                            <span class="executor-email"> - {{ item.address.assigned_user.email }}</span>
+                                            <span class="executor-none"> - Исполнитель не назначен</span>
                                         {% endif %}
-                                    {% else %}
-                                        <span class="executor-none"> - Исполнитель не назначен</span>
-                                    {% endif %}
-                                    {% if item.has_photos %}
-                                    <button class="view-details" data-address-id="{{ item.address.id }}">Фото</button>
-                                    {% endif %}
-                                </li>
-                            {% empty %}
-                                <li>Нет назначенных адресов для {% if executor %}{{ executor.name }}{% else %}категории "Без назначения"{% endif %}.</li>
-                            {% endfor %}
-                        </ul>
-                    </div>
+                                        {% if item.has_photos %}
+                                        <button class="view-details" data-address-id="{{ item.address.id }}">Фото</button>
+                                        {% endif %}
+                                    </li>
+                                {% empty %}
+                                    <li>Нет назначенных адресов для {% if executor %}{{ executor.name }}{% else %}категории "Без назначения"{% endif %}.</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% endif %}
                 {% endfor %}
             </div>
         </div>
