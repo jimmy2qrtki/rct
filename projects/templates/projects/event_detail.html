@@ -78,6 +78,10 @@
                                         {% if item.has_photos %}
                                         <button class="view-details" data-address-id="{{ item.address.id }}">Фото</button>
                                         {% endif %}
+                                        <span class="hidden-coordinates">
+                                            <span class="latitude">{{ item.address.latitude }}</span> | 
+                                            <span class="longitude">{{ item.address.longitude }}</span>
+                                        </span>
                                     </li>
                                 {% empty %}
                                     <li>Нет назначенных адресов для {% if executor %}{{ executor.name }}{% else %}категории "Без назначения"{% endif %}.</li>
@@ -160,7 +164,7 @@
         Закрыть
     </a>
 
-    <script>
+    <script type="text/javascript">
         window.csrfToken = '{{ csrf_token }}'; // Глобальная переменная с CSRF-токеном
         $(document).ready(function() {
             // Toggle accordion sections by clicking on the header
@@ -280,6 +284,179 @@
                 });
             });
         });
+
+        const isManager = "{{ is_manager|yesno:'true,false' }}" === "true";
+        const isExecutor = "{{ is_executor|yesno:'true,false' }}" === "true";
+
+        ymaps.ready(init);
+
+        function init() {
+            var map = new ymaps.Map("map", {
+                center: [55.76, 37.64], // Москва по умолчанию
+                zoom: 10
+            });
+
+            function parseCoordinate(coordinate) {
+                return parseFloat(coordinate.replace(',', '.'));
+            }
+
+            function updateMapMarkers(addresses) {
+                map.geoObjects.removeAll();
+                if (addresses.length === 0) {
+                    return;
+                }
+
+                var coordinates = [];
+                addresses.forEach(function (item, index) {
+                    var latitude = parseCoordinate(item.latitude);
+                    var longitude = parseCoordinate(item.longitude);
+                    var addressNumber = index + 1;
+                    var name = item.name;
+                    var executorColor = item.executorColor || '#808080'; // Цвет по умолчанию
+
+                    if (!isNaN(latitude) && !isNaN(longitude)) {
+                        var placemark = new ymaps.Placemark(
+                            [latitude, longitude],
+                            {
+                                balloonContent: `<strong>Адрес ${addressNumber}</strong>: ${name}`,
+                                iconContent: addressNumber
+                            },
+                            {
+                                preset: 'islands#icon',
+                                iconColor: executorColor
+                            }
+                        );
+                        map.geoObjects.add(placemark);
+                        coordinates.push([latitude, longitude]);
+                    } else {
+                        console.warn('Некорректные координаты для адреса:', name);
+                    }
+                });
+
+                if (coordinates.length > 1) {
+                    var polyline = new ymaps.Polyline(coordinates, {}, {
+                        strokeColor: "#0000FF",
+                        strokeWidth: 3
+                    });
+                    map.geoObjects.add(polyline);
+                }
+                map.setBounds(map.geoObjects.getBounds(), { checkZoomRange: true });
+            }
+
+            function getAddressesFromList(listSelector) {
+                return $(listSelector).find('li').map(function () {
+                    return {
+                        id: $(this).data('id'),
+                        name: $(this).find('.address-name').text(),
+                        latitude: $(this).find('.latitude').text(),
+                        longitude: $(this).find('.longitude').text(),
+                        executorColor: $(this).data('executor-color')
+                    };
+                }).get();
+            }
+
+            function saveNewOrder(elementSelector) {
+                const orderData = [];
+                $(elementSelector).find('li').each(function(index) {
+                    const addressId = $(this).data('id');
+                    $(this).find('.address-number').text(index + 1);
+                    orderData.push({ id: addressId, order: index });
+                });
+                $.ajax({
+                    url: "{% url 'update_address_order' %}",
+                    type: "POST",
+                    data: {
+                        order: JSON.stringify(orderData),
+                        model: 'EventAddress',
+                        csrfmiddlewaretoken: "{{ csrf_token }}"
+                    },
+                    success: function(response) {
+                        console.log('Порядок адресов успешно сохранен.');
+                    },
+                    error: function(response) {
+                        console.error('Ошибка при сохранении порядка адресов');
+                    }
+                });
+            }
+
+            function handleUpdateRoute() {
+                let addresses;
+                let listSelector;
+
+                if (isManager) {
+                    listSelector = '#managerTabsContent .tab-pane.active ul';
+                } else if (isExecutor) {
+                    listSelector = '#executor-event-addresses-list';
+                }
+
+                addresses = getAddressesFromList(listSelector);
+
+                if (addresses.length > 0) {
+                    $.ajax({
+                        url: "{% url 'calculate_optimal_route' %}",
+                        type: "POST",
+                        data: {
+                            coordinates: JSON.stringify(addresses),
+                            csrfmiddlewaretoken: "{{ csrf_token }}"
+                        },
+                        success: function(response) {
+                            if (response.route) {
+                                reorderAddresses(response.route, addresses, listSelector);
+                            }
+                        },
+                        error: function() {
+                            alert('Ошибка при расчете оптимального маршрута.');
+                        }
+                    });
+                }
+            }
+
+            function reorderAddresses(route, addresses, listSelector) {
+                const sortedAddresses = route.map(index => addresses[index]);
+                const listElement = $(listSelector);
+
+                $.each(sortedAddresses, function(index, address) {
+                    listElement.find(`li[data-id='${address.id}']`).appendTo(listElement);
+                });
+
+                $.each(listElement.find('li'), function(index, element) {
+                    $(element).find('.address-number').text(index + 1);
+                });
+                
+                updateMapMarkers(sortedAddresses);
+                saveNewOrder(listElement);
+            }
+
+            $('#update-route').on('click', handleUpdateRoute);
+
+            if (isManager) {
+                $('#managerTabs a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
+                    const addresses = getAddressesFromList($(e.target).attr('href') + ' ul');
+                    updateMapMarkers(addresses);
+                }).first().trigger('shown.bs.tab');
+
+                $('#managerTabsContent .tab-pane ul').sortable({
+                    update: function() {
+                        const addresses = getAddressesFromList(this);
+                        updateMapMarkers(addresses);
+                        saveNewOrder(this);
+                    }
+                });
+            }
+
+            if (isExecutor) {
+            const addresses = getAddressesFromList('#executor-event-addresses-list');
+            updateMapMarkers(addresses);
+
+            $('#executor-event-addresses-list').sortable({
+                update: function() {
+                const addresses = getAddressesFromList(this);
+                updateMapMarkers(addresses);
+                saveNewOrder(this);
+                }
+            });
+            }
+        }
         
     </script>
 

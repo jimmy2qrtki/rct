@@ -172,6 +172,50 @@ def nearest_neighbor(coords):
 
     return path
 
+# перестраивает порядок адресов для оптимального маршрута для деталей события
+def nearest_neighbor_event_detail(data):
+    def parse_coordinate(coord):
+        # Заменяем запятую на точку и преобразуем строку в float
+        return float(coord.replace(',', '.'))
+
+    coords = [(parse_coordinate(item['latitude']), parse_coordinate(item['longitude'])) for item in data]
+    num_points = len(coords)
+
+    # Проверка формата координат
+    for coord in coords:
+        if len(coord) != 2:
+            raise ValueError("Each coordinate must contain exactly two elements: latitude and longitude.")
+
+    # Найти ближайшего соседа
+    optimal_route = []
+    visited = [False] * num_points
+    current_index = 0
+    for _ in range(num_points):
+        visited[current_index] = True
+        optimal_route.append(current_index)
+
+        # Следующая ближайшая точка
+        min_distance = float('inf')
+        next_index = None
+        for i in range(num_points):
+            if not visited[i]:
+                try:
+                    distance = euclidean(coords[current_index], coords[i])
+                    if distance < min_distance:
+                        min_distance = distance
+                        next_index = i
+                except ValueError as e:
+                    print("Caught exception:", e)
+                    print(f"Current index: {current_index}, Next index: {i}")
+                    print(f"Current coord: {coords[current_index]}, Next coord: {coords[i]}")
+
+        if next_index is None:
+            break
+
+        current_index = next_index
+
+    return optimal_route
+
 # копирование адресов с проекта в событие с построением маршрута начиная с 1 адреса в проекте
 def copy_addresses(request, event_id):
     event = get_object_or_404(Event, id=event_id)
@@ -872,7 +916,7 @@ def event_detail(request, event_id):
 def calculate_optimal_route(request):
     if request.method == 'POST':
         data = json.loads(request.POST['coordinates'])
-        optimal_route = nearest_neighbor(data)
+        optimal_route = nearest_neighbor_event_detail(data)
         return JsonResponse({'route': optimal_route})
 
     return JsonResponse({'error': 'Invalid request method.'}, status=400)
