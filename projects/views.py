@@ -570,36 +570,38 @@ def update_address_order(request):
 # представление списка назначенных событий для исполнителя
 def assigned_events_list(request):
     current_user = request.user
-    
-    # Получаем все события пользователя с разбивкой по статусам
     event_users_by_status = {
         'assigned': EventUser.objects.filter(user=current_user, status='assigned').order_by('event__event_date'),
         'confirmed': EventUser.objects.filter(user=current_user, status='confirmed').order_by('event__event_date'),
         'in_progress': EventUser.objects.filter(user=current_user, status='in_progress').order_by('event__event_date'),
         'completed': EventUser.objects.filter(user=current_user, status='completed').order_by('event__event_date'),
     }
-    
+
     # Подсчёт количества адресов и преобразование статусов
     event_data_by_status = {}
     status_display_map = dict(EventUser.STATUS_CHOICES)
-    
     for status, events in event_users_by_status.items():
-        # Получаем отображаемое значение статуса
         status_display = status_display_map.get(status, status)
         event_data_by_status[status] = {
             'display': status_display,
             'count': events.count(),
             'events': [
-                (
-                    e.event,
-                    e.event.addresses.filter(assigned_user=current_user).count()
-                )
+                (e.event, e.event.addresses.filter(assigned_user=current_user).count())
                 for e in events
             ]
         }
 
+    # Для статуса 'in_progress', объединяем адреса
+    if 'in_progress' in event_users_by_status:
+        in_progress_events = event_users_by_status['in_progress']
+        in_progress_addresses = []
+        for event_user in in_progress_events:
+            event_addresses = event_user.event.addresses.filter(assigned_user=current_user)
+            in_progress_addresses.extend(event_addresses)
+
     return render(request, 'projects/assigned_events_list.html', {
         'event_data_by_status': event_data_by_status,
+        'in_progress_addresses': in_progress_addresses if in_progress_events.exists() else None,
     })
 
 @login_required
@@ -1161,3 +1163,37 @@ def download_executor_photos(request):
         return resp
     else:
         return HttpResponse("No photos available for download.", status=404)
+    
+@login_required
+@csrf_exempt
+def get_addresses_for_events(request):
+    if request.method == 'POST':
+        try:
+            # Получаем список ID событий из POST-запроса
+            event_ids = json.loads(request.POST.get('event_ids', '[]'))
+            
+            # Фильтруем адреса, принадлежащие событиям и назначенные текущему пользователю
+            addresses = EventAddress.objects.filter(
+                event__in=event_ids,
+                assigned_user=request.user
+            )
+            
+            # Формируем список адресов для ответа
+            address_list = [
+                {
+                    'name': address.name,
+                    'latitude': address.latitude,
+                    'longitude': address.longitude
+                }
+                for address in addresses
+            ]
+            
+            # Возвращаем JSON-ответ с успешным кодом и списком адресов
+            return JsonResponse({'success': True, 'addresses': address_list})
+        
+        except json.JSONDecodeError:
+            # Обработка ошибок JSON
+            return JsonResponse({'success': False, 'error': 'Некорректный формат JSON'})
+        
+    # Если метод запроса не POST, возвращаем ошибку
+    return JsonResponse({'success': False, 'error': 'Invalid request method'})

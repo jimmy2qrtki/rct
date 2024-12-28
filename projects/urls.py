@@ -35,4 +35,5 @@ urlpatterns = [
     path('event/<int:event_id>/view_photos/', views.view_photos, name='view_photos'),
     path('fetch_executor_photos/', views.fetch_executor_photos, name='fetch_executor_photos'),
     path('download_executor_photos/', views.download_executor_photos, name='download_executor_photos'),
+    path('get-addresses/', views.get_addresses_for_events, name='get_addresses_for_events'),
 ]

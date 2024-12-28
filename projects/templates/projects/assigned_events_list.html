@@ -48,6 +48,9 @@
                 {% if data.events %}
                     <thead>
                         <tr>
+                            {% if status == 'in_progress' %}
+                            <th></th> <!-- Колонка для чекбоксов -->
+                            {% endif %}
                             <th>Название проекта</th>
                             <th>Организация</th>
                             <th>Продукция</th>
@@ -60,45 +63,52 @@
                 {% endif %}
                 <tbody>
                     {% for event, assigned_address_count in data.events %}
-                    <tr data-url="{% url 'event_detail' event.id %}">
-                        <td class="clickable">{{ event.project.name }}</td>
-                        <td class="clickable">{{ event.project.organization }}</td>
-                        <td class="clickable">{{ event.project.product }}</td>
-                        <td class="clickable">{{ event.get_event_type_display }}</td>
-                        <td>{{ event.event_date|date:"d.m.y" }} - {{ event.due_date|date:"d.m.y" }}</td>
-                        <td>{{ assigned_address_count }}</td>
-                        <td>
-                            <!-- Условие для отображения ссылки "Детали" -->
-                            {% if status == 'in_progress' or status == 'completed' %}
+                        <tr data-url="{% url 'event_detail' event.id %}">
+                            {% if status == 'in_progress' %}
+                            <td><input type="checkbox" class="event-checkbox" value="{{ event.id }}"></td>
+                            {% endif %}
+                            <td class="clickable">{{ event.project.name }}</td>
+                            <td class="clickable">{{ event.project.organization }}</td>
+                            <td class="clickable">{{ event.project.product }}</td>
+                            <td class="clickable">{{ event.get_event_type_display }}</td>
+                            <td>{{ event.event_date|date:"d.m.y" }} - {{ event.due_date|date:"d.m.y" }}</td>
+                            <td>{{ assigned_address_count }}</td>
+                            <td>
+                                <!-- Действия -->
+                                {% if status == 'in_progress' or status == 'completed' %}
                                 <a href="{% url 'event_detail' event.id %}">Детали</a>
-                            {% elif status == 'assigned' %}
+                                {% elif status == 'assigned' %}
                                 <button type="button" class="confirm-btn" data-event-id="{{ event.id }}" data-user-id="{{ request.user.id }}">Подтвердить</button>
                                 <form action="{% url 'event_remove' event.id %}" method="post" class="remove-form">
                                     {% csrf_token %}
-                                    <button type="button" 
-                                            class="remove-btn" 
-                                            data-event-name="{{ event.project.name }}" 
-                                            data-event-type="{{ event.get_event_type_display }}">Отказаться</button>
+                                    <button type="button" class="remove-btn" data-event-name="{{ event.project.name }}" data-event-type="{{ event.get_event_type_display }}">Отказаться</button>
                                 </form>
-                            {% elif status == 'confirmed' %}
+                                {% elif status == 'confirmed' %}
                                 <button type="button" class="start-btn" data-event-id="{{ event.id }}" data-start-date="{{ event.event_date|date:"Y-m-d" }}">Начать</button>
                                 <form action="{% url 'event_remove' event.id %}" method="post" class="remove-form">
                                     {% csrf_token %}
-                                    <button type="button" 
-                                            class="remove-btn" 
-                                            data-event-name="{{ event.project.name }}" 
-                                            data-event-type="{{ event.get_event_type_display }}">Отказаться</button>
+                                    <button type="button" class="remove-btn" data-event-name="{{ event.project.name }}" data-event-type="{{ event.get_event_type_display }}">Отказаться</button>
                                 </form>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="7">Нет событий со статусом "{{ data.display|lower }}".</td>
-                    </tr>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7">Нет событий со статусом "{{ data.display|lower }}".</td>
+                        </tr>
                     {% endfor %}
                 </tbody>
             </table>
+            {% if status == 'in_progress' %}
+                <div id="in-progress-addresses" style="display: none;">
+                    <h3>Объединённый список адресов для 'В работе'</h3>
+                    <ul>
+                    {% for address in in_progress_addresses %}
+                        <li>{{ address.name }} ({{ address.latitude }}, {{ address.longitude }})</li>
+                    {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
         </div>
         {% endfor %}
     </div>
@@ -219,6 +229,70 @@
                     }
                 });
             });
+        });
+        $(document).ready(function() {
+            // Восстановление состояния чекбоксов из localStorage
+            $('.event-checkbox').each(function() {
+                const storedValue = localStorage.getItem('checkbox_' + this.value);
+                this.checked = (storedValue === 'true');
+            });
+
+            // Функция для обновления и отображения объединённого списка адресов
+            function updateInProgressAddresses() {
+                // Получаем ID выбранных событий
+                let selectedEvents = $('.event-checkbox:checked').map(function() {
+                    return this.value;
+                }).get();
+
+                // Сохранение состояния чекбоксов в localStorage
+                $('.event-checkbox').each(function() {
+                    localStorage.setItem('checkbox_' + this.value, this.checked);
+                });
+
+                // Проверяем, активен ли таб 'in_progress' и есть ли отмеченные чекбоксы
+                var activeTabStatus = $('.tab.active').data('status');
+                if (selectedEvents.length > 0 && activeTabStatus === 'in_progress') {
+                    $.ajax({
+                        url: "{% url 'get_addresses_for_events' %}",
+                        method: "POST",
+                        data: {
+                            event_ids: JSON.stringify(selectedEvents),
+                            csrfmiddlewaretoken: '{{ csrf_token }}'
+                        },
+                        success: function(response) {
+                            if (response.success) {
+                                let addressList = response.addresses.map((address) => {
+                                    return `<li>${address.name} (${address.latitude}, ${address.longitude})</li>`;
+                                }).join('');
+                                $('#in-progress-addresses ul').html(addressList);
+                                $('#in-progress-addresses').show();
+                            } else {
+                                alert(response.error);
+                            }
+                        }
+                    });
+                } else {
+                    // Если условия не выполнены, скрываем список адресов
+                    $('#in-progress-addresses').hide();
+                }
+            }
+
+            // Обновление отображения при изменении состояния чекбоксов
+            $('.event-checkbox').change(function() {
+                updateInProgressAddresses();
+            });
+
+            // Обновление списка при переключении вкладок
+            $('.tab').click(function() {
+                var status = $(this).data('status');
+                if (status !== 'in_progress') {
+                    $('#in-progress-addresses').hide();
+                }
+                updateInProgressAddresses();  // также обновляет при смене статуса таба
+            });
+
+            // Вызов функции при загрузке страницы
+            updateInProgressAddresses();
         });
     </script>
 </body>
