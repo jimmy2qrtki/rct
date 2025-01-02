@@ -4,6 +4,7 @@
     <title>События к исполнению</title>
     {% load static %}
     <script src="{% static 'js/jquery-3.7.1.min.js' %}"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
     <style>
         .tab {
             display: inline-block;
@@ -102,10 +103,12 @@
             {% if status == 'in_progress' %}
                 <div id="in-progress-addresses" style="display: none;">
                     <h3>Объединённый список адресов для 'В работе'</h3>
-                    <ul>
-                    {% for address in in_progress_addresses %}
-                        <li>{{ address.name }} ({{ address.latitude }}, {{ address.longitude }})</li>
-                    {% endfor %}
+                    <ul id="combined-addresses-list">
+                        {% for address in in_progress_addresses %}
+                            <li data-id="{{ address.id }}">
+                                {{ forloop.counter }}. {{ address.event.project.name }} - {{ address.event.get_event_type_display }} - {{ address.name }} ({{ address.latitude }}, {{ address.longitude }})
+                            </li>
+                        {% endfor %}
                     </ul>
                 </div>
             {% endif %}
@@ -237,6 +240,27 @@
                 this.checked = (storedValue === 'true');
             });
 
+            $("#combined-addresses-list").sortable({
+                update: function(event, ui) {
+                    let orderedIds = $(this).sortable('toArray', { attribute: 'data-id' });
+
+                    // Делайте AJAX запрос для сохранения порядка
+                    $.ajax({
+                        url: "{% url 'save_combined_address_order' %}",
+                        method: "POST",
+                        data: {
+                            order: JSON.stringify(orderedIds),
+                            csrfmiddlewaretoken: '{{ csrf_token }}'
+                        },
+                        success: function(response) {
+                            if (!response.success) {
+                                alert('Ошибка при сохранении порядка адресов: ' + response.error);
+                            }
+                        }
+                    });
+                }
+            });
+
             // Функция для обновления и отображения объединённого списка адресов
             function updateInProgressAddresses() {
                 // Получаем ID выбранных событий
@@ -261,8 +285,11 @@
                         },
                         success: function(response) {
                             if (response.success) {
-                                let addressList = response.addresses.map((address) => {
-                                    return `<li>${address.name} (${address.latitude}, ${address.longitude})</li>`;
+                                let addressList = response.addresses.map((address, index) => {
+                                    // Индекс доступен здесь и начиная с 0, поэтому добавляем 1, чтобы начать с 1
+                                    return `<li data-id="${address.id}">
+                                                ${index + 1}. ${address.projectName} - ${address.eventTypeDisplay} - ${address.name} (${address.latitude}, ${address.longitude})
+                                            </li>`;
                                 }).join('');
                                 $('#in-progress-addresses ul').html(addressList);
                                 $('#in-progress-addresses').show();

@@ -1181,9 +1181,12 @@ def get_addresses_for_events(request):
             # Формируем список адресов для ответа
             address_list = [
                 {
+                    'id': address.id,
                     'name': address.name,
                     'latitude': address.latitude,
-                    'longitude': address.longitude
+                    'longitude': address.longitude,
+                    'projectName': address.event.project.name,  # Добавляем имя проекта
+                    'eventTypeDisplay': address.event.get_event_type_display()  # Добавляем тип события
                 }
                 for address in addresses
             ]
@@ -1196,4 +1199,33 @@ def get_addresses_for_events(request):
             return JsonResponse({'success': False, 'error': 'Некорректный формат JSON'})
         
     # Если метод запроса не POST, возвращаем ошибку
+    return JsonResponse({'success': False, 'error': 'Invalid request method'})
+
+@login_required
+@csrf_exempt
+def save_combined_address_order(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.POST.get('order', '[]'))
+
+            for index, address_id in enumerate(data):
+                if not address_id:
+                    return JsonResponse({'success': False, 'error': 'Некорректный идентификатор адреса.'})
+
+                try:
+                    address_id = int(address_id)
+                except ValueError:
+                    return JsonResponse({'success': False, 'error': 'Идентификатор адреса должен быть числом.'})
+
+                try:
+                    address = EventAddress.objects.get(id=address_id, assigned_user=request.user)
+                    address.order = index  # Устанавливаем новый порядок
+                    address.save()
+                except EventAddress.DoesNotExist:
+                    return JsonResponse({'success': False, 'error': 'Не найден адрес или нет доступа.'})
+
+            return JsonResponse({'success': True})
+        except json.JSONDecodeError:
+            return JsonResponse({'success': False, 'error': 'Некорректный формат JSON'})
+
     return JsonResponse({'success': False, 'error': 'Invalid request method'})
