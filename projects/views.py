@@ -580,6 +580,9 @@ def assigned_events_list(request):
     # Подсчёт количества адресов и преобразование статусов
     event_data_by_status = {}
     status_display_map = dict(EventUser.STATUS_CHOICES)
+
+    manager_api_key = None
+
     for status, events in event_users_by_status.items():
         status_display = status_display_map.get(status, status)
         event_data_by_status[status] = {
@@ -591,17 +594,25 @@ def assigned_events_list(request):
             ]
         }
 
+        # Получаем API-ключ менеджера для первых доступных событий
+        if manager_api_key is None and events.exists():
+            # Предполагаем, что `event.project` ссылается на проект с полем `user`
+            first_event = events.first().event
+            # Доступ к менеджеру проекта: `first_event.project.user`
+            manager_api_key = first_event.project.user.profile.api_key
+
     # Для статуса 'in_progress', объединяем адреса
+    in_progress_addresses = []
     if 'in_progress' in event_users_by_status:
         in_progress_events = event_users_by_status['in_progress']
-        in_progress_addresses = []
         for event_user in in_progress_events:
             event_addresses = event_user.event.addresses.filter(assigned_user=current_user)
             in_progress_addresses.extend(event_addresses)
 
     return render(request, 'projects/assigned_events_list.html', {
         'event_data_by_status': event_data_by_status,
-        'in_progress_addresses': in_progress_addresses if in_progress_events.exists() else None,
+        'in_progress_addresses': in_progress_addresses if in_progress_addresses else None,
+        'manager_api_key': manager_api_key,  # Передаем API ключ менеджера
     })
 
 @login_required

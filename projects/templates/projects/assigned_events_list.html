@@ -5,7 +5,11 @@
     {% load static %}
     <script src="{% static 'js/jquery-3.7.1.min.js' %}"></script>
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+    <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU&apikey={{ manager_api_key }}" type="text/javascript"></script>
     <style>
+        .hidden-coordinates {
+            display: none;
+        }
         .tab {
             display: inline-block;
             padding: 10px 20px;
@@ -103,10 +107,18 @@
             {% if status == 'in_progress' %}
                 <div id="in-progress-addresses" style="display: none;">
                     <h3>Объединённый список адресов для 'В работе'</h3>
+                    <div id="map" style="width: 600px; height: 400px; margin-top: 20px;"></div>
                     <ul id="combined-addresses-list">
                         {% for address in in_progress_addresses %}
                             <li data-id="{{ address.id }}">
-                                {{ forloop.counter }}. {{ address.event.project.name }} - {{ address.event.get_event_type_display }} - {{ address.name }} ({{ address.latitude }}, {{ address.longitude }})
+                                <span class="address-number">{{ forloop.counter }}</span>. 
+                                <span class="project-name">{{ address.event.project.name }}</span>
+                                <span class="event-type">{{ address.event.get_event_type_display }}</span>
+                                <span class="address-name">{{ address.name }}</span>
+                                <span class="hidden-coordinates">
+                                    <span class="latitude">{{ address.latitude }}</span> | 
+                                    <span class="longitude">{{ address.longitude }}</span>
+                                </span>
                             </li>
                         {% endfor %}
                     </ul>
@@ -262,19 +274,81 @@
             });
 
             // Функция для обновления и отображения объединённого списка адресов
+            var map, mapInitialized = false;
+
+            ymaps.ready(init);
+
+            function init() {
+                map = new ymaps.Map("map", {
+                    center: [55.76, 37.64], // Центр карты
+                    zoom: 10
+                });
+                mapInitialized = true;
+                updateInProgressAddresses(); // Вызов обновления сразу после инициализации карты
+            }
+
+            function updateMapMarkers() {
+                if (!mapInitialized) return; // Проверяем, инициализирована ли карта
+
+                const coordinates = [];
+                map.geoObjects.removeAll(); // Очищаем карту от старых меток
+
+                $('#combined-addresses-list li').each(function() {
+                    const latitude = parseFloat($(this).find('.latitude').text().trim().replace(',', '.'));
+                    const longitude = parseFloat($(this).find('.longitude').text().trim().replace(',', '.'));
+                    const name = $(this).find('.address-name').text().trim();
+                    const addressNumber = $(this).find('.address-number').text().trim().replace('.', '');
+
+                    if (!isNaN(latitude) && !isNaN(longitude)) {
+                        const placemark = new ymaps.Placemark(
+                            [latitude, longitude],
+                            {
+                                balloonContent: `<strong>Адрес ${addressNumber}</strong>: ${name}`,
+                                iconContent: addressNumber
+                            },
+                            {
+                                preset: 'islands#redStretchyIcon'
+                            }
+                        );
+
+                        map.geoObjects.add(placemark);
+                        coordinates.push([latitude, longitude]);
+                    } else {
+                        console.warn('Некорректные координаты для адреса:', name);
+                    }
+                });
+
+                // Добавление линии между метками
+                if (coordinates.length > 1) { // Линия нужна только если есть более одного маркера
+                    const polyline = new ymaps.Polyline(coordinates, {}, {
+                        strokeColor: '#0000FF',
+                        strokeWidth: 4,
+                        strokeOpacity: 0.5
+                    });
+                    map.geoObjects.add(polyline);
+                }
+
+                if (coordinates.length > 0) {
+                    map.setBounds(map.geoObjects.getBounds(), { checkZoomRange: true, zoomMargin: 9 });
+                }
+            }
+
+            // Восстановление состояния чекбоксов из localStorage перед обработкой любых данных
+            $('.event-checkbox').each(function() {
+                const storedValue = localStorage.getItem('checkbox_' + this.value);
+                this.checked = (storedValue === 'true');
+            });
+
             function updateInProgressAddresses() {
-                // Получаем ID выбранных событий
-                let selectedEvents = $('.event-checkbox:checked').map(function() {
+                const selectedEvents = $('.event-checkbox:checked').map(function() {
                     return this.value;
                 }).get();
 
-                // Сохранение состояния чекбоксов в localStorage
                 $('.event-checkbox').each(function() {
                     localStorage.setItem('checkbox_' + this.value, this.checked);
                 });
 
-                // Проверяем, активен ли таб 'in_progress' и есть ли отмеченные чекбоксы
-                var activeTabStatus = $('.tab.active').data('status');
+                const activeTabStatus = $('.tab.active').data('status');
                 if (selectedEvents.length > 0 && activeTabStatus === 'in_progress') {
                     $.ajax({
                         url: "{% url 'get_addresses_for_events' %}",
@@ -285,41 +359,41 @@
                         },
                         success: function(response) {
                             if (response.success) {
-                                let addressList = response.addresses.map((address, index) => {
-                                    // Индекс доступен здесь и начиная с 0, поэтому добавляем 1, чтобы начать с 1
+                                const addressList = response.addresses.map((address, index) => {
                                     return `<li data-id="${address.id}">
-                                                ${index + 1}. ${address.projectName} - ${address.eventTypeDisplay} - ${address.name} (${address.latitude}, ${address.longitude})
+                                                <span class="address-number">${index + 1}</span>. 
+                                                <span class="project-name">${address.projectName}</span> - 
+                                                <span class="event-type">${address.eventTypeDisplay}</span> - 
+                                                <span class="address-name">${address.name}</span> 
+                                                <span class="hidden-coordinates">
+                                                    <span class="latitude">${address.latitude}</span>, 
+                                                    <span class="longitude">${address.longitude}</span>
+                                                </span>
                                             </li>`;
                                 }).join('');
                                 $('#in-progress-addresses ul').html(addressList);
                                 $('#in-progress-addresses').show();
+                                updateMapMarkers(); // Обновление меток на карте
                             } else {
                                 alert(response.error);
                             }
                         }
                     });
                 } else {
-                    // Если условия не выполнены, скрываем список адресов
                     $('#in-progress-addresses').hide();
                 }
             }
 
-            // Обновление отображения при изменении состояния чекбоксов
-            $('.event-checkbox').change(function() {
+            $('.event-checkbox').change(updateInProgressAddresses);
+
+            $('.tab').click(function() {
+                if ($(this).data('status') !== 'in_progress') {
+                    $('#in-progress-addresses').hide();
+                }
                 updateInProgressAddresses();
             });
 
-            // Обновление списка при переключении вкладок
-            $('.tab').click(function() {
-                var status = $(this).data('status');
-                if (status !== 'in_progress') {
-                    $('#in-progress-addresses').hide();
-                }
-                updateInProgressAddresses();  // также обновляет при смене статуса таба
-            });
-
-            // Вызов функции при загрузке страницы
-            updateInProgressAddresses();
+            updateInProgressAddresses(); // Вызов функции для начальной загрузки
         });
     </script>
 </body>
