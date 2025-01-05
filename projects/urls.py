@@ -37,4 +37,5 @@ urlpatterns = [
     path('download_executor_photos/', views.download_executor_photos, name='download_executor_photos'),
     path('get-addresses/', views.get_addresses_for_events, name='get_addresses_for_events'),
     path('save_combined_address_order/', views.save_combined_address_order, name='save_combined_address_order'),
+    path('optimize-route/', views.optimize_route, name='optimize_route'),
 ]

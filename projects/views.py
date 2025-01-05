@@ -1240,3 +1240,26 @@ def save_combined_address_order(request):
             return JsonResponse({'success': False, 'error': 'Некорректный формат JSON'})
 
     return JsonResponse({'success': False, 'error': 'Invalid request method'})
+
+# логика оптимизации маршрута для assigned_events_list.html
+def optimize_route(request):
+    if request.method == 'POST':
+        try:
+            coords = json.loads(request.POST.get('coords', '[]'))
+            print('Received coords:', coords)  # Для отладки
+
+            # Конвертируем координаты в формат [(lat, lon), ...]
+            coord_tuples = [(coord['latitude'], coord['longitude']) for coord in coords]
+
+            # Используем функцию ближайшего соседа для оптимизации порядка
+            order = nearest_neighbor(coord_tuples)
+
+            # Создаем список упорядоченных ID адресов
+            ordered_ids = [coords[i]['id'] for i in order]
+
+            return JsonResponse({'success': True, 'ordered_ids': ordered_ids})
+        except KeyError as e:
+            return JsonResponse({'success': False, 'error': f'Key error: {e}'})
+        except json.JSONDecodeError:
+            return JsonResponse({'success': False, 'error': 'Некорректный формат JSON'})
+    return JsonResponse({'success': False, 'error': 'Invalid request method'})

@@ -108,10 +108,11 @@
                 <div id="in-progress-addresses" style="display: none;">
                     <h3>Объединённый список адресов для 'В работе'</h3>
                     <div id="map" style="width: 600px; height: 400px; margin-top: 20px;"></div>
+                    <button id="optimize-route-btn">Маршрут</button>
                     <ul id="combined-addresses-list">
                         {% for address in in_progress_addresses %}
                             <li data-id="{{ address.id }}">
-                                <span class="address-number">{{ forloop.counter }}</span>. 
+                                <span class="address-number">{{ forloop.counter }}</span> 
                                 <span class="project-name">{{ address.event.project.name }}</span>
                                 <span class="event-type">{{ address.event.get_event_type_display }}</span>
                                 <span class="address-name">{{ address.name }}</span>
@@ -246,17 +247,12 @@
             });
         });
         $(document).ready(function() {
-            // Восстановление состояния чекбоксов из localStorage
-            $('.event-checkbox').each(function() {
-                const storedValue = localStorage.getItem('checkbox_' + this.value);
-                this.checked = (storedValue === 'true');
-            });
-
+            // Initialize map and configure sortable list
             $("#combined-addresses-list").sortable({
                 update: function(event, ui) {
                     let orderedIds = $(this).sortable('toArray', { attribute: 'data-id' });
 
-                    // Делайте AJAX запрос для сохранения порядка
+                    // AJAX for saving order
                     $.ajax({
                         url: "{% url 'save_combined_address_order' %}",
                         method: "POST",
@@ -265,7 +261,15 @@
                             csrfmiddlewaretoken: '{{ csrf_token }}'
                         },
                         success: function(response) {
-                            if (!response.success) {
+                            if (response.success) {
+                                // Update numbering of list elements
+                                $('#combined-addresses-list li').each(function(index) {
+                                    $(this).find('.address-number').text(index + 1);
+                                });
+
+                                // Update map markers
+                                updateMapMarkers();
+                            } else {
                                 alert('Ошибка при сохранении порядка адресов: ' + response.error);
                             }
                         }
@@ -273,25 +277,26 @@
                 }
             });
 
-            // Функция для обновления и отображения объединённого списка адресов
+            // Function to initialize map
             var map, mapInitialized = false;
 
             ymaps.ready(init);
 
             function init() {
                 map = new ymaps.Map("map", {
-                    center: [55.76, 37.64], // Центр карты
+                    center: [55.76, 37.64],
                     zoom: 10
                 });
                 mapInitialized = true;
-                updateInProgressAddresses(); // Вызов обновления сразу после инициализации карты
+                updateInProgressAddresses();
             }
 
+            // Update map markers based on current list
             function updateMapMarkers() {
-                if (!mapInitialized) return; // Проверяем, инициализирована ли карта
+                if (!mapInitialized) return;
 
                 const coordinates = [];
-                map.geoObjects.removeAll(); // Очищаем карту от старых меток
+                map.geoObjects.removeAll();
 
                 $('#combined-addresses-list li').each(function() {
                     const latitude = parseFloat($(this).find('.latitude').text().trim().replace(',', '.'));
@@ -318,8 +323,7 @@
                     }
                 });
 
-                // Добавление линии между метками
-                if (coordinates.length > 1) { // Линия нужна только если есть более одного маркера
+                if (coordinates.length > 1) {
                     const polyline = new ymaps.Polyline(coordinates, {}, {
                         strokeColor: '#0000FF',
                         strokeWidth: 4,
@@ -333,12 +337,13 @@
                 }
             }
 
-            // Восстановление состояния чекбоксов из localStorage перед обработкой любых данных
+            // Restore checkbox state from localStorage
             $('.event-checkbox').each(function() {
                 const storedValue = localStorage.getItem('checkbox_' + this.value);
                 this.checked = (storedValue === 'true');
             });
 
+            // Function to update in-progress addresses
             function updateInProgressAddresses() {
                 const selectedEvents = $('.event-checkbox:checked').map(function() {
                     return this.value;
@@ -373,7 +378,7 @@
                                 }).join('');
                                 $('#in-progress-addresses ul').html(addressList);
                                 $('#in-progress-addresses').show();
-                                updateMapMarkers(); // Обновление меток на карте
+                                updateMapMarkers();
                             } else {
                                 alert(response.error);
                             }
@@ -384,8 +389,10 @@
                 }
             }
 
+            // Update addresses on checkbox change
             $('.event-checkbox').change(updateInProgressAddresses);
 
+            // Update addresses and hide in-progress list when tabs are clicked
             $('.tab').click(function() {
                 if ($(this).data('status') !== 'in_progress') {
                     $('#in-progress-addresses').hide();
@@ -393,7 +400,69 @@
                 updateInProgressAddresses();
             });
 
-            updateInProgressAddresses(); // Вызов функции для начальной загрузки
+            updateInProgressAddresses();
+
+            // Route optimization button click event
+            $('#optimize-route-btn').click(function() {
+                // Gather coordinates from list
+                const coords = $('#combined-addresses-list li').map(function() {
+                    const latitude = parseFloat($(this).find('.latitude').text().trim().replace(',', '.'));
+                    const longitude = parseFloat($(this).find('.longitude').text().trim().replace(',', '.'));
+                    const id = $(this).data('id');
+                    return { 'id': id, 'latitude': latitude, 'longitude': longitude };
+                }).get();
+
+                if (coords.length === 0) {
+                    alert('Нет доступных адресов для оптимизации.');
+                    return;
+                }
+
+                $.ajax({
+                    url: "{% url 'optimize_route' %}",
+                    method: "POST",
+                    data: {
+                        coords: JSON.stringify(coords),
+                        csrfmiddlewaretoken: '{{ csrf_token }}'
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            const orderedIds = response.ordered_ids;
+                            orderedIds.forEach((id, index) => {
+                                $('#combined-addresses-list li[data-id="' + id + '"]').appendTo('#combined-addresses-list');
+                            });
+
+                            $('#combined-addresses-list li').each(function(index) {
+                                $(this).find('.address-number').text(index + 1);
+                            });
+
+                            updateMapMarkers();
+
+                            // Save new order to the server
+                            saveOrderToServer(orderedIds);
+
+                        } else {
+                            alert('Ошибка при оптимизации маршрута: ' + response.error);
+                        }
+                    }
+                });
+            });
+
+            // Function to save order to server
+            function saveOrderToServer(orderedIds) {
+                $.ajax({
+                    url: "{% url 'save_combined_address_order' %}",
+                    method: "POST",
+                    data: {
+                        order: JSON.stringify(orderedIds),
+                        csrfmiddlewaretoken: '{{ csrf_token }}'
+                    },
+                    success: function(response) {
+                        if (!response.success) {
+                            alert('Ошибка при сохранении порядка адресов: ' + response.error);
+                        }
+                    }
+                });
+            }
         });
     </script>
 </body>
