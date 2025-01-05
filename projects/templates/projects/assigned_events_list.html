@@ -72,7 +72,7 @@
                             {% if status == 'in_progress' %}
                             <td><input type="checkbox" class="event-checkbox" value="{{ event.id }}"></td>
                             {% endif %}
-                            <td class="clickable">{{ event.project.name }}</td>
+                            <td>{{ event.project.name }}</td>
                             <td class="clickable">{{ event.project.organization }}</td>
                             <td class="clickable">{{ event.project.product }}</td>
                             <td class="clickable">{{ event.get_event_type_display }}</td>
@@ -291,6 +291,11 @@
                 updateInProgressAddresses();
             }
 
+            function addOffsetToCoordinates(latitude, longitude, offsetIndex) {
+                const offset = 0.0001; // Задаем значение сдвига, например, 0.0001
+                return [latitude + offset * offsetIndex, longitude + offset * offsetIndex];
+            }
+
             // Update map markers based on current list
             function updateMapMarkers() {
                 if (!mapInitialized) return;
@@ -298,28 +303,55 @@
                 const coordinates = [];
                 map.geoObjects.removeAll();
 
+                const projectColors = {};
+                const availableColors = ['islands#redIcon', 'islands#blueIcon', 'islands#greenIcon', 
+                                        'islands#orangeIcon', 'islands#darkOrangeIcon', 'islands#pinkIcon'];
+                let colorIndex = 0;
+
+                const coordinateMap = {};
+
                 $('#combined-addresses-list li').each(function() {
-                    const latitude = parseFloat($(this).find('.latitude').text().trim().replace(',', '.'));
-                    const longitude = parseFloat($(this).find('.longitude').text().trim().replace(',', '.'));
-                    const name = $(this).find('.address-name').text().trim();
-                    const addressNumber = $(this).find('.address-number').text().trim().replace('.', '');
+                    let latitude = parseFloat($(this).find('.latitude').text().trim().replace(',', '.'));
+                    let longitude = parseFloat($(this).find('.longitude').text().trim().replace(',', '.'));
+                    const projectName = $(this).find('.project-name').text().trim();
+                    const addressName = $(this).find('.address-name').text().trim();
+                    const eventType = $(this).find('.event-type').text().trim();
+                    const addressNumber = $(this).find('.address-number').text().trim();
+
+                    if (!(projectName in projectColors)) {
+                        projectColors[projectName] = availableColors[colorIndex % availableColors.length];
+                        colorIndex++;
+                    }
+
+                    const colorPreset = projectColors[projectName];
+
+                    // Ключ для определения уникальных координатных пар
+                    const coordKey = `${latitude},${longitude}`;
+
+                    if (coordKey in coordinateMap) {
+                        coordinateMap[coordKey]++;
+                    } else {
+                        coordinateMap[coordKey] = 0;
+                    }
+
+                    const offsetCoordinates = addOffsetToCoordinates(latitude, longitude, coordinateMap[coordKey]);
 
                     if (!isNaN(latitude) && !isNaN(longitude)) {
                         const placemark = new ymaps.Placemark(
-                            [latitude, longitude],
+                            offsetCoordinates,
                             {
-                                balloonContent: `<strong>Адрес ${addressNumber}</strong>: ${name}`,
+                                balloonContent: `<strong>${addressNumber}</strong>: ${projectName} - ${eventType} - ${addressName}`,
                                 iconContent: addressNumber
                             },
                             {
-                                preset: 'islands#redStretchyIcon'
+                                preset: colorPreset
                             }
                         );
 
                         map.geoObjects.add(placemark);
-                        coordinates.push([latitude, longitude]);
+                        coordinates.push(offsetCoordinates);
                     } else {
-                        console.warn('Некорректные координаты для адреса:', name);
+                        console.warn('Некорректные координаты для адреса:', addressName);
                     }
                 });
 
@@ -329,10 +361,8 @@
                         strokeWidth: 4,
                         strokeOpacity: 0.5
                     });
-                    map.geoObjects.add(polyline);
-                }
 
-                if (coordinates.length > 0) {
+                    map.geoObjects.add(polyline);
                     map.setBounds(map.geoObjects.getBounds(), { checkZoomRange: true, zoomMargin: 9 });
                 }
             }
