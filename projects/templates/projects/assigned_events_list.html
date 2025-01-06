@@ -33,6 +33,11 @@
         }
         td.clickable { cursor: pointer; }
     </style>
+    <script type="text/javascript">
+        $.ajaxSetup({
+            headers: { "X-CSRFToken": "{{ csrf_token }}" }
+        });
+    </script>
 </head>
 <body>
     <a href="{% url 'executor_profile' %}">Профиль</a>
@@ -111,16 +116,30 @@
                     <button id="optimize-route-btn">Маршрут</button>
                     <ul id="combined-addresses-list">
                         {% for address in in_progress_addresses %}
-                            <li data-id="{{ address.id }}">
-                                <span class="address-number">{{ forloop.counter }}</span> 
+                        <li data-id="{{ address.id }}">
+                            <div class="accordion-header">
+                                <span class="address-number">{{ forloop.counter }}</span>
                                 <span class="project-name">{{ address.event.project.name }}</span>
                                 <span class="event-type">{{ address.event.get_event_type_display }}</span>
                                 <span class="address-name">{{ address.name }}</span>
-                                <span class="hidden-coordinates">
-                                    <span class="latitude">{{ address.latitude }}</span> | 
-                                    <span class="longitude">{{ address.longitude }}</span>
-                                </span>
-                            </li>
+                                <button class="accordion-toggle">Toggle</button>
+                            </div>
+                            <div class="accordion-content" style="display: none;">
+                                <form class="photo-upload-form" enctype="multipart/form-data">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="address_id" value="{{ address.id }}">
+                                    <input type="file" name="photos" accept="image/*" multiple>
+                                    <label>
+                                        <input type="checkbox" name="force_majeure"> Форс-мажор
+                                    </label>
+                                    <button type="submit">Загрузить</button>
+                                </form>
+                            </div>
+                            <span class="hidden-coordinates">
+                                <span class="latitude">{{ address.latitude }}</span> | 
+                                <span class="longitude">{{ address.longitude }}</span>
+                            </span>
+                        </li>
                         {% endfor %}
                     </ul>
                 </div>
@@ -396,19 +415,36 @@
                             if (response.success) {
                                 const addressList = response.addresses.map((address, index) => {
                                     return `<li data-id="${address.id}">
-                                                <span class="address-number">${index + 1}</span>. 
-                                                <span class="project-name">${address.projectName}</span> - 
-                                                <span class="event-type">${address.eventTypeDisplay}</span> - 
-                                                <span class="address-name">${address.name}</span> 
+                                                <div class="accordion-header">
+                                                    <span class="address-number">${index + 1}</span>.
+                                                    <span class="project-name">${address.projectName}</span> - 
+                                                    <span class="event-type">${address.eventTypeDisplay}</span> - 
+                                                    <span class="address-name">${address.name}</span>
+                                                </div>
+                                                <div class="accordion-content" style="display: none;">
+                                                    <form class="photo-upload-form" enctype="multipart/form-data">
+                                                        {% csrf_token %}
+                                                        <input type="hidden" name="address_id" value="${address.id}">
+                                                        <input type="file" name="photos" accept="image/*" multiple>
+                                                        <label>
+                                                            <input type="checkbox" name="force_majeure"> Форс-мажор
+                                                        </label>
+                                                        <button type="submit">Загрузить</button>
+                                                    </form>
+                                                </div>
                                                 <span class="hidden-coordinates">
-                                                    <span class="latitude">${address.latitude}</span>, 
+                                                    <span class="latitude">${address.latitude}</span>,
                                                     <span class="longitude">${address.longitude}</span>
                                                 </span>
                                             </li>`;
                                 }).join('');
+
                                 $('#in-progress-addresses ul').html(addressList);
                                 $('#in-progress-addresses').show();
                                 updateMapMarkers();
+
+                                // Добавьте обработчики событий после генерации адресов
+                                initializeAccordionAndUploadHandlers();
                             } else {
                                 alert(response.error);
                             }
@@ -417,6 +453,47 @@
                 } else {
                     $('#in-progress-addresses').hide();
                 }
+            }
+
+            function initializeAccordionAndUploadHandlers() {
+                // Аккордеон поведение
+                document.querySelectorAll('#in-progress-addresses li').forEach(item => {
+                    item.addEventListener('click', function(event) {
+                        // Предотвратить разворот аккордеона при нажатии на что-то внутри li, например, на форму
+                        if (!event.target.closest('form')) {
+                            const content = item.querySelector('.accordion-content');
+                            content.style.display = (content.style.display === "none" || content.style.display === "") ? "block" : "none";
+                        }
+                    });
+                });
+
+                // Обработка загрузки фотографий
+                document.querySelectorAll('.photo-upload-form').forEach(form => {
+                    form.addEventListener('submit', function (event) {
+                        event.preventDefault();
+
+                        const formData = new FormData(form);
+                        const addressId = form.querySelector('input[name="address_id"]').value;
+
+                        $.ajax({
+                            url: "{% url 'upload_combined_addresses_photos' %}",  // Обработайте этот URL в представлении
+                            method: "POST",
+                            data: formData,
+                            processData: false,
+                            contentType: false,
+                            success: function (response) {
+                                if (response.success) {
+                                    alert('Фотографии успешно загружены');
+                                } else {
+                                    alert('Ошибка: ' + response.error);
+                                }
+                            },
+                            error: function () {
+                                alert('Произошла ошибка при загрузке фотографий');
+                            }
+                        });
+                    });
+                });
             }
 
             // Update addresses on checkbox change

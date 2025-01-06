@@ -38,4 +38,5 @@ urlpatterns = [
     path('get-addresses/', views.get_addresses_for_events, name='get_addresses_for_events'),
     path('save_combined_address_order/', views.save_combined_address_order, name='save_combined_address_order'),
     path('optimize-route/', views.optimize_route, name='optimize_route'),
+    path('upload_combined_addresses_photos/', views.upload_combined_addresses_photos, name='upload_combined_addresses_photos'),
 ]

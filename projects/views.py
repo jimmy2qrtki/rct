@@ -1214,6 +1214,7 @@ def get_addresses_for_events(request):
 
 @login_required
 @csrf_exempt
+# объединение адресов со статусом "в работе" для assigned_events_list.html
 def save_combined_address_order(request):
     if request.method == 'POST':
         try:
@@ -1263,3 +1264,64 @@ def optimize_route(request):
         except json.JSONDecodeError:
             return JsonResponse({'success': False, 'error': 'Некорректный формат JSON'})
     return JsonResponse({'success': False, 'error': 'Invalid request method'})
+
+from django.core.files.storage import FileSystemStorage
+
+def upload_combined_addresses_photos(request):
+    if request.method == 'POST':
+        address_id = request.POST.get('address_id')
+        force_majeure = request.POST.get('force_majeure') == 'on'
+        photos = request.FILES.getlist('photos')
+
+        try:
+            address = EventAddress.objects.get(id=address_id, assigned_user=request.user)
+            event = address.event
+            event_type_display = re.sub(r'[\\/*?:"<>|]', "_", event.get_event_type_display())
+            address_name_safe = re.sub(r'[\\/*?:"<>|]', "_", address.name)
+
+            # Если "форс-мажор", разрешаем от 1 до 10 фотографий
+            if force_majeure:
+                if not (1 <= len(photos) <= 10):
+                    return JsonResponse({
+                        'success': False, 
+                        'error': 'Вы должны загрузить от 1 до 10 фотографий'
+                    })
+                base_folder = os.path.join(
+                    str(event.project.user.id), 
+                    str(event.project.id), 
+                    event_type_display, 
+                    str(request.user.executorprofile.id), 
+                    'problems'
+                )
+            else:
+                # Иначе необходимо строгое соответствие с event.photo_count
+                required_photos = event.photo_count
+                if len(photos) != required_photos:
+                    return JsonResponse({
+                        'success': False, 
+                        'error': f'Кол-во загружаеых фото должно быть - {required_photos}'
+                    })
+                base_folder = os.path.join(
+                    str(event.project.user.id), 
+                    str(event.project.id), 
+                    event_type_display, 
+                    str(request.user.executorprofile.id)
+                )
+
+            # Создание директории для сохранения фотографий
+            photo_dir = os.path.join(settings.MEDIA_ROOT, base_folder)
+            os.makedirs(photo_dir, exist_ok=True)
+
+            # Сохранение файлов
+            fs = FileSystemStorage(location=photo_dir)
+            for i, photo in enumerate(photos):
+                # Для многократного файла добавлять индекс в название
+                name_suffix = f"_{i}" if len(photos) > 1 else ""
+                fs.save(f"{address_name_safe}{name_suffix}.jpg", photo)
+
+            return JsonResponse({'success': True})
+
+        except EventAddress.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Неверный адрес'})
+
+    return JsonResponse({'success': False, 'error': 'Неверный метод запроса'})
