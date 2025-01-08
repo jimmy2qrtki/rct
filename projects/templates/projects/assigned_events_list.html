@@ -58,9 +58,7 @@
                 {% if data.events %}
                     <thead>
                         <tr>
-                            {% if status == 'in_progress' %}
                             <th></th> <!-- Колонка для чекбоксов -->
-                            {% endif %}
                             <th>Название проекта</th>
                             <th>Организация</th>
                             <th>Продукция</th>
@@ -74,8 +72,10 @@
                 <tbody>
                     {% for event, assigned_address_count in data.events %}
                         <tr data-url="{% url 'event_detail' event.id %}">
-                            {% if status == 'in_progress' %}
+                            {% if status == 'in_progress' and in_progress_count > 1 %}
                             <td><input type="checkbox" class="event-checkbox" value="{{ event.id }}"></td>
+                            {% else %}
+                            <td></td> <!-- Пустая область, если чекбокс не отображается -->
                             {% endif %}
                             <td>{{ event.project.name }}</td>
                             <td class="clickable">{{ event.project.organization }}</td>

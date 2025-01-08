@@ -603,8 +603,10 @@ def assigned_events_list(request):
 
     # Для статуса 'in_progress', объединяем адреса
     in_progress_addresses = []
+    in_progress_count = 0
     if 'in_progress' in event_users_by_status:
         in_progress_events = event_users_by_status['in_progress']
+        in_progress_count = in_progress_events.count()  # Получаем количество событий 'in_progress'
         for event_user in in_progress_events:
             event_addresses = event_user.event.addresses.filter(assigned_user=current_user)
             in_progress_addresses.extend(event_addresses)
@@ -613,6 +615,7 @@ def assigned_events_list(request):
         'event_data_by_status': event_data_by_status,
         'in_progress_addresses': in_progress_addresses if in_progress_addresses else None,
         'manager_api_key': manager_api_key,  # Передаем API ключ менеджера
+        'in_progress_count': in_progress_count,  # Передаем count в шаблон
     })
 
 @login_required
