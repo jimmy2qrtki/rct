@@ -437,66 +437,75 @@
             }
 
             // Функция для инициализации обработчиков формы и аккордеона
-            function initializeAccordionAndUploadHandlers() {
-                document.querySelectorAll('#in-progress-addresses li').forEach(item => {
-                    item.addEventListener('click', function(event) {
-                        if (!event.target.closest('form') && !event.target.classList.contains('reload-btn')) {
-                            const content = item.querySelector('.accordion-content');
-                            content.style.display = (content.style.display === "none" || content.style.display === "") ? "block" : "none";
+            document.getElementById('in-progress-addresses').addEventListener('click', function(event) {
+                const target = event.target;
+
+                // Обработка клика по заголовку аккордеона
+                if (target.closest('.accordion-header')) {
+                    const item = target.closest('li');
+                    const content = item.querySelector('.accordion-content');
+                    if (content) {
+                        content.style.display = (content.style.display === 'none' || content.style.display === '') ? 'block' : 'none';
+                    }
+                }
+
+                // Обработка кнопки "перезагрузить"
+                if (target.classList.contains('reload-btn')) {
+                    const content = target.closest('.accordion-content');
+                    const addressId = target.closest('li').dataset.id;
+                    content.innerHTML = `<form class="photo-upload-form" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <input type="hidden" name="address_id" value="${addressId}">
+                        <input type="file" name="photos" accept="image/*" multiple>
+                        <label>
+                            <input type="checkbox" name="force_majeure"> Форс-мажор
+                        </label>
+                        <button type="submit">Загрузить</button>
+                    </form>`;
+                    
+                    // После добавления формы, привязываем обработчик для нее
+                    handlePhotoUploadForm(content.querySelector('.photo-upload-form'));
+                }
+            });
+
+            // Функция для обработки отправки форм загрузки фотографий
+            function handlePhotoUploadForm(form) {
+                form.addEventListener('submit', function(event) {
+                    event.preventDefault();
+
+                    const formData = new FormData(form);
+                    const addressId = form.querySelector('input[name="address_id"]').value;
+
+                    $.ajax({
+                        url: "{% url 'upload_combined_addresses_photos' %}",  
+                        method: "POST",
+                        data: formData,
+                        processData: false,
+                        contentType: false,
+                        success: function(response) {
+                            if (response.success) {
+                                alert('Фотографии успешно загружены');
+                                const content = form.closest('.accordion-content');
+                                content.innerHTML = `<div class="photo-upload-status">
+                                    <span>Фото загружено</span>
+                                    <button type="button" class="reload-btn">Перезагрузить</button>
+                                </div>`;
+                            } else {
+                                alert('Ошибка: ' + response.error);
+                            }
+                        },
+                        error: function() {
+                            alert('Произошла ошибка при загрузке фотографий');
                         }
                     });
                 });
+            }
 
+            // Инициализация обработчиков формы первоначально
+            function initializeAccordionAndUploadHandlers() {
+                // Привязка обработчиков ко всем текущим формам
                 document.querySelectorAll('.photo-upload-form').forEach(form => {
-                    form.addEventListener('submit', function (event) {
-                        event.preventDefault();
-
-                        const formData = new FormData(form);
-                        const addressId = form.querySelector('input[name="address_id"]').value;
-
-                        $.ajax({
-                            url: "{% url 'upload_combined_addresses_photos' %}",  
-                            method: "POST",
-                            data: formData,
-                            processData: false,
-                            contentType: false,
-                            success: function (response) {
-                                if (response.success) {
-                                    alert('Фотографии успешно загружены');
-                                    const content = form.closest('.accordion-content');
-                                    content.innerHTML = `<div class="photo-upload-status">
-                                        <span>Фото загружено</span>
-                                        <button type="button" class="reload-btn">Перезагрузить</button>
-                                    </div>`;
-                                    
-                                    initializeAccordionAndUploadHandlers(); // Повторная инициализация обработчиков
-                                } else {
-                                    alert('Ошибка: ' + response.error);
-                                }
-                            },
-                            error: function () {
-                                alert('Произошла ошибка при загрузке фотографий');
-                            }
-                        });
-                    });
-                });
-
-                // Обработка кнопки "перезагрузить"
-                document.querySelectorAll('.reload-btn').forEach(button => {
-                    button.addEventListener('click', function() {
-                        const content = button.closest('.accordion-content');
-                        const addressId = button.closest('li').dataset.id;
-                        content.innerHTML = `<form class="photo-upload-form" enctype="multipart/form-data">
-                            {% csrf_token %}
-                            <input type="hidden" name="address_id" value="${addressId}">
-                            <input type="file" name="photos" accept="image/*" multiple>
-                            <label>
-                                <input type="checkbox" name="force_majeure"> Форс-мажор
-                            </label>
-                            <button type="submit">Загрузить</button>
-                        </form>`;
-                        initializeAccordionAndUploadHandlers(); // Повторная инициализация обработчиков
-                    });
+                    handlePhotoUploadForm(form);
                 });
             }
 
