@@ -1180,36 +1180,30 @@ def download_executor_photos(request):
 def get_addresses_for_events(request):
     if request.method == 'POST':
         try:
-            # Получаем список ID событий из POST-запроса
             event_ids = json.loads(request.POST.get('event_ids', '[]'))
-            
-            # Фильтруем адреса, принадлежащие событиям и назначенные текущему пользователю
             addresses = EventAddress.objects.filter(
                 event__in=event_ids,
                 assigned_user=request.user
             )
             
-            # Формируем список адресов для ответа
             address_list = [
                 {
                     'id': address.id,
                     'name': address.name,
                     'latitude': address.latitude,
                     'longitude': address.longitude,
-                    'projectName': address.event.project.name,  # Добавляем имя проекта
-                    'eventTypeDisplay': address.event.get_event_type_display()  # Добавляем тип события
+                    'projectName': address.event.project.name,
+                    'eventTypeDisplay': address.event.get_event_type_display(),
+                    'photos_uploaded': check_photos_uploaded(address, request.user)  # Проверяем наличие фото
                 }
                 for address in addresses
             ]
             
-            # Возвращаем JSON-ответ с успешным кодом и списком адресов
             return JsonResponse({'success': True, 'addresses': address_list})
         
         except json.JSONDecodeError:
-            # Обработка ошибок JSON
             return JsonResponse({'success': False, 'error': 'Некорректный формат JSON'})
         
-    # Если метод запроса не POST, возвращаем ошибку
     return JsonResponse({'success': False, 'error': 'Invalid request method'})
 
 @login_required
@@ -1279,44 +1273,59 @@ def upload_combined_addresses_photos(request):
             event_type_display = re.sub(r'[\\/*?:"<>|]', "_", event.get_event_type_display())
             address_name_safe = re.sub(r'[\\/*?:"<>|]', "_", address.name)
 
-            # Если "форс-мажор", разрешаем от 1 до 10 фотографий
+            # Основная директория для фотографий
+            base_folder = os.path.join(
+                str(event.project.user.id), 
+                str(event.project.id), 
+                event_type_display, 
+                str(request.user.executorprofile.id)
+            )
+
+            # Директория для проблемных фотографий
+            problems_folder = os.path.join(base_folder, 'problems')
+
+            # Определяем путь фотодиректории, в зависимости от форс-мажора
             if force_majeure:
+                photo_dir = os.path.join(settings.MEDIA_ROOT, problems_folder)
+            else:
+                photo_dir = os.path.join(settings.MEDIA_ROOT, base_folder)
+
+            # Удаляем все фотографии как в основной, так и в проблемной директориях
+            def clear_photos(directory):
+                if os.path.exists(directory):
+                    for file in os.listdir(directory):
+                        if file.startswith(address_name_safe):
+                            os.remove(os.path.join(directory, file))
+
+            # Удаляем старые фотографии перед загрузкой новых
+            clear_photos(os.path.join(settings.MEDIA_ROOT, base_folder))
+            clear_photos(os.path.join(settings.MEDIA_ROOT, problems_folder))
+
+            # Проверка количества загружаемых фото
+            if force_majeure:
+                # Если форс-мажор, проверяем количество фото
                 if not (1 <= len(photos) <= 10):
                     return JsonResponse({
-                        'success': False, 
+                        'success': False,
                         'error': 'Вы должны загрузить от 1 до 10 фотографий'
                     })
-                base_folder = os.path.join(
-                    str(event.project.user.id), 
-                    str(event.project.id), 
-                    event_type_display, 
-                    str(request.user.executorprofile.id), 
-                    'problems'
-                )
             else:
-                # Иначе необходимо строгое соответствие с event.photo_count
+                # Проверяем соответствие требуемому количеству фото
                 required_photos = event.photo_count
                 if len(photos) != required_photos:
                     return JsonResponse({
-                        'success': False, 
-                        'error': f'Кол-во загружаеых фото должно быть - {required_photos}'
+                        'success': False,
+                        'error': f'Кол-во загружаемых фото должно быть - {required_photos}'
                     })
-                base_folder = os.path.join(
-                    str(event.project.user.id), 
-                    str(event.project.id), 
-                    event_type_display, 
-                    str(request.user.executorprofile.id)
-                )
 
-            # Создание директории для сохранения фотографий
-            photo_dir = os.path.join(settings.MEDIA_ROOT, base_folder)
+            # Создаем директорию для сохранения новых фотографий, если она не существует
             os.makedirs(photo_dir, exist_ok=True)
 
-            # Сохранение файлов
+            # Сохранение новых файлов
             fs = FileSystemStorage(location=photo_dir)
             for i, photo in enumerate(photos):
-                # Для многократного файла добавлять индекс в название
-                name_suffix = f"_{i}" if len(photos) > 1 else ""
+                # Добавляем суффикс начиная со второй фотографии
+                name_suffix = f"_{i}" if i > 0 else ""
                 fs.save(f"{address_name_safe}{name_suffix}.jpg", photo)
 
             return JsonResponse({'success': True})
@@ -1325,3 +1334,30 @@ def upload_combined_addresses_photos(request):
             return JsonResponse({'success': False, 'error': 'Неверный адрес'})
 
     return JsonResponse({'success': False, 'error': 'Неверный метод запроса'})
+
+# Функция для проверки загруженных фото у совмещённого списка адресов на assigned_events_list.html
+def check_photos_uploaded(address, user):
+    event = address.event
+    event_type_display = re.sub(r'[\\/*?:"<>|]', "_", event.get_event_type_display())
+    address_name_safe = re.sub(r'[\\/*?:"<>|]', "_", address.name)
+
+    # Основная папка и папка "problems"
+    base_folder = os.path.join(
+        str(event.project.user.id),
+        str(event.project.id),
+        event_type_display,
+        str(user.executorprofile.id)
+    )
+    problems_folder = os.path.join(base_folder, 'problems')
+
+    # Проверка существования фото в обеих папках
+    return (
+        check_photos_in_directory(os.path.join(settings.MEDIA_ROOT, base_folder), address_name_safe) or
+        check_photos_in_directory(os.path.join(settings.MEDIA_ROOT, problems_folder), address_name_safe)
+    )
+
+def check_photos_in_directory(photo_dir, address_name_safe):
+    if not os.path.exists(photo_dir):
+        return False
+    
+    return any(photo.startswith(address_name_safe) for photo in os.listdir(photo_dir))
