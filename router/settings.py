@@ -37,6 +37,8 @@ ALLOWED_HOSTS = []
 
 # Application definition
 
+MESSAGE_STORAGE = 'django.contrib.messages.storage.session.SessionStorage'
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
