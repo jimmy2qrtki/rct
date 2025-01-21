@@ -1,7 +1,41 @@
-<h2>Регистрация</h2>
-<form method="post">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Зарегистрироваться</button>
-</form>
-<a href="{% url 'login' %}">Отмена</a>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Регистрация</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/normalize.css' %}">
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    <link rel="stylesheet" href="{% static 'css/registration.css' %}">
+</head>
+<body class="page">
+    <main class="registration">
+        <h1 class="page__title">Регистрация <br>[<span>Менеджер проектов</span>]</h1>
+        <form class="registration__form" method="post">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label for="{{ form.email.id_for_label }}">Электронная почта</label>
+                {{ form.email }}
+            </div>
+            
+            <div class="form-group">
+                <label for="{{ form.password1.id_for_label }}">Пароль</label>
+                {{ form.password1 }}
+            </div>
+            
+            <div class="form-group">
+                <label for="{{ form.password2.id_for_label }}">Подтвердите Пароль</label>
+                {{ form.password2 }}
+            </div>
+            
+            <button class="registration__form-submit btn" type="submit">Зарегистрироваться</button>
+        </form>
+        <a class="registration__link" href="{% url 'registration_mode' %}">Отмена</a>
+    </main>
+</body>
+<footer>
+
+</footer>
+</html>

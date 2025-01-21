@@ -1,0 +1,53 @@
+.registration {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+.page__title {
+    text-align: center;
+}
+
+.page__title span {
+    color: rgb(249 145 87);
+}
+
+.registration__form {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 25px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 15px;
+}
+
+.form-group:last-of-type {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    margin-bottom: 5px;
+}
+
+.registration__input {
+    padding: 5px;
+    border: none;
+    border-radius: 3px;
+    background-color: rgb(51 67 77);
+}
+
+.registration__form-submit {
+    color: rgb(204 204 204);
+    background-color: rgb(129 172 85);
+}
+
+.registration__link {
+    font-weight: bold;
+    text-transform: uppercase;
+    color: rgb(236 83 77);
+}

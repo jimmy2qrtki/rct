@@ -1,58 +1,103 @@
-<h1>
-    Доброго времени суток, 
-    {% if user.first_name %}
-        {{ user.first_name }}!
-    {% else %}
-        {{ user.email }}!
-    {% endif %}
-</h1>
-<div id="profile-display">
-    <a href="{% url 'manage_projects' %}">Проекты</a>
-    <h2>Профиль</h2>
-    <p>Логин: {{ user.email }}</p>
-    {% if user.first_name %}
-    <p>Имя: {{ user.first_name }}</p> 
-    {% endif %}
-
-    {% if p_form.phone_number.value %}
-    <p>Телефон: +7{{ p_form.phone_number.value }}</p>
-    {% endif %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    {% load static %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Профиль Управляющего</title>
+    <link rel="stylesheet" href="{% static 'css/normalize.css' %}">
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    <link rel="stylesheet" href="{% static 'css/profile.css' %}">
+    <script src="{% static 'js/profile.js' %}"></script>
+</head>
+<body class="page profile profile--executor">
+    <nav class="nav">
+        <ul class="nav__list">
+            <li class="nav__item">
+                <a class="nav__link nav__link--active">Профиль</a>
+            </li>
+            <li class="nav__item">
+                <a class="nav__link nav__link--inactive" href="{% url 'manage_projects' %}">Проекты</a>
+            </li>
+            <li class="nav__item">
+                <a class="nav__link nav__link--inactive" href="{% url 'events_control' %}">Контроль событий</a>
+            </li>
+        </ul>
+    </nav>
+    <main class="profile__content">
+        <header class="profile__header">
+            <h1 class="profile__title">Профиль Управляющего</h1>
+            <div class="profile__greeting">
+                <span class="profile__greeting-text">
+                    Доброго времени суток, 
+                    {% if user.first_name %}
+                        {{ user.first_name }}!
+                    {% else %}
+                        {{ user.email }}!
+                    {% endif %}
+                </span>
+                <form class="profile__logout-form" method="post" action="{% url 'logout' %}">
+                    {% csrf_token %}
+                    <button class="profile__logout-button btn" type="submit">Выйти</button>
+                </form>
+            </div>
+        </header>
+        <div id="profile-display">
+            <p>Логин: {{ user.email }}</p>
+            {% if user.first_name %}
+            <p>Имя: {{ user.first_name }}</p> 
+            {% endif %}
     
-    {% if p_form.api_key.value %}
-    <p>API Key: установлено</p>
-    {% else %}
-    <p>API Key: не установлено</p>
-    {% endif %}
-    <button onclick="toggleEdit(true)">Редактировать</button>
-</div>
+            {% if p_form.phone_number.value %}
+            <p>Телефон: +7{{ p_form.phone_number.value }}</p>
+            {% endif %}
+            
+            {% if p_form.api_key.value %}
+            <p class="api-key__installed">API Key: <span>установлено</span></p>
+            {% else %}
+            <p class="api-key__not-installed">API Key: <span>не установлено</span></p>
+            {% endif %}
+            <button class="profile__edit-btn btn" onclick="toggleEdit(true)">Редактировать</button>
+        </div>
+    
+        <div id="profile-edit" style="display: none;">
+            <p>Почта: {{ email }}</p>
+            <form class="profile__form" method="post">
+                {% csrf_token %}
+                {% for field in u_form %}
+                    <p class="profile__field">
+                        {{ field.label_tag }} {{ field }}
+                        {% if field.help_text %}
+                            <small>{{ field.help_text }}</small>
+                        {% endif %}
+                        {% for error in field.errors %}
+                            <div class="error">{{ error }}</div>
+                        {% endfor %}
+                    </p>
+                {% endfor %}
+                {% for field in p_form %}
+                    <p class="profile__field">
+                        {{ field.label_tag }} {{ field }}
+                        {% if field.help_text %}
+                            <small>{{ field.help_text }}</small>
+                        {% endif %}
+                        {% for error in field.errors %}
+                            <div class="error">{{ error }}</div>
+                        {% endfor %}
+                    </p>
+                {% endfor %}
+                <div class="profile__btns">
+                    <button class="profile__save-btn btn" type="submit">Сохранить</button>
+                    <button class="profile__cancel-btn btn" onclick="toggleEdit(false)">Отмена</button>
+                </div>
+            </form>
+        </div>
+    
+        
+    </main>
+    <footer class="footer">
+        <!-- Можно добавить информацию о подвале сайта -->
+    </footer>
 
-<div id="profile-edit" style="display: none;">
-    <h2>Редактор профиля</h2>
-    <p>Почта: {{ email }}</p>
-    <form method="post">
-        {% csrf_token %}
-        {{ u_form.as_p }}
-        {{ p_form.as_p }}
-        <button type="submit">Сохранить</button>
-    </form>
-    <button onclick="toggleEdit(false)">Отмена</button>
-</div>
-
-<form method="post" action="{% url 'logout' %}">
-    {% csrf_token %}
-    <button type="submit">Выйти</button>
-</form>
-
-<script>
-function toggleEdit(editMode) {
-    const displayDiv = document.getElementById('profile-display');
-    const editDiv = document.getElementById('profile-edit');
-    if (editMode) {
-        displayDiv.style.display = 'none';
-        editDiv.style.display = 'block';
-    } else {
-        displayDiv.style.display = 'block';
-        editDiv.style.display = 'none';
-    }
-}
-</script>
+</body>
+</html>

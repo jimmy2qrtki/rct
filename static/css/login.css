@@ -4,10 +4,43 @@
 
 .page_login {
     display: flex;
-    justify-content: center; /* Горизонтальное выравнивание */
-    align-items: center;     /* Вертикальное выравнивание */
-    min-height: 100vh;       /* Высота контейнера на 100% высоты окна */
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+}
+
+.page__content {
+    width: 100%;
+    padding-top: 25px;
+}
+
+.page__title {
+    display: flex;
+    flex-direction: column;
     margin: 0;
+    margin-bottom: 25px;
+    text-align: center;
+    text-transform: uppercase;
+}
+
+.page__title--word1 {
+    font-size: 77px;
+    color: rgb(129 172 85);
+}
+
+.page__title--word2 {
+    font-size: 50px;
+    color: rgb(249 145 87);
+}
+
+.page__title--word3 {
+    font-size: 61px;
+    color: rgb(236 83 77);
+}
+
+.page__title--version {
+    font-size: 20px;
+    color: rgb(187 128 179);
 }
 
 .login {
@@ -25,6 +58,7 @@
     margin: 0;
     margin-bottom: 1rem;
     text-align: center;
+    color: rgb(27 43 52);
 }
 
 .login__form {
@@ -48,7 +82,7 @@
 
 .login__button {
     margin-bottom: 1rem;
-    background-color: #007bff;
+    background-color: rgb(17 168 205);
     color: #fff;
     padding: 0.5rem;
     border: none;

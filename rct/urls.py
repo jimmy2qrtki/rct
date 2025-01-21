@@ -13,4 +13,6 @@ urlpatterns = [
     path('executor/register/', views.executor_register, name='executor_register'),
     path('executor/profile/', views.executor_profile, name='executor_profile'),
     path('executor/logout/', views.executor_logout, name='executor_logout'),
+    path('registration/mode/', views.registration_mode, name='registration_mode'),
+    path('password_reset/', views.CustomPasswordResetView.as_view(), name='password_reset'),
 ]

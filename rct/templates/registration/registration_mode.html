@@ -1,0 +1,24 @@
+<!-- templates/registration/registration_mode.html -->
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Режим регистрации</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/normalize.css' %}">
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    <link rel="stylesheet" href="{% static 'css/registration-mode.css' %}">
+</head>
+<body class="page">
+    <main class="registration-mode__content">
+        <h1 class="page__title">Выберите режим регистрации</h1>
+        <a href="{% url 'register' %}" class="registration-mode__link">Менеджер проектов</a>
+        <a href="{% url 'executor_register' %}" class="registration-mode__link">Монтажник - Экспедитор</a>
+        <a href="{% url 'login' %}" class="registration-mode__back-link">Назад</a>
+    </main>
+</body>
+<footer>
+
+</footer>
+</html>

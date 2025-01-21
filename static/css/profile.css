@@ -1,0 +1,82 @@
+.profile__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+}
+
+.profile__title {
+    margin: 0;
+    color: rgb(187 128 179);
+}
+
+.profile__greeting {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+}
+
+.profile__greeting-text {
+    margin-right: 25px;
+}
+
+.profile__logout-button {
+    background-color: rgb(236 83 77);
+    color: rgb(204 204 204);
+}
+
+.profile__form {
+    width: max-content;
+}
+
+.profile__field {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 0;
+    margin-bottom: 20px;
+}
+
+.profile__field label {
+    margin-right: 25px;
+}
+
+.profile__field:last-child {
+    margin-bottom: 25px;
+}
+
+.profile__input {
+    padding: 5px;
+    border: none;
+    border-radius: 3px;
+    background-color: rgb(51 67 77);
+    color: rgb(209 172 97);
+}
+
+.profile__btns {
+    display: flex;
+    justify-content: space-between;
+}
+
+.profile__save-btn {
+    background-color: rgb(129 172 85);
+    color: rgb(204 204 204);
+}
+
+.profile__cancel-btn {
+    background-color: rgb(236 83 77);
+    color: rgb(204 204 204);
+}
+
+.profile__edit-btn {
+    background-color: rgb(249 145 87);
+    color: rgb(51 67 77);
+}
+
+.api-key__installed span {
+    color: rgb(129 172 85);
+}
+
+.api-key__not-installed span {
+    color: rgb(236 83 77);
+}

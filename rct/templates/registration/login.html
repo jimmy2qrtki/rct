@@ -13,25 +13,31 @@
 </head>
 <body class="page page_login">
     <div id="map"></div>
-    <main class="login">
-        <h1 class="login__title">Авторизация</h1>
-        <form class="login__form" method="post">
-            {% csrf_token %}
-            <label for="email" class="login__label">Email:</label>
-            <input type="email" name="email" id="email" class="login__input" required>
-            <label for="password" class="login__label">Пароль:</label>
-            <input type="password" name="password" id="password" class="login__input" required>
-            <button type="submit" class="login__button">Войти</button>
-        </form>
-        {% if messages %}
-            <ul class="login__messages messages" role="alert">
-                {% for message in messages %}
-                    <li class="messages__item{% if message.tags %} {{ message.tags }}{% endif %}">{{ message }}</li>
-                {% endfor %}
-            </ul>
-        {% endif %}
-        <a href="{% url 'register' %}" class="login__register-link">Зарегистрироваться</a>
-        <a href="{% url 'password_reset' %}" class="login__forgot-password">Забыл пароль?</a>
+    <main class="page__content">
+        <h1 class="page__title">
+            <span class="page__title--word1">Event</span>
+            <span class="page__title--word2">Control</span>
+            <span class="page__title--word3">System</span>
+            <span class="page__title--version">[advertising.version]</span>
+        </h1>
+        <div class="login">
+            <h2 class="login__title">Авторизация</h2>
+            <form class="login__form" method="post">
+                {% csrf_token %}
+                <input type="email" name="email" id="email" class="login__input" placeholder="Email" required>
+                <input type="password" name="password" id="password" class="login__input" placeholder="Пароль" required>
+                <button type="submit" class="login__button">Войти</button>
+            </form>
+            {% if messages %}
+                <ul class="login__messages messages" role="alert">
+                    {% for message in messages %}
+                        <li class="messages__item{% if message.tags %} {{ message.tags }}{% endif %}">{{ message }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+            <a href="{% url 'registration_mode' %}" class="login__register-link">Зарегистрироваться</a>
+            <a href="{% url 'password_reset' %}" class="login__forgot-password">Забыл пароль?</a>
+        </div>
     </main>
 </body>
 </html>

@@ -1,10 +1,11 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login, logout, get_backends, authenticate
-from .forms import UserUpdateForm, ProfileUpdateForm, CustomUserCreationForm, ExecutorRegistrationForm, ExecutorProfileForm
+from .forms import UserUpdateForm, ProfileUpdateForm, CustomUserCreationForm, ExecutorRegistrationForm, ExecutorProfileForm, CustomPasswordResetForm
 from django.contrib import messages
 from django.contrib.auth.models import Group
 from .models import ExecutorProfile
+from django.contrib.auth.views import PasswordResetView
 
 def register(request):
     if request.method == 'POST':
@@ -129,3 +130,14 @@ def executor_profile(request):
     else:
         form = ExecutorProfileForm(instance=profile)
     return render(request, 'registration/executor/profile.html', {'form': form})
+
+def registration_mode(request):
+    return render(request, 'registration/registration_mode.html')
+
+class CustomPasswordResetView(PasswordResetView):
+    template_name = 'registration/password_reset_form.html'
+    form_class = CustomPasswordResetForm
+
+    def form_valid(self, form):
+        print("CustomPasswordResetView was called")
+        return super().form_valid(form)

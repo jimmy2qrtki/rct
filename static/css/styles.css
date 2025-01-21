@@ -26,3 +26,57 @@ ul {
 body {
     font-family: 'font', sans-serif;
 }
+
+.page {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 25px;
+    color: rgb(204 204 204);
+    background-color: rgb(27 43 52);
+}
+
+.nav {
+    margin-bottom: 15px;
+    padding: 25px 0;
+}
+
+.nav__list {
+    display: flex;
+}
+
+.nav__link {
+    padding: 10px;
+    border: 1px solid rgb(27 43 52);
+    border-radius: 3px 3px 0 0;
+    font-size: 24px;
+    color: rgb(17 168 205);
+}
+
+.nav__link--active {
+    border-color: rgb(249 145 87);
+    border-bottom: none;
+    border-radius: 3px 3px 0 0;
+    color: rgb(249 145 87);
+}
+
+.nav__link--inactive {
+    border-bottom: 1px solid rgb(249 145 87);
+}
+
+.btn {
+    padding: 10px;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.page__title {
+    margin: 0;
+    margin-bottom: 25px;
+    color: rgb(187 128 179);
+}
+
+ymaps {
+    border-radius: 3px;
+}

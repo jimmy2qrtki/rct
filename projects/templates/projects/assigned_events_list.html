@@ -1,589 +1,137 @@
 <!-- templates/projects/assigned_events_list.html -->
-<html>
+<!DOCTYPE html>
+<html lang="ru">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>События к исполнению</title>
     {% load static %}
     <script src="{% static 'js/jquery-3.7.1.min.js' %}"></script>
-    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+    <script src="{% static 'js/jquery-ui.1.12.1.min.js' %}"></script>
     <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU&apikey={{ manager_api_key }}" type="text/javascript"></script>
-    <style>
-        .hidden-coordinates {
-            display: none;
-        }
-        .tab {
-            display: inline-block;
-            padding: 10px 20px;
-            cursor: pointer;
-            border: 1px solid #ccc;
-            margin-right: -1px;
-            background-color: #f9f9f9;
-        }
-        .tab.active {
-            background-color: #fff;
-            border-bottom: none;
-        }
-        .tab-content {
-            display: none;
-            padding: 20px;
-            border: 1px solid #ccc;
-            border-top: none;
-        }
-        .tab-content.active {
-            display: block;
-        }
-        td.clickable { cursor: pointer; }
-    </style>
+    <link rel="stylesheet" href="{% static 'css/normalize.css' %}">
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    <link rel="stylesheet" href="{% static 'css/assigned-events-list.css' %}">
     <script type="text/javascript">
         $.ajaxSetup({
             headers: { "X-CSRFToken": "{{ csrf_token }}" }
         });
     </script>
-</head>
-<body>
-    <a href="{% url 'executor_profile' %}">Профиль</a>
-    <h2>События к исполнению</h2>
-
-    <div id="tabs">
-        {% for status, data in event_data_by_status.items %}
-            <div class="tab {% if forloop.first %}active{% endif %}" data-status="{{ status }}">
-                {{ data.display }} ({{ data.count }})
-            </div>
-        {% endfor %}
-    </div>
-
-    <div id="tab-contents">
-        {% for status, data in event_data_by_status.items %}
-        <div class="tab-content {% if forloop.first %}active{% endif %}" id="content-{{ status }}">
-            <table>
-                {% if data.events %}
-                    <thead>
-                        <tr>
-                            <th></th> <!-- Колонка для чекбоксов -->
-                            <th>Название проекта</th>
-                            <th>Организация</th>
-                            <th>Продукция</th>
-                            <th>Тип события</th>
-                            <th>Дата</th>
-                            <th>Кол-во адресов</th>
-                            <th>Действия</th>
-                        </tr>
-                    </thead>
-                {% endif %}
-                <tbody>
-                    {% for event, assigned_address_count in data.events %}
-                        <tr data-url="{% url 'event_detail' event.id %}">
-                            {% if status == 'in_progress' and in_progress_count > 1 %}
-                            <td><input type="checkbox" class="event-checkbox" value="{{ event.id }}"></td>
-                            {% else %}
-                            <td></td> <!-- Пустая область, если чекбокс не отображается -->
-                            {% endif %}
-                            <td>{{ event.project.name }}</td>
-                            <td class="clickable">{{ event.project.organization }}</td>
-                            <td class="clickable">{{ event.project.product }}</td>
-                            <td class="clickable">{{ event.get_event_type_display }}</td>
-                            <td>{{ event.event_date|date:"d.m.y" }} - {{ event.due_date|date:"d.m.y" }}</td>
-                            <td>{{ assigned_address_count }}</td>
-                            <td>
-                                <!-- Действия -->
-                                {% if status == 'in_progress' or status == 'completed' %}
-                                <a href="{% url 'event_detail' event.id %}">Детали</a>
-                                {% elif status == 'assigned' %}
-                                <button type="button" class="confirm-btn" data-event-id="{{ event.id }}" data-user-id="{{ request.user.id }}">Подтвердить</button>
-                                <form action="{% url 'event_remove' event.id %}" method="post" class="remove-form">
-                                    {% csrf_token %}
-                                    <button type="button" class="remove-btn" data-event-name="{{ event.project.name }}" data-event-type="{{ event.get_event_type_display }}">Отказаться</button>
-                                </form>
-                                {% elif status == 'confirmed' %}
-                                <button type="button" class="start-btn" data-event-id="{{ event.id }}" data-start-date="{{ event.event_date|date:"Y-m-d" }}">Начать</button>
-                                <form action="{% url 'event_remove' event.id %}" method="post" class="remove-form">
-                                    {% csrf_token %}
-                                    <button type="button" class="remove-btn" data-event-name="{{ event.project.name }}" data-event-type="{{ event.get_event_type_display }}">Отказаться</button>
-                                </form>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="7">Нет событий со статусом "{{ data.display|lower }}".</td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-            {% if status == 'in_progress' %}
-                <div id="in-progress-addresses" style="display: none;">
-                    <h3>Объединённый список адресов для 'В работе'</h3>
-                    <div id="map" style="width: 600px; height: 400px; margin-top: 20px;"></div>
-                    <button id="optimize-route-btn">Маршрут</button>
-                    <ul id="combined-addresses-list">
-                        <!-- Для Элементов совмещённого списка адресов -->
-                    </ul>
-                </div>
-            {% endif %}
-        </div>
-        {% endfor %}
-    </div>
-
     <script>
-        $(document).ready(function() {
-            // Функция для переключения вкладок
-            function switchTab(status) {
-                // Переключение активной вкладки
-                $('.tab').removeClass('active');
-                $('.tab[data-status="' + status + '"]').addClass('active');
-                // Показываем/скрываем контент
-                $('.tab-content').removeClass('active');
-                $('#content-' + status).addClass('active');
-            }
-    
-            // Загружаем последнюю выбранную вкладку из localStorage
-            var savedStatus = localStorage.getItem('selectedTab');
-            if (savedStatus) {
-                switchTab(savedStatus);
-            } else {
-                // Если ничего не сохранено, по умолчанию показываем первую вкладку
-                switchTab('assigned');
-            }
-    
-            $('.tab').click(function() {
-                var status = $(this).data('status');
-                switchTab(status);
-    
-                // Сохраняем выбранную вкладку в localStorage
-                localStorage.setItem('selectedTab', status);
-            });
-    
-            $(document).on('click', '.confirm-btn', function() {
-                var event_id = $(this).data('event-id');
-                var user_id = $(this).data('user-id');
-    
-                $.ajax({
-                    url: "{% url 'confirm_executor' %}",
-                    method: "POST",
-                    data: {
-                        event_id: event_id,
-                        user_id: user_id,
-                        csrfmiddlewaretoken: '{{ csrf_token }}'
-                    },
-                    success: function(response) {
-                        if (response.success) {
-                            location.reload();
-                        } else {
-                            alert('Ошибка: ' + response.error);
-                        }
-                    }
-                });
-            });
-
-            // Ссылка для открытия деталей события
-            document.querySelectorAll('td.clickable').forEach((td) => {
-                td.addEventListener('click', (event) => {
-                    const url = event.currentTarget.closest('tr').dataset.url;
-                    window.location.href = url;
-                });
-            });
-    
-            $(document).on('click', '.start-btn', function() {
-                var event_id = $(this).data('event-id');
-                var start_date = new Date($(this).data('start-date'));
-                var today = new Date();
-                var threeDaysBeforeStart = new Date(start_date);
-                threeDaysBeforeStart.setDate(start_date.getDate() - 3);
-    
-                if (today >= threeDaysBeforeStart) {
-                    $.ajax({
-                        url: "{% url 'start_event' %}",
-                        method: "POST",
-                        data: {
-                            event_id: event_id,
-                            csrfmiddlewaretoken: '{{ csrf_token }}'
-                        },
-                        success: function(response) {
-                            if (response.success) {
-                                location.reload();
-                            } else {
-                                alert('Ошибка: ' + response.error);
-                            }
-                        }
-                    });
-                } else {
-                    alert('Вы сможете начать событие не раньше, чем за день до запланированной даты.');
-                }
-            });
-    
-            $(document).on('click', '.remove-btn', function() {
-                var form = $(this).closest('.remove-form');
-                var eventName = $(this).data('event-name');
-                var eventType = $(this).data('event-type');
-    
-                if (confirm("Вы уверены, что хотите отказаться от события - " + eventType + ", " + eventName + "?")) {
-                    form.submit();
-                }
-            });
-    
-            $(document).on('click', '.complete-btn', function() {
-                var event_id = $(this).data('event-id');
-    
-                $.ajax({
-                    url: "{% url 'complete_event' %}",
-                    method: "POST",
-                    data: {
-                        event_id: event_id,
-                        csrfmiddlewaretoken: '{{ csrf_token }}'
-                    },
-                    success: function(response) {
-                        if (response.success) {
-                            location.reload();
-                        } else {
-                            alert('Ошибка: ' + response.error);
-                        }
-                    }
-                });
-            });
-        });
-        $(document).ready(function() {
-            // Initialize map and configure sortable list
-            $("#combined-addresses-list").sortable({
-                update: function(event, ui) {
-                    let orderedIds = $(this).sortable('toArray', { attribute: 'data-id' });
-
-                    // AJAX for saving order
-                    $.ajax({
-                        url: "{% url 'save_combined_address_order' %}",
-                        method: "POST",
-                        data: {
-                            order: JSON.stringify(orderedIds),
-                            csrfmiddlewaretoken: '{{ csrf_token }}'
-                        },
-                        success: function(response) {
-                            if (response.success) {
-                                // Update numbering of list elements
-                                $('#combined-addresses-list li').each(function(index) {
-                                    $(this).find('.address-number').text(index + 1);
-                                });
-
-                                // Update map markers
-                                updateMapMarkers();
-                            } else {
-                                alert('Ошибка при сохранении порядка адресов: ' + response.error);
-                            }
-                        }
-                    });
-                }
-            });
-
-            // Function to initialize map
-            var map, mapInitialized = false;
-
-            ymaps.ready(init);
-
-            function init() {
-                map = new ymaps.Map("map", {
-                    center: [55.76, 37.64],
-                    zoom: 10
-                });
-                mapInitialized = true;
-                updateInProgressAddresses();
-            }
-
-            function addOffsetToCoordinates(latitude, longitude, offsetIndex) {
-                const offset = 0.0001; // Задаем значение сдвига, например, 0.0001
-                return [latitude + offset * offsetIndex, longitude + offset * offsetIndex];
-            }
-
-            // Update map markers based on current list
-            function updateMapMarkers() {
-                if (!mapInitialized) return;
-
-                const coordinates = [];
-                map.geoObjects.removeAll();
-
-                const projectColors = {};
-                const availableColors = ['islands#redIcon', 'islands#blueIcon', 'islands#greenIcon', 
-                                        'islands#orangeIcon', 'islands#darkOrangeIcon', 'islands#pinkIcon'];
-                let colorIndex = 0;
-
-                const coordinateMap = {};
-
-                $('#combined-addresses-list li').each(function() {
-                    let latitude = parseFloat($(this).find('.latitude').text().trim().replace(',', '.'));
-                    let longitude = parseFloat($(this).find('.longitude').text().trim().replace(',', '.'));
-                    const projectName = $(this).find('.project-name').text().trim();
-                    const addressName = $(this).find('.address-name').text().trim();
-                    const eventType = $(this).find('.event-type').text().trim();
-                    const addressNumber = $(this).find('.address-number').text().trim();
-
-                    if (!(projectName in projectColors)) {
-                        projectColors[projectName] = availableColors[colorIndex % availableColors.length];
-                        colorIndex++;
-                    }
-
-                    const colorPreset = projectColors[projectName];
-
-                    // Ключ для определения уникальных координатных пар
-                    const coordKey = `${latitude},${longitude}`;
-
-                    if (coordKey in coordinateMap) {
-                        coordinateMap[coordKey]++;
-                    } else {
-                        coordinateMap[coordKey] = 0;
-                    }
-
-                    const offsetCoordinates = addOffsetToCoordinates(latitude, longitude, coordinateMap[coordKey]);
-
-                    if (!isNaN(latitude) && !isNaN(longitude)) {
-                        const placemark = new ymaps.Placemark(
-                            offsetCoordinates,
-                            {
-                                balloonContent: `<strong>${addressNumber}</strong>: ${projectName} - ${eventType} - ${addressName}`,
-                                iconContent: addressNumber
-                            },
-                            {
-                                preset: colorPreset
-                            }
-                        );
-
-                        map.geoObjects.add(placemark);
-                        coordinates.push(offsetCoordinates);
-                    } else {
-                        console.warn('Некорректные координаты для адреса:', addressName);
-                    }
-                });
-
-                if (coordinates.length > 1) {
-                    const polyline = new ymaps.Polyline(coordinates, {}, {
-                        strokeColor: '#0000FF',
-                        strokeWidth: 4,
-                        strokeOpacity: 0.5
-                    });
-
-                    map.geoObjects.add(polyline);
-                    map.setBounds(map.geoObjects.getBounds(), { checkZoomRange: true, zoomMargin: 9 });
-                }
-            }
-
-            // Restore checkbox state from localStorage
-            $('.event-checkbox').each(function() {
-                const storedValue = localStorage.getItem('checkbox_' + this.value);
-                this.checked = (storedValue === 'true');
-            });
-
-            // Function to update in-progress addresses
-            function updateInProgressAddresses() {
-                const selectedEvents = $('.event-checkbox:checked').map(function() {
-                    return this.value;
-                }).get();
-
-                $('.event-checkbox').each(function() {
-                    localStorage.setItem('checkbox_' + this.value, this.checked);
-                });
-
-                const activeTabStatus = $('.tab.active').data('status');
-                if (selectedEvents.length > 0 && activeTabStatus === 'in_progress') {
-                    $.ajax({
-                        url: "{% url 'get_addresses_for_events' %}",
-                        method: "POST",
-                        data: {
-                            event_ids: JSON.stringify(selectedEvents),
-                            csrfmiddlewaretoken: '{{ csrf_token }}'
-                        },
-                        success: function(response) {
-                            if (response.success) {
-                                const addressList = response.addresses.map((address, index) => {
-                                    const photosUploaded = address.photos_uploaded;
-                                    return `<li data-id="${address.id}">
-                                        <div class="accordion-header">
-                                            <span class="address-number">${index + 1}</span>.
-                                            <span class="project-name">${address.projectName}</span> - 
-                                            <span class="event-type">${address.eventTypeDisplay}</span> - 
-                                            <span class="address-name">${address.name}</span>
-                                        </div>
-                                        <div class="accordion-content" style="display: none;">
-                                            ${photosUploaded ? 
-                                            `<div class="photo-upload-status">
-                                                <span>Фото загружено</span>
-                                                <button type="button" class="reload-btn">Перезагрузить</button>
-                                            </div>` :
-                                            `<form class="photo-upload-form" enctype="multipart/form-data">
-                                                {% csrf_token %}
-                                                <input type="hidden" name="address_id" value="${address.id}">
-                                                <input type="file" name="photos" accept="image/*" multiple>
-                                                <label>
-                                                    <input type="checkbox" name="force_majeure"> Форс-мажор
-                                                </label>
-                                                <button type="submit">Загрузить</button>
-                                            </form>`}
-                                        </div>
-                                        <span class="hidden-coordinates">
-                                            <span class="latitude">${address.latitude}</span>,
-                                            <span class="longitude">${address.longitude}</span>
-                                        </span>
-                                    </li>`;
-                                }).join('');
-
-                                $('#in-progress-addresses ul').html(addressList);
-                                $('#in-progress-addresses').show();
-                                updateMapMarkers();
-
-                                // Инициализация обработчиков аккордеона и загрузки после отображения списка
-                                initializeAccordionAndUploadHandlers();
-                            } else {
-                                alert(response.error);
-                            }
-                        }
-                    });
-                } else {
-                    $('#in-progress-addresses').hide();
-                }
-            }
-
-            // Функция для инициализации обработчиков формы и аккордеона
-            document.getElementById('in-progress-addresses').addEventListener('click', function(event) {
-                const target = event.target;
-
-                // Обработка клика по заголовку аккордеона
-                if (target.closest('.accordion-header')) {
-                    const item = target.closest('li');
-                    const content = item.querySelector('.accordion-content');
-                    if (content) {
-                        content.style.display = (content.style.display === 'none' || content.style.display === '') ? 'block' : 'none';
-                    }
-                }
-
-                // Обработка кнопки "перезагрузить"
-                if (target.classList.contains('reload-btn')) {
-                    const content = target.closest('.accordion-content');
-                    const addressId = target.closest('li').dataset.id;
-                    content.innerHTML = `<form class="photo-upload-form" enctype="multipart/form-data">
-                        {% csrf_token %}
-                        <input type="hidden" name="address_id" value="${addressId}">
-                        <input type="file" name="photos" accept="image/*" multiple>
-                        <label>
-                            <input type="checkbox" name="force_majeure"> Форс-мажор
-                        </label>
-                        <button type="submit">Загрузить</button>
-                    </form>`;
-                    
-                    // После добавления формы, привязываем обработчик для нее
-                    handlePhotoUploadForm(content.querySelector('.photo-upload-form'));
-                }
-            });
-
-            // Функция для обработки отправки форм загрузки фотографий
-            function handlePhotoUploadForm(form) {
-                form.addEventListener('submit', function(event) {
-                    event.preventDefault();
-
-                    const formData = new FormData(form);
-                    const addressId = form.querySelector('input[name="address_id"]').value;
-
-                    $.ajax({
-                        url: "{% url 'upload_combined_addresses_photos' %}",  
-                        method: "POST",
-                        data: formData,
-                        processData: false,
-                        contentType: false,
-                        success: function(response) {
-                            if (response.success) {
-                                alert('Фотографии успешно загружены');
-                                const content = form.closest('.accordion-content');
-                                content.innerHTML = `<div class="photo-upload-status">
-                                    <span>Фото загружено</span>
-                                    <button type="button" class="reload-btn">Перезагрузить</button>
-                                </div>`;
-                            } else {
-                                alert('Ошибка: ' + response.error);
-                            }
-                        },
-                        error: function() {
-                            alert('Произошла ошибка при загрузке фотографий');
-                        }
-                    });
-                });
-            }
-
-            // Инициализация обработчиков формы первоначально
-            function initializeAccordionAndUploadHandlers() {
-                // Привязка обработчиков ко всем текущим формам
-                document.querySelectorAll('.photo-upload-form').forEach(form => {
-                    handlePhotoUploadForm(form);
-                });
-            }
-
-            // Update addresses on checkbox change
-            $('.event-checkbox').change(updateInProgressAddresses);
-
-            // Update addresses and hide in-progress list when tabs are clicked
-            $('.tab').click(function() {
-                if ($(this).data('status') !== 'in_progress') {
-                    $('#in-progress-addresses').hide();
-                }
-                updateInProgressAddresses();
-            });
-
-            updateInProgressAddresses();
-
-            // Route optimization button click event
-            $('#optimize-route-btn').click(function() {
-                // Gather coordinates from list
-                const coords = $('#combined-addresses-list li').map(function() {
-                    const latitude = parseFloat($(this).find('.latitude').text().trim().replace(',', '.'));
-                    const longitude = parseFloat($(this).find('.longitude').text().trim().replace(',', '.'));
-                    const id = $(this).data('id');
-                    return { 'id': id, 'latitude': latitude, 'longitude': longitude };
-                }).get();
-
-                if (coords.length === 0) {
-                    alert('Нет доступных адресов для оптимизации.');
-                    return;
-                }
-
-                $.ajax({
-                    url: "{% url 'optimize_route' %}",
-                    method: "POST",
-                    data: {
-                        coords: JSON.stringify(coords),
-                        csrfmiddlewaretoken: '{{ csrf_token }}'
-                    },
-                    success: function(response) {
-                        if (response.success) {
-                            const orderedIds = response.ordered_ids;
-                            orderedIds.forEach((id, index) => {
-                                $('#combined-addresses-list li[data-id="' + id + '"]').appendTo('#combined-addresses-list');
-                            });
-
-                            $('#combined-addresses-list li').each(function(index) {
-                                $(this).find('.address-number').text(index + 1);
-                            });
-
-                            updateMapMarkers();
-
-                            // Save new order to the server
-                            saveOrderToServer(orderedIds);
-
-                        } else {
-                            alert('Ошибка при оптимизации маршрута: ' + response.error);
-                        }
-                    }
-                });
-            });
-
-            // Function to save order to server
-            function saveOrderToServer(orderedIds) {
-                $.ajax({
-                    url: "{% url 'save_combined_address_order' %}",
-                    method: "POST",
-                    data: {
-                        order: JSON.stringify(orderedIds),
-                        csrfmiddlewaretoken: '{{ csrf_token }}'
-                    },
-                    success: function(response) {
-                        if (!response.success) {
-                            alert('Ошибка при сохранении порядка адресов: ' + response.error);
-                        }
-                    }
-                });
-            }
-        });
+        window.confirmExecutorUrl = "{% url 'confirm_executor' %}";
+        window.startEventUrl = "{% url 'start_event' %}";
+        window.saveOrderUrl = "{% url 'save_combined_address_order' %}";
+        window.getAddressesForEventsUrl = "{% url 'get_addresses_for_events' %}";
+        window.uploadCombinedAddressesPhotosUrl = "{% url 'upload_combined_addresses_photos' %}";
+        window.optimizeRouteUrl = "{% url 'optimize_route' %}";
+        window.csrfToken = "{{ csrf_token }}";
     </script>
+    <script src="{% static 'js/assigned-events-list.js' %}"></script>
+</head>
+<body class="page">
+    <nav class="nav">
+        <ul class="nav__list">
+            <li class="nav__item">
+                <a class="nav__link nav__link--inactive" href="{% url 'executor_profile' %}">Профиль</a>
+            </li>
+            <li class="nav__item">
+                <a class="nav__link nav__link--active">События</a>
+            </li>
+        </ul>
+    </nav>
+    <main class="assigned-events__content">
+        <h1 class="page__title">События к исполнению</h1>
+        <div id="tabs">
+            {% for status, data in event_data_by_status.items %}
+                <div class="tab {% if forloop.first %}active{% endif %}" data-status="{{ status }}">
+                    {{ data.display }} ({{ data.count }})
+                </div>
+            {% endfor %}
+        </div>
+    
+        <div id="tab-contents">
+            {% for status, data in event_data_by_status.items %}
+            <div class="tab-content {% if forloop.first %}active{% endif %}" id="content-{{ status }}">
+                <table class="assigned-events__table">
+                    {% if data.events %}
+                        <thead class="assigned-events__table-thead">
+                            <tr class="assigned-events__table-thead-tr">
+                                {% if status == 'in_progress' and in_progress_count > 1 %}
+                                <th class="assigned-events__table-thead-th"></th> <!-- Колонка для чекбоксов -->
+                                {% endif %}
+                                <th class="assigned-events__table-thead-th">Название проекта</th>
+                                <th class="assigned-events__table-thead-th">Организация</th>
+                                <th class="assigned-events__table-thead-th">Продукция</th>
+                                <th class="assigned-events__table-thead-th">Тип события</th>
+                                <th class="assigned-events__table-thead-th">Дата</th>
+                                <th class="assigned-events__table-thead-th">Кол-во адресов</th>
+                                <th class="assigned-events__table-thead-th">Действия</th>
+                            </tr>
+                        </thead>
+                    {% endif %}
+                    <tbody class="assigned-events__table-tbody">
+                        {% for event, assigned_address_count in data.events %}
+                            <tr class="assigned-events__table-tbody-tr" data-url="{% url 'event_detail' event.id %}">
+                                {% if status == 'in_progress' and in_progress_count > 1 %}
+                                <td class="assigned-events__table-td"><input type="checkbox" class="event-checkbox" value="{{ event.id }}"></td>
+                                {% endif %}
+                                <td class="assigned-events__table-td"><strong>{{ event.project.name }}</strong></td>
+                                <td class="assigned-events__table-td">{{ event.project.organization }}</td>
+                                <td class="assigned-events__table-td">{{ event.project.product }}</td>
+                                <td class="assigned-events__table-td 
+                                    {% if event.get_event_type_display == 'Монтаж' %} event-type--montage
+                                    {% elif event.get_event_type_display == 'Аудит' %} event-type--audit 
+                                    {% elif event.get_event_type_display == 'Демонтаж' %} event-type--demontage 
+                                    {% endif %}">
+                                    {{ event.get_event_type_display }}
+                                </td>
+                                <td class="assigned-events__table-td">{{ event.event_date|date:"d.m.y" }} - {{ event.due_date|date:"d.m.y" }}</td>
+                                <td class="assigned-events__table-td">{{ assigned_address_count }}</td>
+                                <td class="assigned-events__table-td">
+                                    <!-- Действия -->
+                                    <a class="assigned-events__table-td-link" href="{% url 'event_detail' event.id %}">Детали</a>
+                                    {% if status == 'assigned' %}
+                                    <div class="assigned-events__table-td-btns">
+                                        <button type="button" class="confirm-btn btn" data-event-id="{{ event.id }}" data-user-id="{{ request.user.id }}">Подтвердить</button>
+                                        <form action="{% url 'event_remove' event.id %}" method="post" class="remove-form">
+                                            {% csrf_token %}
+                                            <button type="button" class="remove-btn btn" data-event-name="{{ event.project.name }}" data-event-type="{{ event.get_event_type_display }}">Отказаться</button>
+                                        </form>
+                                    </div>
+                                    {% elif status == 'confirmed' %}
+                                    <div class="assigned-events__table-td-btns">
+                                        <button type="button" class="start-btn btn" data-event-id="{{ event.id }}" data-start-date="{{ event.event_date|date:"Y-m-d" }}">Начать</button>
+                                        <form action="{% url 'event_remove' event.id %}" method="post" class="remove-form">
+                                            {% csrf_token %}
+                                            <button type="button" class="remove-btn btn" data-event-name="{{ event.project.name }}" data-event-type="{{ event.get_event_type_display }}">Отказаться</button>
+                                        </form>
+                                    </div>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="7">Нет событий со статусом "{{ data.display|lower }}".</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% if status == 'in_progress' %}
+                    <div id="in-progress-addresses" class="in-progress-addresses" style="display: none;">
+                        <div class="in-progress-addresses__content">
+                            <h3 class="in-progress-addresses__title">Объединённый список адресов</h3>
+                            <div id="map" class="in-progress-addresses__map" style="width: 100%; height: 400px; margin-top: 20px;"></div>
+                            <button id="optimize-route-btn" class="optimize-route-btn btn">Маршрут</button>
+                            <ul id="combined-addresses-list" class="in-progress-addresses__list">
+                                <!-- Для Элементов совмещённого списка адресов -->
+                            </ul>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </main>
+    
 </body>
 </html>

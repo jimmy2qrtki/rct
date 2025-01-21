@@ -1,20 +1,62 @@
-<h1>
-    Доброго времени суток, 
-    {% if form.name.value %}
-        {{ form.name.value }}!
-    {% else %}
-        {{ user.email }}!
-    {% endif %}
-</h1>
-<a href="{% url 'assigned_events_list' %}">События</a>
-<h2>Профиль Исполнителя</h2>
-<form method="post">
-    <p>Логин: {{ user.email }}</p>
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Сохранить</button>
-</form>
-<form method="post" action="{% url 'executor_logout' %}">
-    {% csrf_token %}
-    <button type="submit">Выйти</button>
-</form>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    {% load static %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Профиль Исполнителя</title>
+    <link rel="stylesheet" href="{% static 'css/normalize.css' %}">
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    <link rel="stylesheet" href="{% static 'css/profile.css' %}">
+</head>
+<body class="page profile profile--executor">
+    
+    <nav class="nav">
+        <ul class="nav__list">
+            <li class="nav__item">
+                <a class="nav__link nav__link--active">Профиль</a>
+            </li>
+            <li class="nav__item">
+                <a class="nav__link nav__link--inactive" href="{% url 'assigned_events_list' %}">События</a>
+            </li>
+        </ul>
+    </nav>
+    
+    <main class="profile__content">
+        <header class="profile__header">
+            <h1 class="profile__title">Профиль Исполнителя</h1>
+            <div class="profile__greeting">
+                <span class="profile__greeting-text">
+                    Доброго времени суток, {% if form.name.value %} {{ form.name.value }}! {% else %} {{ user.email }}! {% endif %}
+                </span>
+                <form class="profile__logout-form" method="post" action="{% url 'executor_logout' %}">
+                    {% csrf_token %}
+                    <button class="profile__logout-button btn" type="submit">Выйти</button>
+                </form>
+            </div>
+        </header>
+
+        <form class="profile__form" method="post">
+            {% csrf_token %}
+            <p class="profile__login">Логин: {{ user.email }}</p>
+            {% for field in form %}
+                <p class="profile__field">
+                    {{ field.label_tag }}
+                    {{ field }}
+                    {% if field.errors %}
+                        <div class="error">{{ field.errors }}</div>
+                    {% endif %}
+                </p>
+            {% endfor %}
+            <button class="profile__save-btn btn" type="submit">Сохранить</button>
+        </form>
+
+        
+    </main>
+
+    <footer class="footer">
+        <!-- Можно добавить информацию о подвале сайта -->
+    </footer>
+
+</body>
+</html>
