@@ -5,33 +5,44 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Управление проектами</title>
-    <!-- Подключение Bootstrap CSS -->
-    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/normalize.css' %}">
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    <link rel="stylesheet" href="{% static 'css/manage-projects.css' %}">
 </head>
-<body>
-    <nav class="navbar navbar-expand-lg navbar-light bg-light">
-        <a href="{% url 'profile' %}">Профиль</a>
-        <a href="{% url 'events_control' %}">Контроль событий</a>
-    </nav>
-
-    <div class="container mt-4">
-        <h1>Проекты</h1>
-        <a class="nav-link" href="{% url 'create_project' %}">Создать</a>
-        <ul class="nav nav-tabs">
-            <li class="nav-item">
-                <a class="nav-link active" id="active-tab" data-toggle="tab" href="#active-projects">Действующие</a>
+<body class="page">
+    <nav class="nav">
+        <ul class="nav__list">
+            <li class="nav__item">
+                <a class="nav__link nav__link--inactive" href="{% url 'profile' %}">Профиль</a>
             </li>
-            <li class="nav-item">
-                <a class="nav-link" id="completed-tab" data-toggle="tab" href="#completed-projects">Завершённые</a>
+            <li class="nav__item">
+                <a class="nav__link nav__link--active">Проекты</a>
+            </li>
+            <li class="nav__item">
+                <a class="nav__link nav__link--inactive" href="{% url 'events_control' %}">Контроль</a>
             </li>
         </ul>
-        
+    </nav>
+
+    <div class="container">
+        <h1 class="page__title">Управление проектами</h1>
+        <a class="create-project__link btn" href="{% url 'create_project' %}">Создать проект</a>
+        <ul class="tabs tabs__list">
+            <li class="tab tabs-item">
+                <a class="tab-link active" id="active-tab" href="#active-projects">Действующие</a>
+            </li>
+            <li class="tab tabs-item">
+                <a class="tab-link" id="completed-tab" href="#completed-projects">Завершённые</a>
+            </li>
+        </ul>
+    
         <div class="tab-content">
-            <div class="tab-pane fade show active" id="active-projects">
-                <ul>
+            <div class="projects active" id="active-projects">
+                <ul class="projects__list">
                     {% for project, next_event in active_projects %}
-                    <li>
-                        <a href="{% url 'edit_project' project.id %}">{{ project.name }}
+                    <li class="projects__item">
+                        <a class="projects__link" href="{% url 'edit_project' project.id %}">{{ project.name }} |
                             {% if project.organization %}
                                 {{ project.organization }} |
                             {% endif %}
@@ -39,31 +50,40 @@
                                 {{ project.product }}
                             {% endif %}
                         </a>
-                        {% if next_event %}
-                            - {{ next_event.get_event_type_display }} {{ next_event.event_date }}
-                        {% else %}
-                            - нет предстоящих событий
-                        {% endif %}
-                        <form method="POST" action="{% url 'delete_project' project.id %}" style="display:inline;">
+                        <div class="projects__next-event">
+                            {% if next_event %}
+                                <span 
+                                    class="event-type"
+                                    data-event-type="{{ next_event.get_event_type_display }}">
+                                    {{ next_event.get_event_type_display }}
+                                </span>
+                                <span class="event-date">
+                                    {{ next_event.event_date }}
+                                </span>
+                            {% else %}
+                                нет предстоящих событий
+                            {% endif %}
+                        </div>
+                        <form class="projects__delete-form" method="POST" action="{% url 'delete_project' project.id %}">
                             {% csrf_token %}
-                            <button type="submit" class="btn btn-link" onclick="return confirm('Удаление приведёт к потере всех данных проекта! Продолжить?');">Удалить</button>
+                            <button type="submit" class="projects__delete-btn btn" onclick="return confirm('Удаление приведёт к потере всех данных проекта! Продолжить?');">Удалить</button>
                         </form>
                     </li>
                     {% empty %}
-                    <li>No active projects available.</li>
+                    <li class="projects__item">Нет действующих проектов</li>
                     {% endfor %}
                 </ul>
             </div>
-            <div class="tab-pane fade" id="completed-projects">
-                <ul>
+            <div class="projects" id="completed-projects">
+                <ul class="projects__list">
                     {% for project, next_event in completed_projects %}
-                    <li>
-                        <a href="{% url 'edit_project' project.id %}">{{ project.name }}
+                    <li class="projects__item">
+                        <a class="projects__link" href="{% url 'edit_project' project.id %}">{{ project.name }}
                             {% if project.organization %}
-                                {{ project.organization }} |
+                                | {{ project.organization }} 
                             {% endif %}
                             {% if project.product %}
-                                {{ project.product }}
+                                | {{ project.product }}
                             {% endif %}
                         </a>
                         {% if next_event %}
@@ -71,22 +91,18 @@
                         {% else %}
                             - нет предстоящих событий
                         {% endif %}
-                        <form method="POST" action="{% url 'delete_project' project.id %}" style="display:inline;">
+                        <form class="projects__delete-form" method="POST" action="{% url 'delete_project' project.id %}">
                             {% csrf_token %}
-                            <button type="submit" class="btn btn-link" onclick="return confirm('Удаление приведёт к потере всех данных проекта! Продолжить?');">Удалить</button>
+                            <button type="submit" class="projects__delete-btn btn" onclick="return confirm('Удаление приведёт к потере всех данных проекта! Продолжить?');">Удалить</button>
                         </form>
                     </li>
                     {% empty %}
-                    <li>Нет завершённых проектов.</li>
+                    <li class="projects__item">Нет завершённых проектов.</li>
                     {% endfor %}
                 </ul>
             </div>
         </div>
     </div>
-
-    <!-- Подключение Bootstrap JS и Popper.js -->
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="{% static 'js/manage-projects.js' %}"></script>
 </body>
 </html>

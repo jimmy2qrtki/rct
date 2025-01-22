@@ -1,0 +1,95 @@
+.container {
+    margin: 0;
+    padding: 0;
+}
+
+.create-project__link {
+    display: inline-block;
+    margin-bottom: 25px;
+    color: rgb(204 204 204);
+    background-color: rgb(129 172 85);
+}
+
+.tabs {
+    display: flex;
+    margin-bottom: 25px;
+    padding: 0;
+}
+
+.tab-link {
+    display: inline-block;
+    padding: 10px 20px;
+    cursor: pointer;
+    font-size: 20px;
+    color: rgb(17 168 205);
+}
+
+.tab-link.active {
+    border-bottom: 2px solid rgb(249 145 87);
+    color: rgb(249 145 87);
+}
+
+/* Стили для содержимого табов */
+.projects {
+    display: none;
+}
+
+.projects.active {
+    display: block;
+}
+
+.projects__item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding: 10px;
+    border-radius: 3px;
+}
+
+.projects__item:nth-child(odd) {
+    background-color: rgb(51 67 77);
+}
+
+/* Стили содержания проектов */
+.projects__link {
+    width: 40%;
+    font-weight: bold;
+    color: rgb(17 168 205);
+    text-decoration: none;
+}
+
+.projects__next-event {
+    display: flex;
+    width: 40%;
+}
+
+.event-type {
+    width: 20%;
+}
+
+.event-date {
+    width: max-content;
+    color: rgb(209 172 97);
+}
+
+.event-type[data-event-type="Монтаж"] {
+    color: rgb(129 172 85);
+}
+
+.event-type[data-event-type="Аудит"] {
+    color: rgb(249 145 87);
+}
+
+.event-type[data-event-type="Демонтаж"] {
+    color: rgb(236 83 77);
+}
+
+.projects__delete-form {
+    width: max-content;
+}
+
+.projects__delete-btn {
+    color: rgb(204 204 204);
+    background-color: rgb(236 83 77);
+}

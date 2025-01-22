@@ -21,6 +21,8 @@ import zipfile
 from django.core.files.storage import default_storage
 from django.conf import settings
 from django.utils.encoding import iri_to_uri
+from django.utils import timezone as django_timezone
+from datetime import datetime, time, timezone as py_timezone
 
 @login_required
 def manage_projects(request):
@@ -33,7 +35,7 @@ def manage_projects(request):
 
     for project in projects:
         # Получаем ближайшее событие для проекта
-        next_event = project.events.filter(event_date__gte=timezone.now()).order_by('event_date').first()
+        next_event = project.events.filter(event_date__gte=django_timezone.now()).order_by('event_date').first()
 
         # Проверяем, имеют ли все события статус 'completed'
         if all(event.status == 'completed' for event in project.events.all()):
@@ -41,9 +43,20 @@ def manage_projects(request):
         else:
             active_projects.append((project, next_event))
 
-    # Сортируем проекты по дате ближайшего события
-    active_projects.sort(key=lambda x: x[1].event_date if x[1] else timezone.datetime.max)
-    completed_projects.sort(key=lambda x: x[1].event_date if x[1] else timezone.datetime.max)
+    # Функция, которая гарантирует, что все даты будут в формате datetime
+    def get_event_datetime(event):
+        # Если событие существует и его дата типа datetime
+        if event and isinstance(event.event_date, datetime):
+            return event.event_date
+        elif event:
+            # Конвертируем date в datetime с минимальным временем
+            return datetime.combine(event.event_date, time.min, py_timezone.utc)
+        # Если события нет, устанавливаем дату максимально далёкую в будущем
+        return datetime.max.replace(tzinfo=py_timezone.utc)
+
+    # Сортируем проекты
+    active_projects.sort(key=lambda x: get_event_datetime(x[1]))
+    completed_projects.sort(key=lambda x: get_event_datetime(x[1]))
 
     return render(request, 'projects/manage_projects.html', {
         'active_projects': active_projects,

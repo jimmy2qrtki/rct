@@ -1,23 +1,21 @@
 <!-- templates/projects/assigned_events_list.html -->
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru_RU">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>События к исполнению</title>
     {% load static %}
-    <script src="{% static 'js/jquery-3.7.1.min.js' %}"></script>
-    <script src="{% static 'js/jquery-ui.1.12.1.min.js' %}"></script>
-    <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU&apikey={{ manager_api_key }}" type="text/javascript"></script>
     <link rel="stylesheet" href="{% static 'css/normalize.css' %}">
     <link rel="stylesheet" href="{% static 'css/styles.css' %}">
     <link rel="stylesheet" href="{% static 'css/assigned-events-list.css' %}">
+    <script src="{% static 'js/jquery-3.7.1.min.js' %}"></script>
+    <script src="{% static 'js/jquery-ui.1.12.1.min.js' %}"></script>
+    <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU&apikey={{ manager_api_key }}" type="text/javascript"></script>
     <script type="text/javascript">
         $.ajaxSetup({
             headers: { "X-CSRFToken": "{{ csrf_token }}" }
         });
-    </script>
-    <script>
         window.confirmExecutorUrl = "{% url 'confirm_executor' %}";
         window.startEventUrl = "{% url 'start_event' %}";
         window.saveOrderUrl = "{% url 'save_combined_address_order' %}";
