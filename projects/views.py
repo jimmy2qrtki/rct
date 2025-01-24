@@ -37,10 +37,10 @@ def manage_projects(request):
         # Получаем ближайшее событие для проекта
         next_event = project.events.filter(event_date__gte=django_timezone.now()).order_by('event_date').first()
 
-        # Проверяем, имеют ли все события статус 'completed'
-        if all(event.status == 'completed' for event in project.events.all()):
+        if project.events.exists() and all(event.status == 'completed' for event in project.events.all()):
             completed_projects.append((project, next_event))
         else:
+            # Если нет событий, или есть хотя бы одно незавершенное событие
             active_projects.append((project, next_event))
 
     # Функция, которая гарантирует, что все даты будут в формате datetime
@@ -51,7 +51,6 @@ def manage_projects(request):
         elif event:
             # Конвертируем date в datetime с минимальным временем
             return datetime.combine(event.event_date, time.min, py_timezone.utc)
-        # Если события нет, устанавливаем дату максимально далёкую в будущем
         return datetime.max.replace(tzinfo=py_timezone.utc)
 
     # Сортируем проекты

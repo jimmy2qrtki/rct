@@ -104,15 +104,15 @@
     border-radius: 3px;
 }
 
-.event-type[data-event-type="Монтаж"] {
+.projects__event-type[data-event-type="Монтаж"] {
     color: rgb(129 172 85);
 }
 
-.event-type[data-event-type="Аудит"] {
+.projects__event-type[data-event-type="Аудит"] {
     color: rgb(249 145 87);
 }
 
-.event-type[data-event-type="Демонтаж"] {
+.projects__event-type[data-event-type="Демонтаж"] {
     color: rgb(236 83 77);
 }
 
