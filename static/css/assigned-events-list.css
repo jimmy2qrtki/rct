@@ -18,8 +18,6 @@
 .tab-content {
     display: none;
     padding: 20px 0;
-    /* border: 1px solid #ccc;
-    border-top: none; */
 }
 
 .tab-content.active {
@@ -35,21 +33,9 @@ td.clickable {
     margin-bottom: 25px;
 }
 
-.assigned-events__table-thead {
-    border-bottom: 1px solid rgb(209 172 97);
-}
-
 .assigned-events__table-thead-th {
     padding: 10px;
     color: rgb(209 172 97);
-    /* color: rgb(209 172 97);
-    color: rgb(249 145 87);
-    color: rgb(187 128 179);
-    color: rgb(129 172 85);
-    color: rgb(236 83 77);
-    color: rgb(17 168 205);
-    color: rgb(229 229 35);
-    color: rgb(51 67 77); */
 }
 
 .assigned-events__table-tbody-tr:nth-child(odd) {

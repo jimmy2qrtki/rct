@@ -3,6 +3,12 @@
     padding: 0;
 }
 
+.projects__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
 .create-project__link {
     display: inline-block;
     margin-bottom: 25px;
@@ -38,6 +44,11 @@
     display: block;
 }
 
+.projects__list {
+    display: grid;
+    gap: 10px;
+}
+
 .projects__item {
     display: flex;
     justify-content: space-between;
@@ -53,7 +64,10 @@
 
 /* Стили содержания проектов */
 .projects__link {
-    width: 40%;
+    width: max-content;
+    background-color: #0000002b;
+    padding: 5px;
+    border-radius: 3px;
     font-weight: bold;
     color: rgb(17 168 205);
     text-decoration: none;
@@ -61,16 +75,33 @@
 
 .projects__next-event {
     display: flex;
-    width: 40%;
-}
-
-.event-type {
-    width: 20%;
-}
-
-.event-date {
     width: max-content;
+    margin-right: 25px;
+    margin-left: auto;
+}
+
+.projects__event-type {
+    margin-right: 25px;
+    width: 87px;
+    padding: 5px;
+    background-color: #0000002b;
+    border-radius: 3px;
+    text-align: center;
+}
+
+.projects__event-date {
+    width: max-content;
+    padding: 5px;
     color: rgb(209 172 97);
+    background-color: #0000002b;
+    border-radius: 3px;
+}
+
+.projects__no-event {
+    width: max-content;
+    padding: 5px;
+    background-color: #0000002b;
+    border-radius: 3px;
 }
 
 .event-type[data-event-type="Монтаж"] {

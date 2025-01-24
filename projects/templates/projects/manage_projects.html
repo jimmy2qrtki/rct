@@ -1,5 +1,5 @@
- <!-- templates/projects/manage_projects.html -->
- <!DOCTYPE html>
+<!-- templates/projects/manage_projects.html -->
+<!DOCTYPE html>
 <html lang="ru_RU">
 <head>
     <meta charset="UTF-8">
@@ -26,8 +26,10 @@
     </nav>
 
     <div class="container">
-        <h1 class="page__title">Управление проектами</h1>
-        <a class="create-project__link btn" href="{% url 'create_project' %}">Создать проект</a>
+        <header class="projects__header">
+            <h1 class="page__title">Управление проектами</h1>
+            <a class="create-project__link btn" href="{% url 'create_project' %}">Создать проект</a>
+        </header>
         <ul class="tabs tabs__list">
             <li class="tab tabs-item">
                 <a class="tab-link active" id="active-tab" href="#active-projects">Действующие</a>
@@ -53,15 +55,15 @@
                         <div class="projects__next-event">
                             {% if next_event %}
                                 <span 
-                                    class="event-type"
+                                    class="projects__event-type"
                                     data-event-type="{{ next_event.get_event_type_display }}">
                                     {{ next_event.get_event_type_display }}
                                 </span>
-                                <span class="event-date">
+                                <span class="projects__event-date">
                                     {{ next_event.event_date }}
                                 </span>
                             {% else %}
-                                нет предстоящих событий
+                                <span class="projects__no-event">нет предстоящих событий</span>
                             {% endif %}
                         </div>
                         <form class="projects__delete-form" method="POST" action="{% url 'delete_project' project.id %}">

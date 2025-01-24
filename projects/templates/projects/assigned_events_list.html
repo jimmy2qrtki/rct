@@ -42,7 +42,7 @@
         <div id="tabs">
             {% for status, data in event_data_by_status.items %}
                 <div class="tab {% if forloop.first %}active{% endif %}" data-status="{{ status }}">
-                    {{ data.display }} ({{ data.count }})
+                    {{ data.display }} [ {{ data.count }} ]
                 </div>
             {% endfor %}
         </div>
