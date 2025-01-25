@@ -30,14 +30,15 @@
     color: rgb(209 172 97);
 }
 
-.control__table-tbody-tr:nth-child(odd) {
+/* .control__table-tbody-tr:nth-child(odd) {
     background-color: rgb(51 67 77);
-}
+} */
 
 .control__table-td {
     padding: 10px;
     border-radius: 3px;
     text-align: center;
+    background-color: rgb(51 67 77);
 }
 
 .event-type--montage {

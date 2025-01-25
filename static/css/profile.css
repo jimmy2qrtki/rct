@@ -21,8 +21,8 @@
 }
 
 .profile__logout-button {
+    color: rgb(27 43 52);
     background-color: rgb(236 83 77);
-    color: rgb(204 204 204);
 }
 
 .profile__form {
@@ -60,17 +60,17 @@
 
 .profile__save-btn {
     background-color: rgb(129 172 85);
-    color: rgb(204 204 204);
+    color: rgb(27 43 52);
 }
 
 .profile__cancel-btn {
     background-color: rgb(236 83 77);
-    color: rgb(204 204 204);
+    color: rgb(27 43 52);
 }
 
 .profile__edit-btn {
     background-color: rgb(249 145 87);
-    color: rgb(51 67 77);
+    color: rgb(27 43 52);
 }
 
 .api-key__installed span {

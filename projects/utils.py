@@ -32,3 +32,6 @@ def has_photos(user, event):
     has_problem_photos = os.path.exists(problems_path) and any(os.path.isfile(os.path.join(problems_path, f)) for f in os.listdir(problems_path))
 
     return has_main_photos or has_problem_photos
+
+def is_ajax(request):
+    return request.headers.get('x-requested-with') == 'XMLHttpRequest'

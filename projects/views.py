@@ -1,4 +1,5 @@
 from datetime import datetime, time
+from django.urls import reverse
 from django.utils import timezone
 from django.shortcuts import render, get_object_or_404, redirect
 from .models import Address, EventAddress, Project, Event, RequestCounter, EventUser
@@ -23,44 +24,50 @@ from django.conf import settings
 from django.utils.encoding import iri_to_uri
 from django.utils import timezone as django_timezone
 from datetime import datetime, time, timezone as py_timezone
+from django.template.loader import render_to_string
+from .utils import is_ajax
 
 @login_required
 def manage_projects(request):
-    # Получаем все проекты пользователя
-    projects = Project.objects.filter(user=request.user)
-
-    # Отделяем проекты по состоянию их событий, добавляя при этом ближайшее событие
+    projects = Project.objects.filter(user=request.user).prefetch_related('events')
     active_projects = []
     completed_projects = []
-
     for project in projects:
-        # Получаем ближайшее событие для проекта
         next_event = project.events.filter(event_date__gte=django_timezone.now()).order_by('event_date').first()
-
         if project.events.exists() and all(event.status == 'completed' for event in project.events.all()):
             completed_projects.append((project, next_event))
         else:
-            # Если нет событий, или есть хотя бы одно незавершенное событие
             active_projects.append((project, next_event))
 
-    # Функция, которая гарантирует, что все даты будут в формате datetime
     def get_event_datetime(event):
-        # Если событие существует и его дата типа datetime
         if event and isinstance(event.event_date, datetime):
             return event.event_date
         elif event:
-            # Конвертируем date в datetime с минимальным временем
             return datetime.combine(event.event_date, time.min, py_timezone.utc)
         return datetime.max.replace(tzinfo=py_timezone.utc)
 
-    # Сортируем проекты
     active_projects.sort(key=lambda x: get_event_datetime(x[1]))
     completed_projects.sort(key=lambda x: get_event_datetime(x[1]))
 
-    return render(request, 'projects/manage_projects.html', {
+    if request.method == 'POST' and is_ajax(request):
+        form = ProjectForm(request.POST)
+        if form.is_valid():
+            project = form.save(commit=False)
+            project.organization = form.cleaned_data.get('new_organization') or form.cleaned_data['organization']
+            project.user = request.user
+            project.save()
+            # Возвращаем URL для редиректа на вновь созданный проект
+            redirect_url = reverse('edit_project', args=[project.id])
+            return JsonResponse({'success': True, 'redirect_url': redirect_url})
+        return JsonResponse({'success': False, 'form_html': render_to_string('projects/create_project_form.html', {'form': form}, request=request)})
+
+    form = ProjectForm()
+    context = {
         'active_projects': active_projects,
-        'completed_projects': completed_projects
-    })
+        'completed_projects': completed_projects,
+        'form': form,
+    }
+    return render(request, 'projects/manage_projects.html', context)
 
 @login_required
 def edit_project(request, project_id):
@@ -93,23 +100,23 @@ def edit_project(request, project_id):
     })
 
 @login_required
-def create_project(request):
-    if request.method == 'POST':
-        form = ProjectForm(request.POST, request.FILES)
-        if form.is_valid():
-            project = form.save(commit=False)
-            if form.cleaned_data['organization'] == 'add_new':
-                new_org = form.cleaned_data['new_organization']
-                project.organization = new_org
-            else:
-                project.organization = form.cleaned_data['organization']
-            project.user = request.user
-            project.save()
-            return redirect('edit_project', project_id=project.id)
-    else:
-        form = ProjectForm()
+# def create_project(request):
+#     if request.method == 'POST':
+#         form = ProjectForm(request.POST, request.FILES)
+#         if form.is_valid():
+#             project = form.save(commit=False)
+#             if form.cleaned_data['organization'] == 'add_new':
+#                 project.organization = form.cleaned_data['new_organization']
+#             else:
+#                 project.organization = form.cleaned_data['organization']
+#             project.user = request.user
+#             project.save()
+#             return JsonResponse({'success': True, 'redirect_url': reverse('edit_project', args=[project.id])})
+    
+#     else:
+#         form = ProjectForm()
 
-    return render(request, 'projects/create_project.html', {'form': form})
+#     return HttpResponse(render(request, 'projects/create_project.html', {'form': form}).content)
 
 def manage_events(request, project_id):
     project = get_object_or_404(Project, pk=project_id)

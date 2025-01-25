@@ -28,7 +28,7 @@
     <div class="container">
         <header class="projects__header">
             <h1 class="page__title">Управление проектами</h1>
-            <a class="create-project__link btn" href="{% url 'create_project' %}">Создать проект</a>
+            <a id="createProjectBtn" class="create-project__link btn" href="#">Создать проект</a>
         </header>
         <ul class="tabs tabs__list">
             <li class="tab tabs-item">
@@ -105,6 +105,72 @@
             </div>
         </div>
     </div>
+
+    <div id="createProjectModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div id="modal-body">
+                <h2 class="page__title">Создать проект</h2>
+                <form id="createProjectForm" class="create-project__form" method="POST">
+                    {% csrf_token %}
+                    <div class="create-project__field">
+                        <label for="{{ form.name.id_for_label }}">Название</label>
+                        {{ form.name }}
+                    </div>
+                    <div class="create-project__field">
+                        <label for="{{ form.organization.id_for_label }}">Организация взаимодействия</label>
+                        {{ form.organization }}
+                    </div>
+                    <div class="create-project__field" id="new-organization-field" style="display: none;">
+                        <label for="{{ form.new_organization.id_for_label }}">Новая организация</label>
+                        {{ form.new_organization }}
+                    </div>
+                    <div class="create-project__field">
+                        <label for="{{ form.product.id_for_label }}">Продукция взаимодействия</label>
+                        {{ form.product }}
+                    </div>
+                    <div class="create-project__field">
+                        <label for="{{ form.description.id_for_label }}">Описание</label>
+                        {{ form.description }}
+                    </div>
+                    <button class="create-project__btn btn" type="submit">Далее</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно -->
+    <!-- <div class="modal-overlay" style="display: none;">
+        <div class="create-project-container modal">
+            <h2>Создать проект</h2>
+            <form id="createProjectForm" method="POST">
+                {% csrf_token %}
+                <p>
+                    <label for="{{ form.name.id_for_label }}">Название</label>
+                    {{ form.name }}
+                </p>
+                <p>
+                    <label for="{{ form.organization.id_for_label }}">Организация взаимодействия</label>
+                    {{ form.organization }}
+                </p>
+                <div id="new-organization-field" style="display: none;">
+                    <label for="{{ form.new_organization.id_for_label }}">Новая организация</label>
+                    {{ form.new_organization }}
+                </div>
+                <p>
+                    <label for="{{ form.product.id_for_label }}">Продукция взаимодействия</label>
+                    {{ form.product }}
+                </p>
+                <p>
+                    <label for="{{ form.description.id_for_label }}">Описание</label>
+                    {{ form.description }}
+                </p>
+                <button type="submit">Далее</button>
+                <button type="button" id="cancelCreateProject">Отмена</button>
+            </form>
+        </div>
+    </div> -->
+    <script src="{% static 'js/jquery-3.7.1.min.js' %}"></script>
     <script src="{% static 'js/manage-projects.js' %}"></script>
 </body>
 </html>
