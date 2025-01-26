@@ -1,99 +1,121 @@
 <!-- templates/projects/edit_project.html -->
-<html>
+<!DOCTYPE html>
+<html lang="ru_RU">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Правка - {{ project.name }}</title>
     {% load static %}
-    <script src="{% static 'js/jquery-3.7.1.min.js' %}"></script>
-    <link rel="stylesheet" type="text/css" href="{% static 'projects/yandex-map-modal.css' %}">
-    <script src="https://api-maps.yandex.ru/2.1/?apikey={{ api_key }}&lang=ru_RU" type="text/javascript"></script>
     <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
-    <script src="//code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
-    <style>
-        .hidden-coordinates {
-            display: none;
-        }
-    </style>
-</head>
-<body>
-    <h1>{{ project.name }}</h1>
-    <form id="project-form" method="POST" enctype="multipart/form-data">
-        {% csrf_token %}
-        <p>
-            <label for="{{ form.name.id_for_label }}">Название</label>
-            {{ form.name }}
-        </p>
-        <p>
-            <label for="{{ form.organization.id_for_label }}">Организация взаимодействия</label>
-            {{ form.organization }}
-        </p>
-        <div id="new-organization-field" style="display: none;">
-            <label for="{{ form.new_organization.id_for_label }}">Новая организация</label>
-            {{ form.new_organization }}
-        </div>
-        <p>
-            <label for="{{ form.product.id_for_label }}">Продукция взаимодействия</label>
-            {{ form.product }}
-        </p>
-        <p>
-            <label for="{{ form.description.id_for_label }}">Описание</label>
-            {{ form.description }}
-        </p>
-    </form>
-    <a href="{% url 'create_event' project.id %}">Создать событие</a>
-    <ul>
-        {% for event in events %}
-        <li>
-            <a href="{% url 'edit_event' event.id %}">
-                {{ event.get_event_type_display }} {{ event.event_date }}
-            </a>
-            | Статус: {{ event.get_status_display }}
-            <form method="POST" action="{% url 'delete_event' event.id %}" style="display:inline;">
-                {% csrf_token %}
-                <button type="submit" onclick="return confirm('Вы уверены что хотите удалить событие?');">Удалить</button>
-            </form>
-        </li>
-        {% empty %}
-            <li>Нет событий.</li>
-        {% endfor %}
-    </ul>
-    <p>
-        <label for="{{ form.excel_file.id_for_label }}">Excel-файл</label>
-        {{ form.excel_file }}
-    </p>
-    <button type="button" id="get-coordinates-btn">Добавить список адресов</button>
-    <span id="remaining-requests">Осталось {{ remaining_requests }} запросов</span>
-    <div id="loading-indicator" style="display: none;">Идет парсинг адресов, пожалуйста подождите...</div>
+    <link rel="stylesheet" href="{% static 'css/normalize.css' %}">
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    <link rel="stylesheet" type="text/css" href="{% static 'css/edit-project.css' %}">
+    <script src="{% static 'js/jquery-3.7.1.min.js' %}"></script>
+    <!-- <script src="//code.jquery.com/ui/1.12.1/jquery-ui.js"></script> -->
+    <script src="{% static 'js/jquery-ui.1.12.1.min.js' %}"></script>
+    <script src="https://api-maps.yandex.ru/2.1/?apikey={{ api_key }}&lang=ru_RU" type="text/javascript"></script>
     
-    <h2>Список адресов</h2>
-    <ul id="addresses-list">
-        {% for address in addresses %}
-        <li data-id="{{ address.id }}">
-            <span class="address-number">{{ forloop.counter }}.</span> 
-            <input class="address-name" value="{{ address.name }}" data-id="{{ address.id }}">
-            <span class="hidden-coordinates">
-                <span class="latitude">{{ address.latitude }}</span> | 
-                <span class="longitude">{{ address.longitude }}</span>
-            </span>
-            <button class="delete-address-btn" data-id="{{ address.id }}">Удалить</button>
-        </li>
-        {% empty %}
-        <li>Нет адресов.</li>
-        {% endfor %}
-    </ul>
-
-    <div id="map-modal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <div id="map" style="width: 600px; height: 400px;"></div>
+</head>
+<body class="page project">
+    <div class="container">
+        <header class="project__header">
+            <h1 class="page__title">{{ project.name }}</h1>
+            <button type="button" id="save-project-button">Сохранить проект</button>
+            <a href="{% url 'manage_projects' %}">Закрыть</a>
+        </header>
+        <div class="project__content">
+            <div class="project__content-row">
+                <div class="project__content-col">
+                    <div class="project__content-cell">
+                        <h2 class="page__block-title">Детали</h2>
+                        <form class="project__form" id="project-form" method="POST" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            <div class="project__form-field">
+                                <label for="{{ form.name.id_for_label }}">Название</label>
+                                {{ form.name }}
+                            </div>
+                            <div class="project__form-field">
+                                <label for="{{ form.organization.id_for_label }}">Организация взаимодействия</label>
+                                {{ form.organization }}
+                            </div>
+                            <div class="project__form-field" id="new-organization-field" style="display: none;">
+                                <label for="{{ form.new_organization.id_for_label }}">Новая организация</label>
+                                {{ form.new_organization }}
+                            </div>
+                            <div class="project__form-field">
+                                <label for="{{ form.product.id_for_label }}">Продукция взаимодействия</label>
+                                {{ form.product }}
+                            </div>
+                            <div class="project__form-field">
+                                <label for="{{ form.description.id_for_label }}">Описание</label>
+                                {{ form.description }}
+                            </div>
+                        </form>
+                    </div>
+                    <div class="project__content-cell">
+                        <div class="project__cell-header">
+                            <h2 class="page__block-title">События</h2>
+                            <a href="{% url 'create_event' project.id %}">Создать событие</a>
+                        </div>
+                        <ul>
+                            {% for event in events %}
+                            <li>
+                                <a href="{% url 'edit_event' event.id %}">
+                                    {{ event.get_event_type_display }} {{ event.event_date }}
+                                </a>
+                                | Статус: {{ event.get_status_display }}
+                                <form method="POST" action="{% url 'delete_event' event.id %}" style="display:inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" onclick="return confirm('Вы уверены что хотите удалить событие?');">Удалить</button>
+                                </form>
+                            </li>
+                            {% empty %}
+                                <li>Нет событий.</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    <div class="project__content-cell">
+                        <h2>Список адресов</h2>
+                        <p>
+                            <label for="{{ form.excel_file.id_for_label }}">Excel-файл</label>
+                            {{ form.excel_file }}
+                        </p>
+                        <button type="button" id="get-coordinates-btn">Добавить список адресов</button>
+                        <span id="remaining-requests">Осталось {{ remaining_requests }} запросов</span>
+                        <div id="loading-indicator" style="display: none;">Идет парсинг адресов, пожалуйста подождите...</div>
+                        <ul class="project__addresses-list" id="addresses-list">
+                            {% for address in addresses %}
+                            <li data-id="{{ address.id }}">
+                                <span class="address-number">{{ forloop.counter }}.</span> 
+                                <input class="address-name" value="{{ address.name }}" data-id="{{ address.id }}">
+                                <span class="hidden-coordinates">
+                                    <span class="latitude">{{ address.latitude }}</span> | 
+                                    <span class="longitude">{{ address.longitude }}</span>
+                                </span>
+                                <button class="delete-address-btn" data-id="{{ address.id }}">Удалить</button>
+                            </li>
+                            {% empty %}
+                            <li>Нет адресов.</li>
+                            {% endfor %}
+                        </ul>
+        
+                        <button type="button" id="add-address-btn">Добавить адрес</button>
+                        <button type="button" id="update-addresses-btn">Обновить список</button>
+                        <button type="button" id="show-map-btn">Показать карту</button>
+                        <button type="button" id="delete-addresses-btn">Удалить список</button>
+                    </div>
+                </div>
+                <div class="project__content-col">
+                    <div id="map-modal" class="modal">
+                        <div class="modal-content">
+                            <span class="close">&times;</span>
+                            <div id="map" style="width: 600px; height: 400px;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
-
-    <button type="button" id="add-address-btn">Добавить адрес</button>
-    <button type="button" id="update-addresses-btn">Обновить список</button>
-    <button type="button" id="delete-addresses-btn">Удалить список</button>
-    <button type="button" id="show-map-btn">Показать карту</button>
-    <button type="button" id="save-project-button">Сохранить проект</button>
-    <a href="{% url 'manage_projects' %}">Закрыть</a>
     <script>
         $(document).ready(function() {
             // сохранение проекта

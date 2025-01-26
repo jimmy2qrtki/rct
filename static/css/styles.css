@@ -77,6 +77,11 @@ body {
     color: rgb(187 128 179);
 }
 
+.page__block-title {
+    margin: 0;
+    color: rgb(187 128 179);
+}
+
 ymaps {
     border-radius: 3px;
 }

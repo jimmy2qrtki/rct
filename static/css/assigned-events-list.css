@@ -38,14 +38,15 @@ td.clickable {
     color: rgb(209 172 97);
 }
 
-.assigned-events__table-tbody-tr:nth-child(odd) {
+/* .assigned-events__table-tbody-tr:nth-child(odd) {
     background-color: rgb(51 67 77);
-}
+} */
 
 .assigned-events__table-td {
     padding: 10px;
     border-radius: 3px;
     text-align: center;
+    background-color: rgb(51 67 77);
 }
 
 .event-type--montage {
@@ -79,17 +80,17 @@ td.clickable {
 }
 
 .confirm-btn {
-    color: rgb(204 204 204);
+    color: rgb(27 43 52);
     background-color: rgb(17 168 205);
 }
 
 .remove-btn {
-    color: rgb(204 204 204);
+    color: rgb(27 43 52);
     background-color: rgb(236 83 77);
 }
 
 .start-btn {
-    color: rgb(204 204 204);
+    color: rgb(27 43 52);
     background-color: rgb(129 172 85);
 }
 
@@ -119,7 +120,7 @@ td.clickable {
 .optimize-route-btn {
     margin-bottom: 25px;
     background-color: rgb(17 168 205);
-    color: rgb(204 204 204);
+    color: rgb(27 43 52);
 }
 
 .in-progress-addresses__list {
@@ -131,11 +132,12 @@ td.clickable {
     margin-bottom: 5px;
     /* border: 1px solid rgb(249 145 87); */
     border-radius: 3px;
-}
-
-.in-progress-addresses__item:nth-child(odd) {
     background-color: rgb(51 67 77);
 }
+
+/* .in-progress-addresses__item:nth-child(odd) {
+    background-color: rgb(51 67 77);
+} */
 
 .accordion-header {
     position: relative;
@@ -241,7 +243,7 @@ td.clickable {
 
 .file-btn { 
     margin-right: 25px;
-    color: rgb(204 204 204); 
+    color: rgb(27 43 52); 
     background-color: rgb(249 145 87); 
 }
 
@@ -250,11 +252,11 @@ td.clickable {
 }
 
 .upload-btn {
-    color: rgb(204 204 204);
+    color: rgb(27 43 52);
     background-color: rgb(129 172 85);
 }
 
 .reload-btn {
-    color: rgb(51 67 77);
+    color: rgb(27 43 52);
     background-color: rgb(209 172 97);
 }
