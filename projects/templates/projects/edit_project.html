@@ -17,106 +17,182 @@
     
 </head>
 <body class="page project">
+    <header class="page__header">
+        <nav class="nav">
+            <ul class="nav__list">
+                <li class="nav__item">
+                    <a class="nav__link nav__link--inactive" href="{% url 'profile' %}">Профиль</a>
+                </li>
+                <li class="nav__item">
+                    <a class="nav__link nav__link--active">Проекты</a>
+                </li>
+                <li class="nav__item">
+                    <a class="nav__link nav__link--inactive" href="{% url 'events_control' %}">Контроль</a>
+                </li>
+            </ul>
+        </nav>
+        <div class="logo">
+            <img class="logo__img" src="{% static 'img/logo.png' %}" alt="Логотип">
+        </div>
+    </header>
     <div class="container">
         <header class="project__header">
             <h1 class="page__title">{{ project.name }}</h1>
-            <button type="button" id="save-project-button">Сохранить проект</button>
-            <a href="{% url 'manage_projects' %}">Закрыть</a>
+            <button class="project__save-btn btn" type="button" id="save-project-button">Сохранить проект</button>
+            <a class="project__close-btn" href="{% url 'manage_projects' %}"></a>
         </header>
         <div class="project__content">
             <div class="project__content-row">
                 <div class="project__content-col">
                     <div class="project__content-cell">
-                        <h2 class="page__block-title">Детали</h2>
-                        <form class="project__form" id="project-form" method="POST" enctype="multipart/form-data">
-                            {% csrf_token %}
-                            <div class="project__form-field">
-                                <label for="{{ form.name.id_for_label }}">Название</label>
-                                {{ form.name }}
+                        <div class="project__cell-header">
+                            <h2 class="page__block-title">Детали</h2>
+                        </div>
+                        <div class="project__cell-content">
+                            <div class="project__cell-content-wrap">
+                                <form class="project__form" id="project-form" method="POST" enctype="multipart/form-data">
+                                    {% csrf_token %}
+                                    <div class="project__form-field">
+                                        <label for="{{ form.name.id_for_label }}">Название</label>
+                                        {{ form.name }}
+                                    </div>
+                                    <div class="project__form-field">
+                                        <label for="{{ form.organization.id_for_label }}">Организация взаимодействия</label>
+                                        {{ form.organization }}
+                                    </div>
+                                    <div class="project__form-field" id="new-organization-field" style="display: none;">
+                                        <label for="{{ form.new_organization.id_for_label }}">Новая организация</label>
+                                        {{ form.new_organization }}
+                                    </div>
+                                    <div class="project__form-field">
+                                        <label for="{{ form.product.id_for_label }}">Продукция взаимодействия</label>
+                                        {{ form.product }}
+                                    </div>
+                                    <div class="project__form-field">
+                                        <label for="{{ form.description.id_for_label }}">Описание</label>
+                                        {{ form.description }}
+                                    </div>
+                                </form>
                             </div>
-                            <div class="project__form-field">
-                                <label for="{{ form.organization.id_for_label }}">Организация взаимодействия</label>
-                                {{ form.organization }}
-                            </div>
-                            <div class="project__form-field" id="new-organization-field" style="display: none;">
-                                <label for="{{ form.new_organization.id_for_label }}">Новая организация</label>
-                                {{ form.new_organization }}
-                            </div>
-                            <div class="project__form-field">
-                                <label for="{{ form.product.id_for_label }}">Продукция взаимодействия</label>
-                                {{ form.product }}
-                            </div>
-                            <div class="project__form-field">
-                                <label for="{{ form.description.id_for_label }}">Описание</label>
-                                {{ form.description }}
-                            </div>
-                        </form>
+                        </div>
                     </div>
                     <div class="project__content-cell">
                         <div class="project__cell-header">
                             <h2 class="page__block-title">События</h2>
-                            <a href="{% url 'create_event' project.id %}">Создать событие</a>
                         </div>
-                        <ul>
-                            {% for event in events %}
-                            <li>
-                                <a href="{% url 'edit_event' event.id %}">
-                                    {{ event.get_event_type_display }} {{ event.event_date }}
-                                </a>
-                                | Статус: {{ event.get_status_display }}
-                                <form method="POST" action="{% url 'delete_event' event.id %}" style="display:inline;">
-                                    {% csrf_token %}
-                                    <button type="submit" onclick="return confirm('Вы уверены что хотите удалить событие?');">Удалить</button>
-                                </form>
-                            </li>
-                            {% empty %}
-                                <li>Нет событий.</li>
-                            {% endfor %}
-                        </ul>
+                        <div class="project__cell-content">
+                            <div class="project__cell-content-wrap">
+                                <ul class="project__events-list">
+                                    {% for event in events %}
+                                    <li class="project__events-item">
+                                        <a class="project__events-link" href="{% url 'edit_event' event.id %}">
+                                            {{ event.get_event_type_display }} {{ event.event_date }}
+                                        </a>
+                                        <span class="project__events-status">{{ event.get_status_display }}</span>
+                                        <form class="project__events-delete-form" method="POST" action="{% url 'delete_event' event.id %}" style="display:inline;">
+                                            {% csrf_token %}
+                                            <button class="project__events-delete-btn btn" type="submit" onclick="return confirm('Вы уверены что хотите удалить событие?');">Удалить</button>
+                                        </form>
+                                    </li>
+                                    {% empty %}
+                                    <li class="project__events-item">Нет событий.</li>
+                                    {% endfor %}
+                                </ul>
+                                <a class="project__events-creat-link" href="{% url 'create_event' project.id %}">Создать</a>
+                            </div>
+                        </div>
                     </div>
                     <div class="project__content-cell">
-                        <h2>Список адресов</h2>
-                        <p>
-                            <label for="{{ form.excel_file.id_for_label }}">Excel-файл</label>
-                            {{ form.excel_file }}
-                        </p>
-                        <button type="button" id="get-coordinates-btn">Добавить список адресов</button>
-                        <span id="remaining-requests">Осталось {{ remaining_requests }} запросов</span>
-                        <div id="loading-indicator" style="display: none;">Идет парсинг адресов, пожалуйста подождите...</div>
-                        <ul class="project__addresses-list" id="addresses-list">
-                            {% for address in addresses %}
-                            <li data-id="{{ address.id }}">
-                                <span class="address-number">{{ forloop.counter }}.</span> 
-                                <input class="address-name" value="{{ address.name }}" data-id="{{ address.id }}">
-                                <span class="hidden-coordinates">
-                                    <span class="latitude">{{ address.latitude }}</span> | 
-                                    <span class="longitude">{{ address.longitude }}</span>
-                                </span>
-                                <button class="delete-address-btn" data-id="{{ address.id }}">Удалить</button>
-                            </li>
-                            {% empty %}
-                            <li>Нет адресов.</li>
-                            {% endfor %}
-                        </ul>
-        
-                        <button type="button" id="add-address-btn">Добавить адрес</button>
-                        <button type="button" id="update-addresses-btn">Обновить список</button>
-                        <button type="button" id="show-map-btn">Показать карту</button>
-                        <button type="button" id="delete-addresses-btn">Удалить список</button>
+                        <div class="project__cell-header">
+                            <h2 class="page__block-title">Список адресов</h2>
+                        </div>
+                        <div class="project__cell-content">
+                            <div class="project__cell-content-wrap">
+                                <div class="file-upload">
+                                    <div class="file-upload-wrap">
+                                        <div class="file-upload-choice">
+                                            <button type="button" class="file-button">Exel файл</button>
+                                            <input type="file" id="id_excel_file" style="display: none;">
+                                            <span class="file-name">не выбран</span>
+                                        </div>
+                                        <button class="get-coordinates-btn btn" type="button" id="get-coordinates-btn">Получить адреса</button>
+                                    </div>
+                                    <span class="remaining-requests" id="remaining-requests">{{ remaining_requests }}</span>
+                                </div>
+                                <div class="loading-indicator" id="loading-indicator" style="display: none;">Идет парсинг адресов, пожалуйста подождите...</div>
+                                <ul class="project__addresses-list" id="addresses-list">
+                                    {% for address in addresses %}
+                                    <li class="project__addresses-item" data-id="{{ address.id }}">
+                                        <span class="address-number">={{ forloop.counter }}=</span>
+                                        <input class="address-name" value="{{ address.name }}" data-id="{{ address.id }}">
+                                        <div class="hidden-coordinates">
+                                            <span class="latitude">{{ address.latitude }}</span> | 
+                                            <span class="longitude">{{ address.longitude }}</span>
+                                        </div>
+                                        <button class="delete-address-btn btn" data-id="{{ address.id }}">Удалить</button>
+                                    </li>
+                                    {% empty %}
+                                    <li class="project__addresses-item">Нет адресов.</li>
+                                    {% endfor %}
+                                </ul>
+                                <div class="project__addresses-list-btns">
+                                    <div class="project__addresses-list-btns-wrap">
+                                        <button class="add-address-btn btn" type="button" id="add-address-btn">Добавить адрес</button>
+                                        <button class="update-addresses-btn btn" type="button" id="update-addresses-btn">Обновить список</button>
+                                    </div>
+                                    <button class="delete-addresses-btn btn" type="button" id="delete-addresses-btn">Удалить список</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="project__content-col">
-                    <div id="map-modal" class="modal">
-                        <div class="modal-content">
-                            <span class="close">&times;</span>
-                            <div id="map" style="width: 600px; height: 400px;"></div>
-                        </div>
+                    <div class="map-wrap">
+                        <div id="map" style="width: 100%; height: 100%;"></div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+
     <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const fileInput = document.getElementById('id_excel_file');
+            const fileButton = document.querySelector('.file-button');
+            const fileNameDisplay = document.querySelector('.file-name');
+            const getCoordinatesBtn = document.getElementById('get-coordinates-btn');
+
+            if (fileInput && fileButton && fileNameDisplay && getCoordinatesBtn) {
+                // Открытие диалога выбора файла при клике на кнопку
+                fileButton.addEventListener('click', function() {
+                    fileInput.click();
+                });
+
+                // Обновление текста и стиля кнопки при выборе файла
+                fileInput.addEventListener('change', function(event) {
+                    const fileName = event.target.files.length ? event.target.files[0].name : 'не выбран';
+                    fileNameDisplay.textContent = fileName;
+
+                    // Изменяем цвет фона кнопки, если файл был выбран
+                    if (event.target.files.length) {
+                        getCoordinatesBtn.style.backgroundColor = 'rgb(129, 172, 85)';
+                    } else {
+                        // Восстанавливаем цвет фона по умолчанию, если файл не выбран
+                        getCoordinatesBtn.style.backgroundColor = '';
+                    }
+                });
+            }
+        });
+
+        $(document).ready(function() {
+            // Аккордеон - по нажатию на заголовок ячейки
+            $('.project__cell-header').on('click', function() {
+                $(this).next('.project__cell-content').slideToggle();
+                // Опционально, вы можете переключать класс для изменения стилей
+                $(this).toggleClass('project__cell-header--active');
+            });
+        });
+
         $(document).ready(function() {
             // сохранение проекта
             $('#save-project-button').click(function() {
@@ -143,7 +219,7 @@
             })
             .then(response => response.json())
             .then(data => {
-                document.getElementById('remaining-requests').innerText = `Осталось ${data.remaining_requests} запросов`;
+                document.getElementById('remaining-requests').innerText = `${data.remaining_requests}`;
             })
             .catch(error => console.error('Ошибка при обновлении оставшихся запросов:', error));
         }
@@ -296,27 +372,23 @@
 
             // Добавление меток на карту
             $('#addresses-list li').each(function() {
-                // Чтение значений из DOM, удаления лишних пробелов
                 var latitudeText = $(this).find('.latitude').text().trim();
                 var longitudeText = $(this).find('.longitude').text().trim();
                 var name = $(this).find('.address-name').val() || '';
-                var addressNumber = $(this).find('.address-number').text().trim().replace('.', ''); // Убираем точку
+                var addressNumber = $(this).find('.address-number').text().trim().replace('.', '');
 
-                // Замена запятых на точки, если потребуется
                 var latitude = parseFloat(latitudeText.replace(',', '.'));
                 var longitude = parseFloat(longitudeText.replace(',', '.'));
 
-                // Проверяем, что получили правильные координаты
                 if (!isNaN(latitude) && !isNaN(longitude)) {
                     var placemark = new ymaps.Placemark(
                         [latitude, longitude], 
                         {
-                            // Добавляем номер адреса в bubble и на метке
-                            balloonContent: `<strong>Адрес ${addressNumber}</strong>: ${name}`,
-                            iconContent: addressNumber // Номер адреса будет отображаться на метке
+                            balloonContent: `<strong>${addressNumber}</strong> ${name}`,
+                            iconContent: addressNumber
                         }, 
                         {
-                            preset: 'islands#redStretchyIcon' // Используем стиль, который поддерживает текст на метке
+                            preset: 'islands#redStretchyIcon'
                         }
                     );
 
@@ -326,7 +398,7 @@
                     console.warn('Некорректные координаты для адреса:', name);
                 }
             });
-            // Добавляем линию, соединяющую метки
+
             if (coordinates.length > 1) {
                 var polyline = new ymaps.Polyline(coordinates, {}, {
                     strokeColor: '#0000FF',
@@ -338,11 +410,11 @@
             }
         }
 
-        // Открытие модального окна и обновление меток
-        $('#show-map-btn').click(function() {
+        // Инициализируем карту, как только документ готов
+        $(document).ready(function() {
             // Проверка на наличие адресов
             if ($('#addresses-list li').length === 0 || $('#addresses-list li:contains("Нет адресов.")').length > 0) {
-                alert("Нет доступных адресов для отображения.");
+                console.warn("Нет доступных адресов для отображения.");
                 return;
             }
 
@@ -353,23 +425,8 @@
                 return;
             }
 
-            // Показ карты
-            $('#map-modal').show();
             ymaps.ready(initMap);
         });
-
-        // Закрытие модального окна
-        $('.modal .close').click(function() {
-            $('#map-modal').hide();
-        });
-
-        // Закрытие модального окна при клике вне содержимого
-        window.onclick = function(event) {
-            var modal = document.getElementById('map-modal');
-            if (event.target == modal) {
-                modal.style.display = "none";
-            }
-        };
 
         // функция сортировки списка адресов
         $(document).ready(function() {
@@ -384,7 +441,7 @@
 
             function updateAddressNumbersAfterSort() {
                 $('#addresses-list li').each(function(index) {
-                    $(this).find('.address-number').text((index + 1) + '.');
+                    $(this).find('.address-number').text((index + 1));
                 });
             }
 
@@ -405,6 +462,8 @@
                     },
                     success: function(response) {
                         console.log('Порядок адресов проекта успешно сохранен.');
+                        // Обновляем карту после успешного изменения порядка адресов
+                        if (map) initMap();
                     },
                     error: function(response) {
                         console.error('Ошибка при сохранении порядка адресов проекта');
@@ -416,13 +475,17 @@
         document.getElementById('add-address-btn').addEventListener('click', function() {
             const addressList = document.getElementById('addresses-list');
             const newListItem = document.createElement('li');
+            newListItem.classList.add('project__addresses-item');
 
             // Создаем новый элемент списка с пустыми данными
             newListItem.innerHTML = `
-                <span class="address-number">${addressList.children.length + 1}.</span>
+                <span class="address-number">=${addressList.children.length + 1}=</span>
                 <input type="text" name="new_address_names[]" class="address-name" placeholder="Введите название адреса">
-                <span class="latitude"></span> | <span class="longitude"></span>
-                <button type="button" class="delete-address-btn">Удалить</button>
+                <div class="hidden-coordinates">
+                    <span class="latitude"></span>
+                    <span class="longitude"></span>
+                </div>
+                <button type="button" class="delete-address-btn btn">Удалить</button>
             `;
 
             addressList.appendChild(newListItem);
@@ -469,7 +532,7 @@
         function updateAddressNumbers() {
             const addressNumbers = document.querySelectorAll('.address-number');
             addressNumbers.forEach((span, index) => {
-                span.textContent = `${index + 1}.`;
+                span.textContent = `=${index + 1}=`;
             });
         }
 
@@ -500,4 +563,7 @@
         });
     </script>
 </body>
+<footer class="page__footer">
+
+</footer>
 </html>

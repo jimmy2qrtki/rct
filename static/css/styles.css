@@ -30,12 +30,20 @@ body {
 .page {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 0 25px;
+    padding: 25px;
     color: rgb(204 204 204);
     background-color: rgb(27 43 52);
 }
 
+.page__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
 .nav {
+    margin-right: 25px;
     margin-bottom: 15px;
     padding: 25px 0;
 }
@@ -48,7 +56,9 @@ body {
     padding: 10px;
     border: 1px solid rgb(27 43 52);
     border-radius: 3px 3px 0 0;
-    font-size: 24px;
+    font-size: 25px;
+    font-weight: bold;
+    text-transform: uppercase;
     color: rgb(17 168 205);
 }
 
@@ -61,6 +71,10 @@ body {
 
 .nav__link--inactive {
     border-bottom: 1px solid rgb(249 145 87);
+}
+
+.logo {
+    width: 130px;
 }
 
 .btn {
@@ -84,4 +98,8 @@ body {
 
 ymaps {
     border-radius: 3px;
+}
+
+.page__footer {
+    height: 100px;
 }

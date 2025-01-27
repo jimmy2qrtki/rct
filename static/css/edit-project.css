@@ -1,6 +1,46 @@
 .project__header {
     display: flex;
     align-items: center;
+    margin-bottom: 25px;
+    padding: 20px 0;
+}
+
+.page__title {
+    margin-bottom: 0;
+}
+
+.project__save-btn {
+    margin-left: auto;
+    margin-right: 20px;
+    color: rgb(27 43 52);
+    background-color: rgb(129 172 85);
+}
+
+.project__close-btn {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 40px;
+    width: 40px;
+}
+
+.project__close-btn::before,
+.project__close-btn::after {
+    content: "";
+    position: absolute;
+    width: 40px;
+    height: 7px;
+    background-color: rgb(236 83 77);
+    transition: transform 0.3s ease;
+}
+
+.project__close-btn::before {
+    transform: rotate(45deg);
+}
+
+.project__close-btn::after {
+    transform: rotate(-45deg);
 }
 
 .project__content-row {
@@ -14,28 +54,103 @@
 }
 
 .project__content-col:nth-child(2) {
+    position: relative;
     width: 55%;
+}
+
+.map-wrap {
+    position: -webkit-sticky; /* Для поддержки в Safari */
+    position: sticky;
+    display: block;
+    top: 5vh;
+    width: 100%;
+    height: 90vh;
+    overflow: hidden;
+    z-index: 10;
 }
 
 .project__content-cell {
     display: flex;
     flex-direction: column;
+    border-radius: 3px;
+    background-color: rgb(51 67 77);
+}
+
+.project__content-cell:not(:last-child) {
+    margin-bottom: 25px;
+}
+
+.project__cell-content {
+    display: none; /* Скрываем содержание по умолчанию */
+    width: 100%;
+    padding: 20px;
+}
+
+.project__cell-content-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
 }
 
 .project__cell-header {
+    position: relative;
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    padding: 10px 45px 10px 10px;
+    cursor: pointer;
+}
+
+.page__block-title {
+    color: rgb(17, 168, 205);
+}
+
+.project__cell-header.project__cell-header--active .page__block-title {
+    color: rgb(249 145 87);
+}
+
+.project__cell-header.project__cell-header--active {
+    background-color: #48565f;
+    border-radius: 3px 3px 0 0;
+}
+
+.project__cell-header::before,
+.project__cell-header::after {
+    content: "";
+    position: absolute;
+    right: 10px;
+    width: 25px;
+    height: 5px;
+    background-color: rgb(17, 168, 205);
+    transition: transform 0.3s ease;
+}
+
+.project__cell-header::after {
+    transform: rotate(90deg);
+}
+
+.project__cell-header.project__cell-header--active::before {
+    transform: rotate(45deg);
+    background-color: rgb(236 83 77);
+}
+
+.project__cell-header.project__cell-header--active::after {
+    transform: rotate(135deg);
+    background-color: rgb(236 83 77);
 }
 
 .project__form {
     display: flex;
     flex-direction: column;
+    width: 100%;
 }
 
 .project__form-field {
     display: flex;
     flex-direction: column;
+}
+
+.project__form-field:not(:last-child) {
     margin-bottom: 20px;
 }
 
@@ -48,15 +163,15 @@
     border: none;
     border-radius: 3px;
     color: rgb(204 204 204);
-    background-color: rgb(51 67 77);
+    background-color: rgb(27 43 52);
 }
 
 .project__form-field select {
-    padding: 5px;
+    padding: 5px 1px;
     border: none;
     border-radius: 3px;
     color: rgb(204 204 204);
-    background-color: rgb(51 67 77);
+    background-color: rgb(27 43 52);
 }
 
 .project__form-field textarea {
@@ -64,7 +179,205 @@
     border: none;
     border-radius: 3px;
     color: rgb(204 204 204);
+    background-color: rgb(27 43 52);
+}
+
+.project__events-list {
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+.project__events-item {
+    display: flex;
+    align-items: center;
+    padding: 7px;
+    border-radius: 3px;
+    background-color: rgb(27 43 52);
+}
+
+.project__events-item:not(:last-child) {
+    margin-bottom: 10px;
+}
+
+.project__events-link {
+    margin-right: 10px;
+    color: rgb(17, 168, 205);
+}
+
+.project__events-status {
+    margin-left: auto;
+    margin-right: 10px;
+}
+
+.project__events-delete-btn {
+    padding: 5px;
+    color: rgb(27 43 52);
+    background-color: rgb(236 83 77);
+}
+
+.project__events-creat-link {
+    padding: 7px;
+    border-radius: 3px;
+    font-weight: bold;
+    color: rgb(27 43 52);
+    background-color: rgb(129 172 85);
+}
+
+.file-upload {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+.file-upload-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.file-upload-choice {
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.file-button {
+    margin-right: 10px;
+    padding: 8px;
+    border: none;
+    border-radius: 3px;
+    font-weight: bold;
+    color: rgb(27 43 52);
+    /* background-color: rgb(129 172 85); */
+    background-color: rgb(17, 168, 205);
+    cursor: pointer;
+}
+
+.file-name {
+    font-style: italic;
+}
+
+.get-coordinates-btn {
+    padding: 8px;
+    color: rgb(27 43 52);
+    background-color: rgb(249 145 87);
+}
+
+.remaining-requests {
+    padding: 7px;
+    margin-left: auto;
+    border-radius: 3px;
+    font-size: 60px;
+    text-transform: uppercase;
+    font-weight: bold;
+    background-color: rgb(27 43 52);
+}
+
+.loading-indicator {
+    margin-bottom: 20px;
+    padding: 7px;
+    color: rgb(249 145 87);
+}
+
+.project__addresses-list {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 25px;
+    padding-right: 15px;
+    width: 100%;
+    max-height: 57vh;
+    overflow-y: auto;
+}
+
+/* Стили для самой полосы прокрутки */
+.project__addresses-list::-webkit-scrollbar {
+    width: 10px; /* Ширина полосы прокрутки */
+}
+
+/* Стили для дорожки */
+.project__addresses-list::-webkit-scrollbar-track {
+    background: rgb(27 43 52); /* Цвет дорожки */
+    border-radius: 3px;
+}
+
+/* Стили для ползунка */
+.project__addresses-list::-webkit-scrollbar-thumb {
+    background: rgb(204 204 204); /* Цвет ползунка */
+    border-radius: 3px;
+}
+
+/* Стили при наведении с помощью :hover */
+.project__addresses-list::-webkit-scrollbar-thumb:hover {
+    background: rgb(249 145 87); /* Цвет ползунка при наведении */
+}
+
+.project__addresses-item {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 2px 5px;
+    border-radius: 3px;
+    background-color: rgb(27 43 52);
+}
+
+.project__addresses-item:not(:last-child) {
+    margin-bottom: 5px;
+}
+
+.address-number {
+    width: 10%;
+    margin-right: 5px;
+    text-align: center;
+    font-weight: bold;
+    color: rgb(187 128 179);
+}
+
+.address-name {
+    width: 68%;
+    padding: 5px;
+    border: none;
+    border-radius: 3px;
+    color: rgb(204 204 204);
     background-color: rgb(51 67 77);
+}
+
+.delete-address-btn {
+    margin-left: auto;
+    padding: 5px;
+    color: rgb(236 83 77);
+    background-color: rgb(27 43 52);
+}
+
+.project__addresses-list-btns {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+
+.project__addresses-list-btns-wrap {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 10px;
+    width: 100%;
+}
+
+.add-address-btn {
+    margin-right: 10px;
+    color: rgb(27 43 52);
+    background-color: rgb(129 172 85);
+}
+
+.update-addresses-btn {
+    color: rgb(27 43 52);
+    background-color: rgb(17, 168, 205);
+}
+
+.delete-addresses-btn {
+    color: rgb(27 43 52);
+    background-color: rgb(236 83 77);
 }
 
 
@@ -80,7 +393,7 @@
     display: none;
 }
 
-.modal {
+/* .modal {
     display: none; 
     position: fixed; 
     z-index: 1; 
@@ -113,4 +426,4 @@
     color: black;
     text-decoration: none;
     cursor: pointer;
-}
+} */
