@@ -367,12 +367,14 @@ def get_coordinates(request, project_id):
                             longitude=coordinates['lon']
                         )
                         html = f"""
-                        <li data-id="{address.id}">
-                            <span class="address-number">{index + 1}.</span>
-                            <input class="address-name" value="{escape(address.name)}" data-id="{address.id}"> |
-                            <span class="latitude">{address.latitude}</span> |
-                            <span class="longitude">{address.longitude}</span>
-                            <button class="delete-address-btn" data-id="{address.id}">Удалить</button>
+                        <li class="project__addresses-item" data-id="{address.id}">
+                            <span class="address-number">={index + 1}=</span>
+                            <input class="address-name" value="{escape(address.name)}" data-id="{address.id}">
+                            <div class="hidden-coordinates">
+                                <span class="latitude">{address.latitude}</span> 
+                                <span class="longitude">{address.longitude}</span>
+                            </div>
+                            <button class="delete-address-btn btn" data-id="{address.id}">Удалить</button>
                         </li>
                         """
                         addresses_list.append(html)

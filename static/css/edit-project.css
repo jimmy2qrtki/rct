@@ -227,7 +227,7 @@
     display: flex;
     align-items: center;
     width: 100%;
-    margin-bottom: 20px;
+    margin-bottom: 25px;
 }
 
 .file-upload-wrap {
@@ -239,7 +239,7 @@
 .file-upload-choice {
     display: flex;
     align-items: center;
-    margin-bottom: 12px;
+    margin-bottom: 15px;
 }
 
 .file-button {
@@ -325,16 +325,29 @@
     margin-bottom: 5px;
 }
 
+.no-addresses {
+    flex-direction: column;
+    align-self: center;
+    margin-top: 20px;
+    padding: 5px;
+    width: max-content;
+    border-radius: 3px;
+    color: rgb(236 83 77);
+    background-color: rgb(27 43 52);
+}
+
 .address-number {
-    width: 10%;
+    width: 37px;
     margin-right: 5px;
     text-align: center;
     font-weight: bold;
     color: rgb(187 128 179);
+    flex-shrink: 0;
+    cursor: grab;
 }
 
 .address-name {
-    width: 68%;
+    width: 71%;
     padding: 5px;
     border: none;
     border-radius: 3px;
@@ -345,8 +358,11 @@
 .delete-address-btn {
     margin-left: auto;
     padding: 5px;
+    padding-right: 0;
+    width: max-content;
     color: rgb(236 83 77);
     background-color: rgb(27 43 52);
+    flex-shrink: 0;
 }
 
 .project__addresses-list-btns {

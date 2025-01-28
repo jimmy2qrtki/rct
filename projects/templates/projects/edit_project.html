@@ -44,11 +44,11 @@
         <div class="project__content">
             <div class="project__content-row">
                 <div class="project__content-col">
-                    <div class="project__content-cell">
-                        <div class="project__cell-header">
+                    <div class="project__content-cell" data-section-id="details">
+                        <div class="project__cell-header" data-section-id="details">
                             <h2 class="page__block-title">Детали</h2>
                         </div>
-                        <div class="project__cell-content">
+                        <div class="project__cell-content" data-section-id="details">
                             <div class="project__cell-content-wrap">
                                 <form class="project__form" id="project-form" method="POST" enctype="multipart/form-data">
                                     {% csrf_token %}
@@ -76,11 +76,11 @@
                             </div>
                         </div>
                     </div>
-                    <div class="project__content-cell">
-                        <div class="project__cell-header">
+                    <div class="project__content-cell" data-section-id="events">
+                        <div class="project__cell-header" data-section-id="events">
                             <h2 class="page__block-title">События</h2>
                         </div>
-                        <div class="project__cell-content">
+                        <div class="project__cell-content" data-section-id="events">
                             <div class="project__cell-content-wrap">
                                 <ul class="project__events-list">
                                     {% for event in events %}
@@ -102,20 +102,20 @@
                             </div>
                         </div>
                     </div>
-                    <div class="project__content-cell">
-                        <div class="project__cell-header">
+                    <div class="project__content-cell" data-section-id="addresses">
+                        <div class="project__cell-header" data-section-id="addresses">
                             <h2 class="page__block-title">Список адресов</h2>
                         </div>
-                        <div class="project__cell-content">
+                        <div class="project__cell-content" data-section-id="addresses">
                             <div class="project__cell-content-wrap">
                                 <div class="file-upload">
                                     <div class="file-upload-wrap">
                                         <div class="file-upload-choice">
-                                            <button type="button" class="file-button">Exel файл</button>
+                                            <button type="button" class="file-button">Excel файл</button>
                                             <input type="file" id="id_excel_file" style="display: none;">
                                             <span class="file-name">не выбран</span>
                                         </div>
-                                        <button class="get-coordinates-btn btn" type="button" id="get-coordinates-btn">Получить адреса</button>
+                                        <button class="get-coordinates-btn btn" type="button" id="get-coordinates-btn">Добавить адреса</button>
                                     </div>
                                     <span class="remaining-requests" id="remaining-requests">{{ remaining_requests }}</span>
                                 </div>
@@ -132,7 +132,7 @@
                                         <button class="delete-address-btn btn" data-id="{{ address.id }}">Удалить</button>
                                     </li>
                                     {% empty %}
-                                    <li class="project__addresses-item">Нет адресов.</li>
+                                    <li class="project__addresses-item no-addresses">Нет адресов.</li>
                                     {% endfor %}
                                 </ul>
                                 <div class="project__addresses-list-btns">
@@ -156,6 +156,25 @@
     </div>
 
     <script>
+        $(document).ready(function() {
+            // Проверка, есть ли в списке адресов любые элементы, которые не содержат текст "Нет адресов."
+            var hasAddresses = $('#addresses-list li').not(':contains("Нет адресов.")').length > 0;
+            
+            if (!hasAddresses) {
+                // Если адресов нет, скрыть блок с кнопками
+                $('.project__addresses-list-btns').hide();
+            }
+
+            // Проверка на наличие API Key
+            const apiKey = "{{ user.profile.api_key }}"; // Предполагаем, что API Key передан в контекст
+            if (!apiKey) {
+                alert("Вам нужно заполнить поле API Key в профиле.");
+                return;
+            }
+
+            ymaps.ready(initMap);
+        });
+
         document.addEventListener('DOMContentLoaded', function() {
             const fileInput = document.getElementById('id_excel_file');
             const fileButton = document.querySelector('.file-button');
@@ -185,10 +204,42 @@
         });
 
         $(document).ready(function() {
-            // Аккордеон - по нажатию на заголовок ячейки
+            // Инициализация состояния аккордеона
+            $('.project__content-cell').each(function() {
+                const sectionId = $(this).data('section-id');
+                console.log(`Processing section: ${sectionId}`);
+                
+                // Получаем состояние из localStorage
+                let isOpen = localStorage.getItem(`accordion-${sectionId}`);
+
+                if (isOpen === null) {
+                    isOpen = 'false';
+                    localStorage.setItem(`accordion-${sectionId}`, isOpen);
+                }
+
+                isOpen = isOpen === 'true';
+                console.log(`Section ${sectionId} isOpen: ${isOpen}`);
+
+                if (isOpen) {
+                    $(this).find('.project__cell-content').show();
+                    $(this).find('.project__cell-header').addClass('project__cell-header--active');
+                } else {
+                    $(this).find('.project__cell-content').hide();
+                    $(this).find('.project__cell-header').removeClass('project__cell-header--active');
+                }
+            });
+
             $('.project__cell-header').on('click', function() {
-                $(this).next('.project__cell-content').slideToggle();
-                // Опционально, вы можете переключать класс для изменения стилей
+                const section = $(this).closest('.project__content-cell');
+                const sectionId = section.data('section-id');
+
+                // Переключение отображения содержимого
+                $(this).next('.project__cell-content').slideToggle(function() {
+                    const isOpen = $(this).is(':visible');
+                    localStorage.setItem(`accordion-${sectionId}`, isOpen.toString());
+                    console.log(`Updated section ${sectionId} isOpen: ${isOpen}`); // Отладка
+                });
+
                 $(this).toggleClass('project__cell-header--active');
             });
         });
@@ -239,7 +290,7 @@
             const fileInput = document.querySelector('input[type="file"]');
             
             if (!fileInput.files || fileInput.files.length === 0) {
-                alert('Exel файл не выбран!');
+                alert('Excel файл не выбран!');
                 return;  // Прекращаем выполнение, если файл не выбран
             }
 
@@ -260,16 +311,23 @@
 
                 if (data.status === 'ok') {
                     const addressList = document.getElementById('addresses-list');
+                    addressList.innerHTML = ''; // Очистка текущего списка адресов
+
                     data.addresses.forEach(html => {
                         const tempDiv = document.createElement('div');
                         tempDiv.innerHTML = html;
-                        addressList.appendChild(tempDiv.firstElementChild); // Добавляем новые адреса к существующему списку
+                        addressList.appendChild(tempDiv.firstElementChild); // Добавляем новые адреса к списку
                     });
+
+                    // Показываем блок с кнопками, так как адреса теперь добавлены
+                    document.querySelector('.project__addresses-list-btns').style.display = 'flex';
+
+                    // Пересоздаём карту, чтобы обновить метки
+                    initMap();
+
                     addDeleteEventListeners(); // Повторное добавление обработчиков событий
                     updateAddressNumbers(); // Обновление нумерации списка
 
-                    // Обновление оставшихся запросов
-                    updateRemainingRequestsCount(data.remaining_requests);
                 } else {
                     alert(data.message || 'Ошибка при получении координат');
                     if (data.message && data.message.includes('Закончились запросы')) {
@@ -287,15 +345,15 @@
             });
         });
     
-        // function addDeleteEventListeners() {
-        //     document.querySelectorAll('.delete-address-btn').forEach(button => {
-        //         button.addEventListener('click', function() {
-        //             const li = button.closest('li');
-        //             // Дополнительная логика для удаления из БД может быть добавлена здесь
-        //             li.remove(); // Удаление элемента из DOM
-        //         });
-        //     });
-        // }
+        function addDeleteEventListeners() {
+            document.querySelectorAll('.delete-address-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const li = button.closest('li');
+                    // Дополнительная логика для удаления из БД может быть добавлена здесь
+                    li.remove(); // Удаление элемента из DOM
+                });
+            });
+        }
     </script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
@@ -412,12 +470,6 @@
 
         // Инициализируем карту, как только документ готов
         $(document).ready(function() {
-            // Проверка на наличие адресов
-            if ($('#addresses-list li').length === 0 || $('#addresses-list li:contains("Нет адресов.")').length > 0) {
-                console.warn("Нет доступных адресов для отображения.");
-                return;
-            }
-
             // Проверка на наличие API Key
             const apiKey = "{{ user.profile.api_key }}"; // Предполагаем, что API Key передан в контекст
             if (!apiKey) {
@@ -441,7 +493,7 @@
 
             function updateAddressNumbersAfterSort() {
                 $('#addresses-list li').each(function(index) {
-                    $(this).find('.address-number').text((index + 1));
+                    $(this).find('.address-number').text('=' + (index + 1) + '=');
                 });
             }
 
@@ -526,7 +578,7 @@
         };
 
         function updateRemainingRequestsCount(count) {
-            document.getElementById('remaining-requests').innerText = `Осталось ${count} запросов`;
+            document.getElementById('remaining-requests').innerText = `${count}`;
         }
 
         function updateAddressNumbers() {
@@ -551,7 +603,9 @@
             .then(response => {
                 if (response.ok) {
                     // Очистите список адресов на странице
-                    document.getElementById('addresses-list').innerHTML = '<li>Нет адресов.</li>';
+                    document.getElementById('addresses-list').innerHTML = '<li class="no-addresses">Нет адресов.</li>';
+                    // Скрываем блок с кнопками управления адресами
+                    document.querySelector('.project__addresses-list-btns').style.display = 'none';
                 } else {
                     alert('Ошибка при удалении адресов');
                 }
