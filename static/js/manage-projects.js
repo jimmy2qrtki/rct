@@ -27,7 +27,7 @@ $(document).ready(function() {
     });
 
     // Закрытие модального окна
-    $('.close').on('click', function() {
+    $('.modal-close-btn').on('click', function() {
         $('#createProjectModal').hide();
     });
 

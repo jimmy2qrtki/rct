@@ -96,8 +96,46 @@ body {
     color: rgb(187 128 179);
 }
 
+.page__modal-title {
+    margin: 0;
+    color: rgb(187 128 179);
+}
+
 ymaps {
     border-radius: 3px;
+}
+
+.bread-crumbs {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.bread-crumbs__item {
+    position: relative;
+    padding: 1px 2px;
+    border-radius: 3px;
+    background-color: rgb(17 168 205);
+}
+
+.bread-crumbs__item::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: -7px; /* Отступ от левого края */
+    transform: translateY(-50%); /* Центровка по вертикали */
+    width: 0;
+    height: 0;
+    border-top: 10px solid transparent; /* Верхняя граница */
+    border-bottom: 10px solid transparent; /* Нижняя граница */
+    border-right: 9px solid rgb(17 168 205); /* Правая граница (цвет треугольника) */
+}
+
+.bread-crumbs__link {
+    font-size: 14px;
+    font-weight: bold;
+    text-transform: uppercase;
+    color: rgb(27 43 52);
 }
 
 .page__footer {

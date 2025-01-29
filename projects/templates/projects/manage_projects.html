@@ -108,9 +108,11 @@
 
     <div id="createProjectModal" class="modal">
         <div class="modal-content">
-            <span class="close">&times;</span>
             <div id="modal-body">
-                <h2 class="page__title">Создать проект</h2>
+                <div class="modal-content__header">
+                    <h2 class="page__modal-title">Создать проект</h2>
+                    <span class="modal-close-btn"></span>
+                </div>
                 <form id="createProjectForm" class="create-project__form" method="POST">
                     {% csrf_token %}
                     <div class="create-project__field">

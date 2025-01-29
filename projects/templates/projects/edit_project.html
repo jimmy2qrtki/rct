@@ -36,11 +36,16 @@
         </div>
     </header>
     <div class="container">
-        <header class="project__header">
+        <div class="project__header">
             <h1 class="page__title">{{ project.name }}</h1>
+            <ul class="bread-crumbs">
+                <li class="bread-crumbs__item">
+                    <a class="bread-crumbs__link" href="{% url 'manage_projects' %}">Проекты</a>
+                </li>
+            </ul>
             <button class="project__save-btn btn" type="button" id="save-project-button">Сохранить проект</button>
             <a class="project__close-btn" href="{% url 'manage_projects' %}"></a>
-        </header>
+        </div>
         <div class="project__content">
             <div class="project__content-row">
                 <div class="project__content-col">
@@ -95,16 +100,16 @@
                                         </form>
                                     </li>
                                     {% empty %}
-                                    <li class="project__events-item">Нет событий.</li>
+                                    <li class="project__events-item no-addresses">Нет событий</li>
                                     {% endfor %}
                                 </ul>
-                                <button id="create-event-btn">Создать</button>
+                                <button class="project__create-event-btn btn" id="create-event-btn">Создать</button>
                             </div>
                         </div>
                     </div>
                     <div class="project__content-cell" data-section-id="addresses">
                         <div class="project__cell-header" data-section-id="addresses">
-                            <h2 class="page__block-title">Список адресов</h2>
+                            <h2 class="page__block-title">Адреса</h2>
                         </div>
                         <div class="project__cell-content" data-section-id="addresses">
                             <div class="project__cell-content-wrap">
@@ -132,7 +137,7 @@
                                         <button class="delete-address-btn btn" data-id="{{ address.id }}">Удалить</button>
                                     </li>
                                     {% empty %}
-                                    <li class="project__addresses-item no-addresses">Нет адресов.</li>
+                                    <li class="project__addresses-item no-addresses">Нет адресов</li>
                                     {% endfor %}
                                 </ul>
                                 <div class="project__addresses-list-btns">
@@ -154,65 +159,83 @@
             </div>
         </div>
         <!-- Модальное окно -->
-        <div id="create-event-modal" title="Создать событие" style="display: none;">
-            <form id="create-event-form" method="post">
-                {% csrf_token %}
-                <div>
-                    <p class="form-group">
-                        <label for="id_event_type">Событие:</label>
-                        {{ event_form.event_type }}
-                    </p>
-            
-                    <p class="form-group">
-                        <label for="id_description">Описание:</label>
-                        {{ event_form.description }}
-                    </p>
-            
-                    <p class="form-group">
-                        <label for="id_photo_count">Кол-во фото:</label>
-                        {{ event_form.photo_count }}
-                    </p>
-            
-                    <p class="form-group">
-                        <label for="id_event_date">Дата начала:</label>
-                        {{ event_form.event_date }}
-                    </p>
-            
-                    <p class="form-group">
-                        <label for="id_duration_days">Срок выполнения (в днях):</label>
-                        {{ event_form.duration_days }}
-                    </p>
+        <div id="create-event-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-content__header">
+                    <h2 class="page__modal-title">Создать событие</h2>
+                    <span class="modal-close-btn"></span>
                 </div>
-                <button type="submit">Далее</button>
-            </form>
+                <form class="create-event__form" id="create-event-form" method="post">
+                    {% csrf_token %}
+                    <div>
+                        <div class="create-event__field">
+                            <label for="id_event_type">Событие</label>
+                            {{ event_form.event_type }}
+                        </div>
+
+                        <div class="create-event__field">
+                            <label for="id_photo_count">Кол-во фото</label>
+                            {{ event_form.photo_count }}
+                        </div>
+
+                        <div class="create-event__field">
+                            <label for="id_event_date">Дата начала</label>
+                            <div class="create-event__field-wrap">
+                                {{ event_form.event_date }}
+                            </div>
+                        </div>
+                
+                        <div class="create-event__field">
+                            <label for="id_duration_days">Срок выполнения (в днях)</label>
+                            {{ event_form.duration_days }}
+                        </div>
+                
+                        <div class="create-event__field">
+                            <label for="id_description">Описание</label>
+                            {{ event_form.description }}
+                        </div>
+                    </div>
+                    <button class="create-event__btn btn" type="submit">Далее</button>
+                </form>
+            </div>
         </div>
+        
     </div>
 
     <script>
         $(document).ready(function() {
-            // инициализируем модальное окно
-            let modal = $("#create-event-modal").dialog({
-                autoOpen: false,
-                modal: true,
-                width: 400
-            });
+            // Получаем элементы
+            var modal = $("#create-event-modal");
+            var btn = $("#create-event-btn");
+            var span = $(".modal-close-btn");
 
             // Открытие модального окна при нажатии на кнопку
-            $("#create-event-btn").click(function() {
-                modal.dialog("open");
+            btn.on("click", function() {
+                modal.show();
             });
 
-            // Отправка формы с AJAX
+            // Закрытие модального окна при нажатии на X
+            span.on("click", function() {
+                modal.hide();
+            });
+
+            // Закрытие модального окна при клике за его пределами
+            $(window).on("click", function(event) {
+                if ($(event.target).is(modal)) {
+                    modal.hide();
+                }
+            });
+
+            // Обработка отправки формы с AJAX
             $("#create-event-form").on("submit", function(event) {
                 event.preventDefault();
-                let formData = $(this).serialize();
-
+                var formData = $(this).serialize();
                 $.post("{% url 'create_event' project_id=project.id %}", formData, function(data) {
                     if (data.success) {
-                        modal.dialog("close");
+                        modal.hide();
                         window.location.href = data.redirect_url;
                     } else {
-                        // Здесь можно обработать ошибки валидации и отобразить их пользователю
+                        // Здесь вы можете обработать ошибки валидации формы
                     }
                 });
             });
