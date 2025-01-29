@@ -85,11 +85,13 @@ def edit_project(request, project_id):
                 form.instance.organization = new_org
             else:
                 form.instance.organization = form.cleaned_data['organization']
-            # form.instance.manager остается без изменений, если это вдруг не предусмотрено в форме
             form.save()
             return redirect('edit_project', project_id=project.id)
     else:
         form = ProjectForm(instance=project)
+
+    # Создание экземпляра EventForm без данных для модального окна
+    event_form = EventForm()
 
     return render(request, 'projects/edit_project.html', {
         'form': form,
@@ -97,6 +99,7 @@ def edit_project(request, project_id):
         'events': events,
         'addresses': addresses,
         'remaining_requests': remaining_requests,
+        'event_form': event_form,  # Передаем EventForm в контексте
     })
 
 @login_required
@@ -270,18 +273,21 @@ def copy_addresses(request, event_id):
     event_addresses = list(event.addresses.values('name', 'latitude', 'longitude'))
     return JsonResponse({"message": "Addresses copied successfully", "addresses": event_addresses}, status=200)
 
+@csrf_exempt
 def create_event(request, project_id):
-    project = get_object_or_404(Project, pk=project_id)
     if request.method == 'POST':
-        form = EventForm(request.POST)
-        if form.is_valid():
-            event = form.save(commit=False)
+        project = get_object_or_404(Project, pk=project_id)
+        event_form = EventForm(request.POST)
+
+        if event_form.is_valid():
+            event = event_form.save(commit=False)
             event.project = project
             event.save()
-            return redirect('edit_event', event_id=event.id)
-    else:
-        form = EventForm()
-    return render(request, 'projects/create_event.html', {'form': form, 'project': project})
+            # После сохранения и создания, перенаправляем на страницу редактирования события
+            return JsonResponse({'success': True, 'redirect_url': reverse('edit_event', args=[event.id])})
+        else:
+            # Если форма не валидна, отправляем ошибки формы обратно
+            return JsonResponse({'success': False, 'errors': event_form.errors})
 
 def delete_project(request, project_id):
     project = get_object_or_404(Project, pk=project_id)

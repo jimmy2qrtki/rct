@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Правка - {{ project.name }}</title>
     {% load static %}
-    <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <link rel="stylesheet" href="{% static 'css/1.12.1-jquery-ui.css' %}">
     <link rel="stylesheet" href="{% static 'css/normalize.css' %}">
     <link rel="stylesheet" href="{% static 'css/styles.css' %}">
     <link rel="stylesheet" type="text/css" href="{% static 'css/edit-project.css' %}">
@@ -98,7 +98,7 @@
                                     <li class="project__events-item">Нет событий.</li>
                                     {% endfor %}
                                 </ul>
-                                <a class="project__events-creat-link" href="{% url 'create_event' project.id %}">Создать</a>
+                                <button id="create-event-btn">Создать</button>
                             </div>
                         </div>
                     </div>
@@ -153,9 +153,71 @@
                 </div>
             </div>
         </div>
+        <!-- Модальное окно -->
+        <div id="create-event-modal" title="Создать событие" style="display: none;">
+            <form id="create-event-form" method="post">
+                {% csrf_token %}
+                <div>
+                    <p class="form-group">
+                        <label for="id_event_type">Событие:</label>
+                        {{ event_form.event_type }}
+                    </p>
+            
+                    <p class="form-group">
+                        <label for="id_description">Описание:</label>
+                        {{ event_form.description }}
+                    </p>
+            
+                    <p class="form-group">
+                        <label for="id_photo_count">Кол-во фото:</label>
+                        {{ event_form.photo_count }}
+                    </p>
+            
+                    <p class="form-group">
+                        <label for="id_event_date">Дата начала:</label>
+                        {{ event_form.event_date }}
+                    </p>
+            
+                    <p class="form-group">
+                        <label for="id_duration_days">Срок выполнения (в днях):</label>
+                        {{ event_form.duration_days }}
+                    </p>
+                </div>
+                <button type="submit">Далее</button>
+            </form>
+        </div>
     </div>
 
     <script>
+        $(document).ready(function() {
+            // инициализируем модальное окно
+            let modal = $("#create-event-modal").dialog({
+                autoOpen: false,
+                modal: true,
+                width: 400
+            });
+
+            // Открытие модального окна при нажатии на кнопку
+            $("#create-event-btn").click(function() {
+                modal.dialog("open");
+            });
+
+            // Отправка формы с AJAX
+            $("#create-event-form").on("submit", function(event) {
+                event.preventDefault();
+                let formData = $(this).serialize();
+
+                $.post("{% url 'create_event' project_id=project.id %}", formData, function(data) {
+                    if (data.success) {
+                        modal.dialog("close");
+                        window.location.href = data.redirect_url;
+                    } else {
+                        // Здесь можно обработать ошибки валидации и отобразить их пользователю
+                    }
+                });
+            });
+        });
+
         $(document).ready(function() {
             // Проверка, есть ли в списке адресов любые элементы, которые не содержат текст "Нет адресов."
             var hasAddresses = $('#addresses-list li').not(':contains("Нет адресов.")').length > 0;
