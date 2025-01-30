@@ -510,6 +510,7 @@
                         if (data.status === 'ok') {
                             this.parentElement.remove();
                             updateAddressNumbers();
+                            initMap();
                         } else {
                             alert('Ошибка при удалении адреса');
                         }
@@ -539,6 +540,7 @@
 
             // Создаем массив для хранения координат меток
             let coordinates = [];
+            let placemarks = []; // Массив для хранения меток
 
             // Добавление меток на карту
             $('#addresses-list li').each(function() {
@@ -564,19 +566,23 @@
 
                     map.geoObjects.add(placemark);
                     coordinates.push([latitude, longitude]);
+                    placemarks.push(placemark);
+
+                    // Добавляем обработчик события для приближения к метке при клике на имя адреса
+                    $(this).find('.address-name').on('click', function() {
+                        map.setCenter([latitude, longitude], 17); // Устанавливаем центр и масштаб карты
+                        placemark.balloon.open(); // Открываем баллун метки
+                    });
                 } else {
                     console.warn('Некорректные координаты для адреса:', name);
                 }
             });
 
             if (coordinates.length > 0) {
-                // Создаем границы для всех меток
                 var bounds = ymaps.util.bounds.fromPoints(coordinates);
-
-                // Центрируем карту так, чтобы все метки были видны
                 map.setBounds(bounds, {
-                    checkZoomRange: true, // Проверяем, чтобы масштаб не выходил за допустимые пределы
-                    zoomMargin: 20 // Добавляем отступы вокруг меток
+                    checkZoomRange: true,
+                    zoomMargin: 20
                 });
             }
 
@@ -684,6 +690,7 @@
                 addressList.removeChild(newListItem);
                 updateAddressNumbers();
                 checkForNewAddresses();
+                initMap();
             });
 
             newListItem.querySelector('.address-name').addEventListener('input', checkForNewAddresses);
@@ -745,6 +752,7 @@
                     addressList.removeChild(newListItem);
                     updateAddressNumbers();
                     checkForNewAddresses();
+                    initMap();
                 });
             });
             
