@@ -354,7 +354,7 @@ def get_coordinates(request, project_id):
         try:
             num_processed = 0
 
-            for index, row in enumerate(sheet.iter_rows(min_row=2, max_col=1, values_only=True)):
+            for index, row in enumerate(sheet.iter_rows(min_row=1, max_col=1, values_only=True)):
                 if row[0]:
                     if counter.count <= 0:
                         time_left = get_time_until_midnight()
@@ -436,24 +436,23 @@ def update_addresses(request, project_id):
     reset_request_counter(request)
     counter = RequestCounter.objects.get(user=request.user)
 
-    if counter.count <= 0:
-        time_left = get_time_until_midnight()
-        return JsonResponse({
-            'status': 'error',
-            'message': f'Закончились запросы для координат - запросы будут доступны через {time_left}',
-            'remaining_requests': counter.count
-        })
-
-    profile = request.user.profile
-    if not profile.api_key:
-        return JsonResponse({'status': 'error', 'message': 'Вам нужно заполнить поле API Key в профиле'})
-
     try:
+        if counter.count <= 0:
+            time_left = get_time_until_midnight()
+            return JsonResponse({
+                'status': 'error',
+                'message': f'Закончились запросы для координат - запросы будут доступны через {time_left}',
+                'remaining_requests': counter.count
+            })
+
+        profile = request.user.profile
+        if not profile.api_key:
+            return JsonResponse({'status': 'error', 'message': 'Вам нужно заполнить поле API Key в профиле'})
+
         project = get_object_or_404(Project, pk=project_id)
         data = json.loads(request.body)
         new_addresses = data.get('new_addresses', [])
         num_processed = 0
-
         max_order = Address.objects.filter(project=project).aggregate(Max('order'))['order__max'] or 0
 
         for name in new_addresses:
@@ -465,7 +464,7 @@ def update_addresses(request, project_id):
                         'message': f'Закончились запросы для координат - запросы будут доступны через {time_left}',
                         'remaining_requests': counter.count
                     })
-                
+
                 try:
                     coordinates = get_coordinates_from_yandex(request, name)
                     new_order = max_order + 1
@@ -480,14 +479,34 @@ def update_addresses(request, project_id):
                     )
                     num_processed += 1
                 except ValueError as ve:
-                    return JsonResponse({'status': 'error', 'message': str(ve), 'remaining_requests': counter.count})
+                    return JsonResponse({
+                        'status': 'error',
+                        'message': str(ve),
+                        'remaining_requests': counter.count,
+                        'updated_addresses': list(Address.objects.filter(project=project).values())
+                    })
         
         counter.count -= num_processed
         counter.save()
+
+        updated_addresses = list(Address.objects.filter(project=project).values())
         
-        return JsonResponse({'status': 'ok', 'remaining_requests': counter.count}, status=200)
+        return JsonResponse({
+            'status': 'ok',
+            'remaining_requests': counter.count,
+            'updated_addresses': updated_addresses
+        }, status=200)
     except Exception as e:
-        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+        # Log the exception for debugging purposes
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Exception occurred: {str(e)}")
+
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e),
+            'updated_addresses': list(Address.objects.filter(project=project).values())
+        }, status=500)
 
 # удаление адреса из списка адресов в событии      
 def delete_event_address(request, address_id):

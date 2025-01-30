@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Правка - {{ project.name }}</title>
     {% load static %}
-    <link rel="stylesheet" href="{% static 'css/1.12.1-jquery-ui.css' %}">
+    <!-- <link rel="stylesheet" href="{% static 'css/1.12.1-jquery-ui.css' %}"> -->
     <link rel="stylesheet" href="{% static 'css/normalize.css' %}">
     <link rel="stylesheet" href="{% static 'css/styles.css' %}">
     <link rel="stylesheet" type="text/css" href="{% static 'css/edit-project.css' %}">
@@ -243,7 +243,7 @@
 
         $(document).ready(function() {
             // Проверка, есть ли в списке адресов любые элементы, которые не содержат текст "Нет адресов."
-            var hasAddresses = $('#addresses-list li').not(':contains("Нет адресов.")').length > 0;
+            var hasAddresses = $('#addresses-list li').not(':contains("Нет адресов")').length > 0;
             
             if (!hasAddresses) {
                 // Если адресов нет, скрыть блок с кнопками
@@ -330,11 +330,38 @@
         });
 
         $(document).ready(function() {
-            // сохранение проекта
+            // Сохранение первоначальных значений
+            let originalValues = {};
+            $('#project-form').find('input, select, textarea').each(function() {
+                originalValues[$(this).attr('id')] = $(this).val();
+            });
+
+            // Проверка изменений в форме
+            $('#project-form').on('change input', 'input, select, textarea', function() {
+                let changed = false;
+                
+                $('#project-form').find('input, select, textarea').each(function() {
+                    const id = $(this).attr('id');
+                    if (originalValues[id] !== $(this).val()) {
+                        changed = true;
+                        return false; // Exit loop early if a change is detected
+                    }
+                });
+
+                // Изменение цвета кнопки
+                if (changed) {
+                    $('#save-project-button').css('background-color', 'rgb(249 145 87)'); // Измените цвет на желаемый
+                } else {
+                    $('#save-project-button').css('background-color', ''); // Возвращаем стандартный цвет
+                }
+            });
+
+            // Сохранение проекта
             $('#save-project-button').click(function() {
                 $('#project-form').submit();
             });
-            // поле для новой организации
+
+            // Поле для новой организации
             $('#id_organization').change(function() {
                 if ($(this).val() == 'add_new') {
                     $('#new-organization-field').show();
@@ -542,6 +569,17 @@
                 }
             });
 
+            if (coordinates.length > 0) {
+                // Создаем границы для всех меток
+                var bounds = ymaps.util.bounds.fromPoints(coordinates);
+
+                // Центрируем карту так, чтобы все метки были видны
+                map.setBounds(bounds, {
+                    checkZoomRange: true, // Проверяем, чтобы масштаб не выходил за допустимые пределы
+                    zoomMargin: 20 // Добавляем отступы вокруг меток
+                });
+            }
+
             if (coordinates.length > 1) {
                 var polyline = new ymaps.Polyline(coordinates, {}, {
                     strokeColor: '#0000FF',
@@ -609,6 +647,22 @@
             }
         });
 
+        // Функция проверки наличия новых адресов
+        function checkForNewAddresses() {
+            const newAddresses = document.querySelectorAll('input[name="new_address_names[]"]');
+            const hasNewAddress = Array.from(newAddresses).some(input => input.value.trim() !== '');
+            const updateButton = document.getElementById('update-addresses-btn');
+            const addressesListBtns = document.querySelector('.project__addresses-list-btns')
+            
+            if (hasNewAddress) {
+                updateButton.style.display = 'inline-block';
+                addressesListBtns.style.flexDirection = 'column';
+            } else {
+                updateButton.style.display = 'none';
+                addressesListBtns.style.flexDirection = 'row';
+            }
+        }
+
         document.getElementById('add-address-btn').addEventListener('click', function() {
             const addressList = document.getElementById('addresses-list');
             const newListItem = document.createElement('li');
@@ -629,7 +683,11 @@
             newListItem.querySelector('.delete-address-btn').addEventListener('click', function() {
                 addressList.removeChild(newListItem);
                 updateAddressNumbers();
+                checkForNewAddresses();
             });
+
+            newListItem.querySelector('.address-name').addEventListener('input', checkForNewAddresses);
+            checkForNewAddresses();
         });
 
         document.getElementById('update-addresses-btn').onclick = function() {
@@ -649,9 +707,9 @@
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'ok') {
-                    alert('Адреса успешно обновлены');
                     updateRemainingRequestsCount(data.remaining_requests);
-                    location.reload();
+                    // Обновляем список адресов, не перезагружая страницу
+                    updateAddressList(data.updated_addresses);
                 } else {
                     alert(data.message || 'Произошла ошибка при обновлении адресов');
                 }
@@ -661,6 +719,37 @@
                 alert('Ошибка сети');
             });
         };
+
+        // Функция для обновления списка адресов после успешного обновления
+        function updateAddressList(updatedAddresses) {
+            const addressList = document.getElementById('addresses-list');
+            addressList.innerHTML = ''; // Очистим текущий список
+
+            updatedAddresses.forEach((address, index) => {
+                const newListItem = document.createElement('li');
+                newListItem.classList.add('project__addresses-item');
+                newListItem.setAttribute('data-id', address.id);
+
+                newListItem.innerHTML = `
+                    <span class="address-number">=${index + 1}=</span>
+                    <input class="address-name" value="${address.name}" data-id="${address.id}">
+                    <div class="hidden-coordinates">
+                        <span class="latitude">${address.latitude}</span> | 
+                        <span class="longitude">${address.longitude}</span>
+                    </div>
+                    <button class="delete-address-btn btn" data-id="${address.id}">Удалить</button>
+                `;
+
+                addressList.appendChild(newListItem);
+                newListItem.querySelector('.delete-address-btn').addEventListener('click', function() {
+                    addressList.removeChild(newListItem);
+                    updateAddressNumbers();
+                    checkForNewAddresses();
+                });
+            });
+            
+            checkForNewAddresses(); // Проверяем видимость кнопки после обновления списка
+        }
 
         function updateRemainingRequestsCount(count) {
             document.getElementById('remaining-requests').innerText = `${count}`;
@@ -688,7 +777,7 @@
             .then(response => {
                 if (response.ok) {
                     // Очистите список адресов на странице
-                    document.getElementById('addresses-list').innerHTML = '<li class="no-addresses">Нет адресов.</li>';
+                    document.getElementById('addresses-list').innerHTML = '<li class="no-addresses">Нет адресов</li>';
                     // Скрываем блок с кнопками управления адресами
                     document.querySelector('.project__addresses-list-btns').style.display = 'none';
                 } else {
