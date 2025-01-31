@@ -419,6 +419,7 @@ def edit_address_name(request, project_id):
         return JsonResponse({'status': 'error', 'message': 'Address not found'}, status=404)
 
 @require_http_methods(["DELETE"])
+@csrf_exempt  # Если вы не используете CSRF-токен в запросе
 def delete_address(request, project_id):
     payload = json.loads(request.body)
     address_id = payload.get('id')
@@ -426,7 +427,7 @@ def delete_address(request, project_id):
     try:
         address = Address.objects.get(id=address_id, project_id=project_id)
         address.delete()
-        return JsonResponse({'status': 'ok'})
+        return JsonResponse({'status': 'ok'}, status=200)  # Возвращаем JSON с кодом 200
     except Address.DoesNotExist:
         return JsonResponse({'status': 'error', 'message': 'Address not found'}, status=404)
     
