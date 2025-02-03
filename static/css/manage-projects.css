@@ -16,25 +16,6 @@
     background-color: rgb(129 172 85);
 }
 
-.tabs {
-    display: flex;
-    margin-bottom: 25px;
-    padding: 0;
-}
-
-.tab-link {
-    display: inline-block;
-    padding: 10px 20px;
-    cursor: pointer;
-    font-size: 20px;
-    color: rgb(17 168 205);
-}
-
-.tab-link.active {
-    border-bottom: 2px solid rgb(249 145 87);
-    color: rgb(249 145 87);
-}
-
 /* Стили для содержимого табов */
 .projects {
     display: none;

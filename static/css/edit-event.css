@@ -1,0 +1,570 @@
+.page__title {
+    margin-bottom: 0;
+}
+
+.event__save-btn {
+    margin-left: auto;
+    color: rgb(27 43 52);
+    background-color: rgb(129 172 85);
+}
+
+.event__content-row {
+    display: flex;
+    width: 100%;
+    gap: 25px;
+}
+
+.event__content-col:nth-child(1) {
+    width: 350px;
+}
+
+.event__content-col:nth-child(2) {
+    position: relative;
+    width: calc(100% - 375px);
+}
+
+.event__content-col-wrap {
+    position: -webkit-sticky;
+    position: sticky;
+    top: 80px;
+}
+
+.event__content-cell {
+    display: flex;
+    flex-direction: column;
+    border-radius: 3px;
+    background-color: rgb(51 67 77);
+}
+
+.event__content-cell:not(:last-child) {
+    margin-bottom: 25px;
+}
+
+.event__cell-content {
+    /* display: none; */
+    width: 100%;
+    padding: 20px;
+}
+
+.event__cell-content-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+
+.event__cell-header {
+    position: relative;
+    display: flex;
+    align-items: center;
+    padding: 10px 45px 10px 10px;
+    cursor: pointer;
+}
+
+.page__block-title {
+    color: rgb(17, 168, 205);
+}
+
+.event__cell-header.event__cell-header--active .page__block-title {
+    color: rgb(249 145 87);
+}
+
+.event__cell-header.event__cell-header--active {
+    background-color: #48565f;
+    border-radius: 3px 3px 0 0;
+}
+
+.event__cell-header::before,
+.event__cell-header::after {
+    content: "";
+    position: absolute;
+    right: 10px;
+    width: 25px;
+    height: 5px;
+    background-color: rgb(17, 168, 205);
+    transition: transform 0.3s ease;
+}
+
+.event__cell-header::after {
+    transform: rotate(90deg);
+}
+
+.event__cell-header.event__cell-header--active::before {
+    transform: rotate(45deg);
+    background-color: rgb(236 83 77);
+}
+
+.event__cell-header.event__cell-header--active::after {
+    transform: rotate(135deg);
+    background-color: rgb(236 83 77);
+}
+
+.event__form {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.event__form-field {
+    display: flex;
+    flex-direction: column;
+}
+
+.event__form-field:not(:last-child) {
+    margin-bottom: 20px;
+}
+
+.event__form-field label {
+    margin-bottom: 5px;
+}
+
+.event__form-field input {
+    padding: 5px;
+    border: none;
+    border-radius: 3px;
+    color: rgb(204 204 204);
+    background-color: rgb(27 43 52);
+}
+
+.event__form-field select {
+    padding: 5px 1px;
+    border: none;
+    border-radius: 3px;
+    color: rgb(204 204 204);
+    background-color: rgb(27 43 52);
+}
+
+.event__form-field textarea {
+    padding: 5px;
+    border: none;
+    border-radius: 3px;
+    color: rgb(204 204 204);
+    background-color: rgb(27 43 52);
+}
+
+.event__form-field-wrap {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+.event__executors-list {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+.event__executors-item {
+    display: flex;
+    flex-direction: column;
+    /* padding: 5px; */
+    border-radius: 3px;
+    /* background-color: rgb(27 43 52); */
+}
+
+.event__executors-item:not(:last-child) {
+    margin-bottom: 20px;
+}
+
+.event__executors-item-row {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.event__executors-item-row:not(:last-child) {
+    margin-bottom: 5px;
+}
+
+.event__executors-item-row:last-child {
+    justify-content: space-between;
+}
+
+.event__executors-item-row input {
+    width: 100%;
+    padding: 5px;
+    border: none;
+    border-radius: 3px;
+    color: rgb(204 204 204);
+    background-color: rgb(27 43 52);
+}
+
+.status {
+    margin-left: auto;
+    text-transform: lowercase;
+}
+
+.delete-executor-btn,
+.assign-btn {
+    margin-left: auto;
+}
+
+.assign-btn,
+.details-btn,
+.download-photos-btn,
+.delete-executor-btn {
+    padding: 5px;
+}
+
+.assign-btn,
+.details-btn {
+    background-color: rgb(17, 168, 205);
+}
+
+.download-photos-btn {
+    background-color: rgb(129 172 85);
+}
+
+.delete-executor-btn {
+    background-color: rgb(236 83 77);
+}
+
+.select-executors-btn {
+    background-color: rgb(129 172 85);
+}
+
+.tabs {
+    background-color: rgb(27 43 52);
+    margin-bottom: 0;
+}
+
+.tabs-item:not(:last-child) {
+    margin-right: 10px;
+}
+
+.tab-link {
+    padding: 7px 10px;
+    border: 3px solid rgb(51 67 77);
+    border-bottom: none;
+    border-radius: 3px 3px 0 0;
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.tab-link.active {
+    border-bottom: none;
+    background-color: rgb(51 67 77);
+}
+
+.event__show-addresses-map-btn {
+    display: block;
+    width: 44px;
+    margin-left: auto;
+    height: 44px;
+    border: none;
+    border-radius: 3px 3px 0 0;
+    background-color: rgb(51 67 77);
+    background-image: url('../img/maximize-icon-2.png');
+    background-size: cover;
+    background-position: center;
+    cursor: pointer;
+}
+
+.event__addresses {
+    display: none;
+    padding: 20px 10px;
+}
+
+.event__map {
+    display: none;
+    padding: 20px;
+    /* padding-top: 10px; */
+    height: 90vh;
+}
+
+.event__addresses.active {
+    display: block;
+}
+
+.event__map.active {
+    display: block;
+}
+
+.event__addresses-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 0 10px;
+}
+
+.copy-addresses-btn {
+    background-color: rgb(17, 168, 205);
+}
+
+.remaining-requests {
+    padding: 10px;
+    margin-left: auto;
+    border-radius: 3px;
+    font-size: 16px;
+    text-transform: uppercase;
+    font-weight: bold;
+    background-color: rgb(27 43 52);
+}
+
+.event__addresses-list {
+    margin-bottom: 20px;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 0 10px;
+}
+
+/* Стили для самой полосы прокрутки */
+.event__addresses-list::-webkit-scrollbar {
+    width: 5px; /* Ширина полосы прокрутки */
+}
+
+/* Стили для дорожки */
+.event__addresses-list::-webkit-scrollbar-track {
+    background: rgb(27 43 52); /* Цвет дорожки */
+    border-radius: 3px;
+}
+
+/* Стили для ползунка */
+.event__addresses-list::-webkit-scrollbar-thumb {
+    background: rgb(249 145 87); /* Цвет ползунка */
+    border-radius: 3px;
+}
+
+/* Стили при наведении с помощью :hover */
+.event__addresses-list::-webkit-scrollbar-thumb:hover {
+    background: rgb(204 204 204); /* Цвет ползунка при наведении */
+}
+
+.event__addresses-item {
+    display: flex;
+    align-items: normal;
+    width: 100%;
+    padding: 3px 5px;
+    border-radius: 3px;
+    background-color: rgb(27 43 52);
+    cursor: grab;
+}
+
+.event__addresses-item:not(:last-child) {
+    margin-bottom: 5px;
+}
+
+.address-number {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 37px;
+    margin-right: 5px;
+    text-align: center;
+    font-weight: bold;
+    color: rgb(187 128 179);
+    flex-shrink: 0;
+}
+
+.address-name {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 5px;
+    border: none;
+    border-radius: 3px;
+    color: rgb(204 204 204);
+    background-color: rgb(51 67 77);
+}
+
+.executor-name {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-left: auto;
+    padding: 5px;
+    width: 120px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.delete-address-btn {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 5px;
+    width: max-content;
+    color: rgb(236 83 77);
+    background-color: rgb(27 43 52);
+    flex-shrink: 0;
+}
+
+.event__addresses-btns {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 10px;
+}
+
+.add-address-btn {
+    background-color: rgb(129 172 85);
+}
+
+.update-addresses-btn {
+    background-color: rgb(17, 168, 205);
+}
+
+
+
+
+
+.hidden-coordinates {
+    display: none;
+}
+
+.gallery-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 1000; /* Ниже увеличенного фото */
+}
+
+.photo-view-modal {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    z-index: 1010; /* Выше модального окна */
+}
+
+.photo-view-modal img {
+    max-width: 90%;
+    max-height: 90%;
+}
+
+.close-photo {
+    position: absolute;
+    top: 10px;
+    right: 20px;
+    font-size: 24px;
+    color: #fff;
+    cursor: pointer;
+}
+
+.modal {
+    display: none; 
+    position: fixed; 
+    z-index: 20; 
+    left: 0;
+    top: 0;
+    width: 100%; 
+    height: 100%;
+    padding: 20px;
+    background-color: rgb(0,0,0);
+    background-color: rgba(0,0,0,0.4); 
+}
+
+.modal__content {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    margin: auto; 
+    padding: 10px;
+    width: 100%;
+    height: 95vh;
+    gap: 10px;
+    border: 1px solid rgb(249 145 87);
+    border-radius: 3px;
+    background-color: rgb(51 67 77);
+}
+
+.modal__content-header {
+    display: flex;
+    align-items: center;
+}
+
+.modal__content-wrap {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    gap: 20px;
+}
+
+.modal__event-addresses-list {
+    display: flex;
+    flex-direction: column;
+    width: calc(55% - 10px);
+    height: 85vh;
+    padding-right: 10px;
+    overflow-y: auto;
+}
+
+/* Стили для самой полосы прокрутки */
+.modal__event-addresses-list::-webkit-scrollbar {
+    width: 10px; /* Ширина полосы прокрутки */
+}
+
+/* Стили для дорожки */
+.modal__event-addresses-list::-webkit-scrollbar-track {
+    background: rgb(27 43 52); /* Цвет дорожки */
+    border-radius: 3px;
+}
+
+/* Стили для ползунка */
+.modal__event-addresses-list::-webkit-scrollbar-thumb {
+    background: rgb(249 145 87); /* Цвет ползунка */
+    border-radius: 3px;
+}
+
+/* Стили при наведении с помощью :hover */
+.modal__event-addresses-list::-webkit-scrollbar-thumb:hover {
+    background: rgb(204 204 204); /* Цвет ползунка при наведении */
+}
+
+.modal__event-addresses-item {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 5px;
+    border-radius: 3px;
+    background-color: rgb(27 43 52);
+}
+
+.modal__event-addresses-item:not(:last-child) {
+    margin-bottom: 5px;
+}
+
+.map-wrap {
+    width: calc(45% - 10px);
+}
+
+.modal-close-btn {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-left: auto;
+    height: 25px;
+    width: 25px;
+    cursor: pointer;
+}
+
+.modal-close-btn::before,
+.modal-close-btn::after {
+    content: "";
+    position: absolute;
+    width: 25px;
+    height: 5px;
+    background-color: rgb(236 83 77);
+    transition: transform 0.3s ease;
+}
+
+.modal-close-btn::before {
+    transform: rotate(45deg);
+}
+
+.modal-close-btn::after {
+    transform: rotate(-45deg);
+}

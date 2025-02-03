@@ -1,192 +1,338 @@
 <!-- templates/projects/edit_event.html -->
-<html>
+<!DOCTYPE html>
+<html lang="ru_RU">
 <head>
-    <title>Правка события - {{ event.get_event_type_display }}</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Правка события</title>
     {% load static %}
+    <link rel="stylesheet" type="text/css" href="{% static 'css/normalize.css' %}">
+    <link rel="stylesheet" type="text/css" href="{% static 'css/styles.css' %}">
+    <link rel="stylesheet" type="text/css" href="{% static 'css/edit-event.css' %}">
+
     <script src="{% static 'js/jquery-3.7.1.min.js' %}"></script>
-    <link rel="stylesheet" type="text/css" href="{% static 'projects/yandex-map-modal.css' %}">
     <script src="https://api-maps.yandex.ru/2.1/?apikey={{ api_key }}&lang=ru_RU" type="text/javascript"></script>
     <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
     <script src="//code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
-    <style>
-        .hidden-coordinates {
-            display: none;
-        }
-
-        .gallery-modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            z-index: 1000; /* Ниже увеличенного фото */
-        }
-
-        .photo-view-modal {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.9);
-            z-index: 1010; /* Выше модального окна */
-        }
-
-        .photo-view-modal img {
-            max-width: 90%;
-            max-height: 90%;
-        }
-
-        .close-photo {
-            position: absolute;
-            top: 10px;
-            right: 20px;
-            font-size: 24px;
-            color: #fff;
-            cursor: pointer;
-        }
-    </style>
 </head>
-<body>
-    <h1>Правка события: {{ event.get_event_type_display }} | {{ project.name }}</h1>
-    <form id="event-form" method="POST">
-        {% csrf_token %}
-        {{ form.as_p }}
-    </form>
-    
-    <button type="button" id="copy-addresses-btn">Получить адреса проекта</button>
-    <span id="remaining-requests">Осталось {{ remaining_requests }} запросов</span>
-    <h2>Адреса для события</h2>
-    <ul id="event-addresses-list">
-        {% for address in event.addresses.all %}
-        <li data-id="{{ address.id }}" data-user-assigned="{% if address.assigned_user %}true{% else %}false{% endif %}">
-            <span class="address-number">{{ forloop.counter }}.</span> 
-            <span class="address-name" data-id="{{ address.id }}">{{ address.name }}</span>
-            <span class="hidden-coordinates">
-                <span class="latitude">{{ address.latitude }}</span> | 
-                <span class="longitude">{{ address.longitude }}</span>
-            </span>
-            <button class="delete-address-btn" data-id="{{ address.id }}">Удалить</button>
-            {% if address.assigned_user %}
-                {% with address.assigned_user.executorprofile as profile %}
-                    <span class="executor-name">{{ profile.name|default:address.assigned_user.username }}</span>
-                {% endwith %}
-            {% else %}
-                <span class="executor-name">Не назначен</span>
-            {% endif %}
-        </li>
-        {% empty %}
-        <li>Нет адресов.</li>
-        {% endfor %}
-    </ul>
-
-    <button type="button" id="add-address-btn">Добавить адрес</button>
-    <button type="button" id="update-addresses-btn">Обновить список</button>
-    <button type="button" id="show-map-btn">Показать карту</button>
-    <!-- Кнопка для выбора исполнителей -->
-    <button type="button" id="select-executors-btn">Выбрать исполнителей</button>
-
-    <!-- Список исполнителей -->
-    <h2>Список исполнителей для события</h2>
-    <ul id="event-executors-list">
-        {% for event_user, has_photos in executors_with_photo_status %}
-            {% if event_user.user.executorprofile %}
-            <li data-id="{{ event_user.user.id }}" data-status="{{ event_user.status }}">
-                <span class="user-name">{{ event_user.user.executorprofile.name|default:event_user.user.email }}</span>
-                {% if event_user.user.executorprofile.district %} | <span class="district">{{ event_user.user.executorprofile.district }}</span>{% endif %}
-                {% if event_user.user.executorprofile.phone_number %} | <span class="phone-number">{{ event_user.user.executorprofile.phone_number }}</span>{% endif %}
-                <span class="status"> | статус: {{ event_user.get_status_display }}</span>
-                <br>
-                {% if has_unassigned_addresses %}
-                    <label for="address-indexes-{{ event_user.user.id }}">Номера адресов: </label>
-                    <input type="text" id="address-indexes-{{ event_user.user.id }}" placeholder="Например: 1,3-5,10-20,25">
-                    <button class="assign-btn" data-id="{{ event_user.user.id }}">Назначить</button>
-                {% endif %}
-                {% if has_photos %}
-                    <button class="details-btn" data-id="{{ event_user.user.id }}">Детали</button>
-                {% endif %}
-                {% if event_user.status == 'completed' %}
-                    <button class="download-photos-btn" data-id="{{ event_user.user.id }}">Скачать фото</button>
-                {% endif %}
-                {% if event_user.status != 'completed' %}
-                    <button class="delete-executor-btn" data-id="{{ event_user.user.id }}">Удалить</button>
-                {% endif %}
-            </li>
-            {% else %}
-                <li>У пользователя нет профиля исполнителя.</li>
-            {% endif %}
-        {% empty %}
-            <li>Нет исполнителей.</li>
-        {% endfor %}
-    </ul>
-
-    <!-- Модальное окно для выбора исполнителей -->
-    <div id="executor-modal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h3>Выберите исполнителей</h3>
-            <ul id="executor-selection-list">
-                {% for user in executors %}
-                    {% with user.executorprofile as profile %}
-                    <li>
-                        <input type="checkbox" id="executor-{{ profile.user.id }}" data-id="{{ profile.user.id }}" data-name="{{ profile.name|default:user.email }}">
-                        <label for="executor-{{ profile.user.id }}">
-                            <span class="user-name">{{ profile.name|default:user.email }}</span>
-                            {% if profile.district %} | <span class="district">{{ profile.district }}</span>{% endif %}
-                            {% if profile.phone_number %} | <span class="phone-number">{{ profile.phone_number }}</span>{% endif %}
-                        </label>
-                    </li>
-                    {% endwith %}
-                {% endfor %}
-            </ul>
-            <button type="button" id="add-executors-btn">Выбрать</button>
+<div id="map-modal" class="modal">
+    <div class="modal__content">
+        <div class="modal__content-header">
+            <h2 class="modal__title">{{ event.get_event_type_display }}: {{ project.name }}</h2>
+            <span class="modal-close-btn"></span>
         </div>
-    </div>
-
-    <div id="map-modal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <div id="map" style="width: 600px; height: 400px;"></div>
-            <ul id="modal-event-addresses-list">
+        <div class="modal__content-wrap">
+            <ul class="modal__event-addresses-list" id="modal-event-addresses-list">
                 {% for address in event.addresses.all %}
-                <li data-id="{{ address.id }}">
-                    <span class="address-number">{{ forloop.counter }}.</span> 
+                <li class="modal__event-addresses-item" data-id="{{ address.id }}">
+                    <span class="address-number">={{ forloop.counter }}=</span> 
                     <span class="address-name" data-id="{{ address.id }}">{{ address.name }}</span>
                     <span class="hidden-coordinates">
                         <span class="latitude">{{ address.latitude }}</span> | 
                         <span class="longitude">{{ address.longitude }}</span>
                     </span>
+                    {% if address.assigned_user %}
+                        {% with address.assigned_user.executorprofile as profile %}
+                            <span class="executor-name">{{ profile.name|default:address.assigned_user.username }}</span>
+                        {% endwith %}
+                    {% else %}
+                        <span class="executor-name">Не назначен</span>
+                    {% endif %}
                 </li>
                 {% empty %}
                 <li>Нет адресов.</li>
                 {% endfor %}
             </ul>
-        </div>
-    </div>
-
-    <div id="photo-gallery-modal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>Фото Галерея</h2>
-            <div id="gallery-content" class="photo-gallery">
-                <!-- Основная галерея будет загружаться тут -->
-            </div>
-            <h3>Проблемные Фото</h3>
-            <div id="problems-gallery-content" class="photo-gallery" style="display: none;">
-                <!-- Проблемные фото будут загружаться сюда -->
+            <div class="map-wrap">
+                <div id="map-modal-content" style="width: 100%; height: 100%;"></div>
             </div>
         </div>
     </div>
-
-    <button type="button" id="save-event-button">Сохранить событие</button>
-    <a href="{% url 'edit_project' project.id %}">Назад</a>
+</div>
+<body class="page event">
+    <header class="page__header">
+        <nav class="nav">
+            <ul class="nav__list">
+                <li class="nav__item">
+                    <a class="nav__link nav__link--inactive" href="{% url 'profile' %}">Профиль</a>
+                </li>
+                <li class="nav__item">
+                    <a class="nav__link nav__link--active">Проекты</a>
+                </li>
+                <li class="nav__item">
+                    <a class="nav__link nav__link--inactive" href="{% url 'events_control' %}">Контроль</a>
+                </li>
+            </ul>
+        </nav>
+        <div class="logo">
+            <img class="logo__img" src="{% static 'img/logo.png' %}" alt="Логотип">
+        </div>
+    </header>
+    <div class="container">
+        <div class="event__header">
+            <h1 class="page__title">{{ event.get_event_type_display }}</h1>
+            <ul class="bread-crumbs">
+                <li class="bread-crumbs__item">
+                    <a class="bread-crumbs__link" href="{% url 'edit_project' project.id %}">{{ project.name }}</a>
+                </li>
+                <li class="bread-crumbs__item">
+                    <a class="bread-crumbs__link" href="{% url 'manage_projects' %}">Проекты</a>
+                </li>
+            </ul>
+            <button class="event__save-btn btn" type="button" id="save-event-button">Сохранить событие</button>
+            <a class="event__close-btn page__close-btn" href="{% url 'edit_project' project.id %}"></a>
+        </div>
+        <div class="event__content">
+            <div class="event__content-row">
+                <div class="event__content-col">
+                    <div class="event__content-col-wrap">
+                        <div class="event__content-cell" data-section-id="details">
+                            <div class="event__cell-header" data-section-id="details">
+                                <h2 class="page__block-title">Детали</h2>
+                            </div>
+                            <div class="event__cell-content" data-section-id="details">
+                                <div class="event__cell-content-wrap">
+                                    <form class="event__form" id="event-form" method="POST">
+                                        {% csrf_token %}
+                                        <div class="event__form-field">
+                                            <label for="id_event_type">Событие</label>
+                                            {{ form.event_type }}
+                                        </div>
+    
+                                        <div class="event__form-field">
+                                            <label for="id_photo_count">Кол-во фото</label>
+                                            {{ form.photo_count }}
+                                        </div>
+    
+                                        <div class="event__form-field">
+                                            <label for="id_event_date">Дата начала</label>
+                                            <div class="event__form-field-wrap">
+                                                {{ form.event_date }}
+                                            </div>
+                                        </div>
+                                
+                                        <div class="event__form-field">
+                                            <label for="id_duration_days">Срок выполнения (в днях)</label>
+                                            {{ form.duration_days }}
+                                        </div>
+                                
+                                        <div class="event__form-field">
+                                            <label for="id_description">Описание</label>
+                                            {{ form.description }}
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="event__content-cell" data-section-id="executors">
+                            <div class="event__cell-header" data-section-id="executors">
+                                <h2 class="page__block-title">Исполнители</h2>
+                            </div>
+                            <div class="event__cell-content" data-section-id="executors">
+                                <div class="event__cell-content-wrap">
+                                    <ul class="event__executors-list" id="event-executors-list">
+                                        {% for event_user, has_photos in executors_with_photo_status %}
+                                            {% if event_user.user.executorprofile %}
+                                            <li class="event__executors-item" data-id="{{ event_user.user.id }}" data-status="{{ event_user.status }}">
+                                                <div class="event__executors-item-row">
+                                                    <span class="user-name">{{ event_user.user.executorprofile.name|default:event_user.user.email }}</span>
+                                                    {% if event_user.user.executorprofile.district %}
+                                                    <span class="district">{{ event_user.user.executorprofile.district }}</span>
+                                                    {% endif %}
+                                                    {% if event_user.user.executorprofile.phone_number %}
+                                                    <span class="phone-number">{{ event_user.user.executorprofile.phone_number }}</span>
+                                                    {% endif %}
+                                                    <span class="status">{{ event_user.get_status_display }}</span>
+                                                </div>
+                                                <div class="event__executors-item-row">
+                                                    {% if has_unassigned_addresses %}
+                                                        <!-- <label for="address-indexes-{{ event_user.user.id }}">Адреса</label> -->
+                                                        <input type="text" id="address-indexes-{{ event_user.user.id }}" placeholder="Пример: 1,3-5,10-20,25">
+                                                        <button class="assign-btn btn" data-id="{{ event_user.user.id }}">Назначить</button>
+                                                    {% endif %}
+                                                </div>
+                                                <div class="event__executors-item-row">
+                                                    {% if has_photos %}
+                                                        <button class="details-btn btn" data-id="{{ event_user.user.id }}">Показать фото</button>
+                                                    {% endif %}
+                                                    {% if event_user.status == 'completed' %}
+                                                        <button class="download-photos-btn btn" data-id="{{ event_user.user.id }}">Скачать фото</button>
+                                                    {% endif %}
+                                                    {% if event_user.status != 'completed' %}
+                                                        <button class="delete-executor-btn btn" data-id="{{ event_user.user.id }}">Удалить</button>
+                                                    {% endif %}
+                                                </div>
+                                            </li>
+                                            {% else %}
+                                                <li class="event__executors-item event__executors-item--no-profile">У пользователя нет профиля исполнителя.</li>
+                                            {% endif %}
+                                        {% empty %}
+                                            <li class="event__executors-item event__executors-item--no-executors">Нет исполнителей.</li>
+                                        {% endfor %}
+                                    </ul>
+                                    <button class="select-executors-btn btn" type="button" id="select-executors-btn">Добавить</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="event__content-col">
+                    <div class="event__content-col-wrap">
+                        <div class="event__content-cell">
+                            <ul class="tabs tabs__list">
+                                <li class="tab tabs-item">
+                                    <a class="tab-link active" id="active-tab" href="#event-addresses">Адреса</a>
+                                </li>
+                                <li class="tab tabs-item">
+                                    <a class="tab-link" id="completed-tab" href="#event-map">Карта</a>
+                                </li>
+                                <button class="event__show-addresses-map-btn" type="button" id="show-map-btn"></button>
+                            </ul>
+                            <div class="tab-content">
+                                <div class="event__addresses active" id="event-addresses">
+                                    <h2 class="hidden-title">Адреса события</h2>
+                                    <div class="event__addresses-header">
+                                        <button class="copy-addresses-btn btn" type="button" id="copy-addresses-btn">Получить адреса проекта</button>
+                                        <span class="remaining-requests" id="remaining-requests">{{ remaining_requests }}</span>
+                                    </div>
+                                    <ul class="event__addresses-list" id="event-addresses-list">
+                                        {% for address in event.addresses.all %}
+                                        <li class="event__addresses-item" data-id="{{ address.id }}" data-user-assigned="{% if address.assigned_user %}true{% else %}false{% endif %}">
+                                            <span class="address-number">={{ forloop.counter }}=</span> 
+                                            <span class="address-name" data-id="{{ address.id }}">{{ address.name }}</span>
+                                            <span class="hidden-coordinates">
+                                                <span class="latitude">{{ address.latitude }}</span> | 
+                                                <span class="longitude">{{ address.longitude }}</span>
+                                            </span>
+                                            {% if address.assigned_user %}
+                                                {% with address.assigned_user.executorprofile as profile %}
+                                                    <span class="executor-name">{{ profile.name|default:address.assigned_user.username }}</span>
+                                                {% endwith %}
+                                            {% else %}
+                                                <span class="executor-name">Не назначен</span>
+                                            {% endif %}
+                                            <button class="delete-address-btn btn" data-id="{{ address.id }}">Удалить</button>
+                                        </li>
+                                        {% empty %}
+                                        <li>Нет адресов.</li>
+                                        {% endfor %}
+                                    </ul>
+                                    <div class="event__addresses-btns">
+                                        <button class="add-address-btn btn" type="button" id="add-address-btn">Добавить адрес</button>
+                                        <button class="update-addresses-btn btn" type="button" id="update-addresses-btn">Обновить список</button>
+                                    </div>
+                                    <!-- <button type="button" id="show-map-btn">Показать карту</button> -->
+                                </div>
+                                <div class="event__map" id="event-map">
+                                    <h2 class="hidden-title">Карта события</h2>
+                                    <div id="map-event" style="width: 100%; height: 100%;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        
+            <!-- Модальное окно для выбора исполнителей -->
+            <div id="executor-modal" class="modal">
+                <div class="modal-content">
+                    <span class="close">&times;</span>
+                    <h3>Выберите исполнителей</h3>
+                    <ul id="executor-selection-list">
+                        {% for user in executors %}
+                            {% with user.executorprofile as profile %}
+                            <li>
+                                <input type="checkbox" id="executor-{{ profile.user.id }}" data-id="{{ profile.user.id }}" data-name="{{ profile.name|default:user.email }}">
+                                <label for="executor-{{ profile.user.id }}">
+                                    <span class="user-name">{{ profile.name|default:user.email }}</span>
+                                    {% if profile.district %} | <span class="district">{{ profile.district }}</span>{% endif %}
+                                    {% if profile.phone_number %} | <span class="phone-number">{{ profile.phone_number }}</span>{% endif %}
+                                </label>
+                            </li>
+                            {% endwith %}
+                        {% endfor %}
+                    </ul>
+                    <button type="button" id="add-executors-btn">Выбрать</button>
+                </div>
+            </div>
+        
+            <!-- <div id="map-modal" class="modal">
+                <div class="modal-content">
+                    <span class="close">&times;</span>
+                    <div id="map-modal-content" style="width: 600px; height: 400px;"></div>
+                    <ul id="modal-event-addresses-list">
+                        {% for address in event.addresses.all %}
+                        <li data-id="{{ address.id }}">
+                            <span class="address-number">{{ forloop.counter }}.</span> 
+                            <span class="address-name" data-id="{{ address.id }}">{{ address.name }}</span>
+                            <span class="hidden-coordinates">
+                                <span class="latitude">{{ address.latitude }}</span> | 
+                                <span class="longitude">{{ address.longitude }}</span>
+                            </span>
+                        </li>
+                        {% empty %}
+                        <li>Нет адресов.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div> -->
+        
+            <div id="photo-gallery-modal" class="modal">
+                <div class="modal-content">
+                    <span class="close">&times;</span>
+                    <h2>Фото Галерея</h2>
+                    <div id="gallery-content" class="photo-gallery">
+                        <!-- Основная галерея будет загружаться тут -->
+                    </div>
+                    <h3>Проблемные Фото</h3>
+                    <div id="problems-gallery-content" class="photo-gallery" style="display: none;">
+                        <!-- Проблемные фото будут загружаться сюда -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const tabLinks = document.querySelectorAll(".tab-link");
+            const tabPanes = document.querySelectorAll(".tab-content > div");
+
+            tabLinks.forEach(link => {
+                link.addEventListener("click", function(e) {
+                    e.preventDefault();
+
+                    // Удаляем класс 'active' у всех ссылок и содержимого
+                    tabLinks.forEach(item => item.classList.remove('active'));
+                    tabPanes.forEach(pane => pane.classList.remove('active'));
+
+                    // Добавляем класс 'active' для текущей ссылки и её содержимого
+                    this.classList.add('active');
+                    const targetId = this.getAttribute('href').substring(1);
+                    const targetPane = document.getElementById(targetId);
+                    targetPane.classList.add('active');
+                });
+            });
+        });
+
+        // Инициализация аккордеона
+        $('.event__content-cell').each(function () {
+            const sectionId = $(this).data('section-id');
+            let isOpen = localStorage.getItem(`accordion-${sectionId}`) === 'true';
+            $(this).find('.event__cell-content').toggle(isOpen);
+            $(this).find('.event__cell-header').toggleClass('event__cell-header--active', isOpen);
+        });
+
+        $('.event__cell-header').on('click', function () {
+            const section = $(this).closest('.event__content-cell');
+            const sectionId = section.data('section-id');
+            $(this).next('.event__cell-content').slideToggle(function () {
+                const isOpen = $(this).is(':visible');
+                localStorage.setItem(`accordion-${sectionId}`, isOpen.toString());
+            });
+            $(this).toggleClass('event__cell-header--active');
+        });
+
         // фотогалерея
         $(document).ready(function() {
             $('.details-btn').click(function() {
@@ -291,7 +437,7 @@
             })
             .then(response => response.json())
             .then(data => {
-                document.getElementById('remaining-requests').innerText = `Осталось ${data.remaining_requests} запросов`;
+                document.getElementById('remaining-requests').innerText = `${data.remaining_requests}`;
             })
             .catch(error => console.error('Ошибка при обновлении оставшихся запросов:', error));
         }
@@ -399,7 +545,7 @@
                 // Создаем новый элемент списка без данных
                 const newListItem = document.createElement('li');
                 newListItem.innerHTML = `
-                    <span class="address-number">${addressList.children.length + 1}.</span>
+                    <span class="address-number">=${addressList.children.length + 1}=</span>
                     <input type="text" name="new_address_names[]" class="address-name" placeholder="Введите название адреса">
                     <span class="latitude"></span> | <span class="longitude"></span>
                     <button type="button" class="delete-address-btn">Удалить</button>
@@ -516,29 +662,27 @@
             var map;
 
             // Глобальная функция для инициализации и обновления карты
-            function initMap() {
-                if (!map) {
-                    map = new ymaps.Map('map', {
-                        center: [55.76, 37.64],
-                        zoom: 10
-                    });
-                }
+            function initMap(containerId) {
+                const map = new ymaps.Map(containerId, {
+                    center: [55.76, 37.64],
+                    zoom: 10
+                });
 
                 map.geoObjects.removeAll();
 
                 let coordinates = [];
 
                 $('#modal-event-addresses-list li').each(function() {
-                    var latitudeText = $(this).find('.latitude').text().trim();
-                    var longitudeText = $(this).find('.longitude').text().trim();
-                    var name = $(this).find('.address-name').text().trim();
-                    var addressNumber = $(this).find('.address-number').text().trim().replace('.', '');
+                    const latitudeText = $(this).find('.latitude').text().trim();
+                    const longitudeText = $(this).find('.longitude').text().trim();
+                    const name = $(this).find('.address-name').text().trim();
+                    const addressNumber = $(this).find('.address-number').text().trim().replace('.', '');
 
-                    var latitude = parseFloat(latitudeText.replace(',', '.'));
-                    var longitude = parseFloat(longitudeText.replace(',', '.'));
+                    const latitude = parseFloat(latitudeText.replace(',', '.'));
+                    const longitude = parseFloat(longitudeText.replace(',', '.'));
 
                     if (!isNaN(latitude) && !isNaN(longitude)) {
-                        var placemark = new ymaps.Placemark(
+                        const placemark = new ymaps.Placemark(
                             [latitude, longitude], 
                             {
                                 balloonContent: `<strong>Адрес ${addressNumber}</strong>: ${name}`,
@@ -557,7 +701,7 @@
                 });
 
                 if (coordinates.length > 1) {
-                    var polyline = new ymaps.Polyline(coordinates, {}, {
+                    const polyline = new ymaps.Polyline(coordinates, {}, {
                         strokeColor: '#0000FF',
                         strokeWidth: 3,
                         strokeOpacity: 0.5
@@ -565,6 +709,18 @@
 
                     map.geoObjects.add(polyline);
                 }
+            }
+
+            ymaps.ready(function() {
+                initMap('map-event'); // Инициализация карты в основном блоке
+                initMap('map-modal-content'); // Инициализация карты в модальном окне
+            });
+
+            function updateMaps() {
+                ymaps.ready(function() {
+                    initMap('map-event');
+                    initMap('map-modal-content');
+                });
             }
 
             let isOrderChanged = false; // Флаг для отслеживания изменений порядка
@@ -636,14 +792,17 @@
                     return;
                 }
 
+                document.body.classList.add('no-scroll');
+
                 // Показ карты
                 $('#map-modal').show();
                 ymaps.ready(initMap);
             });
 
             // Закрытие модального окна
-            $('.modal .close').click(function() {
+            $('.modal .modal-close-btn').click(function() {
                 $('#map-modal').hide();
+                document.body.classList.remove('no-scroll');
                 if (isOrderChanged) {
                     location.reload(); // Перезагрузка страницы, если изменился порядок
                 }
@@ -837,4 +996,7 @@
         });
     </script>
 </body>
+<footer class="page__footer">
+
+</footer>
 </html>

@@ -33,6 +33,17 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     }
+
+    // Получаем элемент с классом no-addresses
+    var noAddressesItem = document.querySelector("#addresses-list .no-addresses");
+        
+    // Получаем блок кнопок
+    var buttonsBlock = document.querySelector(".project__addresses-list-btns");
+
+    // Проверяем, если элемент no-addresses существует, скрываем buttonsBlock
+    if (noAddressesItem && buttonsBlock) {
+        buttonsBlock.style.display = "none";
+    }
 });
 
 // Модуль для работы с модальными окнами

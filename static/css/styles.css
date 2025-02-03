@@ -27,6 +27,10 @@ body {
     font-family: 'font', sans-serif;
 }
 
+.no-scroll {
+    overflow: hidden;
+}
+
 .page {
     max-width: 1200px;
     margin: 0 auto;
@@ -83,6 +87,7 @@ body {
     border-radius: 3px;
     cursor: pointer;
     font-weight: bold;
+    color: rgb(27 43 52);
 }
 
 .page__title {
@@ -96,13 +101,41 @@ body {
     color: rgb(187 128 179);
 }
 
+.modal__title {
+    margin: 0;
+    color: rgb(249 145 87);
+    text-transform: uppercase;
+}
+
 .page__modal-title {
     margin: 0;
     color: rgb(187 128 179);
 }
 
+.hidden-title {
+    margin: 0;
+    visibility: hidden;
+    height: 0;
+    width: 0;
+}
+
 ymaps {
     border-radius: 3px;
+}
+
+.project__header,
+.event__header {
+    position: -webkit-sticky; /* Для поддержки в Safari */
+    position: sticky;
+    top: 0;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    padding: 20px 0;
+    gap: 20px;
+    background-color: rgb(27 43 52);
+    overflow: hidden;
+    z-index: 15;
 }
 
 .bread-crumbs {
@@ -136,6 +169,52 @@ ymaps {
     font-weight: bold;
     text-transform: uppercase;
     color: rgb(27 43 52);
+}
+
+.page__close-btn {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 40px;
+    width: 40px;
+}
+
+.page__close-btn::before,
+.page__close-btn::after {
+    content: "";
+    position: absolute;
+    width: 40px;
+    height: 7px;
+    background-color: rgb(236 83 77);
+    transition: transform 0.3s ease;
+}
+
+.page__close-btn::before {
+    transform: rotate(45deg);
+}
+
+.page__close-btn::after {
+    transform: rotate(-45deg);
+}
+
+.tabs {
+    display: flex;
+    margin-bottom: 25px;
+    padding: 0;
+}
+
+.tab-link {
+    display: inline-block;
+    padding: 10px 20px;
+    cursor: pointer;
+    font-size: 20px;
+    color: rgb(17 168 205);
+}
+
+.tab-link.active {
+    border-bottom: 2px solid rgb(249 145 87);
+    color: rgb(249 145 87);
 }
 
 .page__footer {
