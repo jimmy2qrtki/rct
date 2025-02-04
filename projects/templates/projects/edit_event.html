@@ -234,14 +234,16 @@
             </div>
         
             <!-- Модальное окно для выбора исполнителей -->
-            <div id="executor-modal" class="modal">
-                <div class="modal-content">
-                    <span class="close">&times;</span>
-                    <h3>Выберите исполнителей</h3>
-                    <ul id="executor-selection-list">
+            <div id="executor-modal" class="executor-modal">
+                <div class="executor-modal__content">
+                    <div class="executor-modal__content-header">
+                        <h3 class="modal__title">Исполнители</h3>
+                        <span class="modal-close-btn"></span>
+                    </div>
+                    <ul class="executor-modal__selection-list" id="executor-selection-list">
                         {% for user in executors %}
                             {% with user.executorprofile as profile %}
-                            <li>
+                            <li class="executor-modal__selection-item">
                                 <input type="checkbox" id="executor-{{ profile.user.id }}" data-id="{{ profile.user.id }}" data-name="{{ profile.name|default:user.email }}">
                                 <label for="executor-{{ profile.user.id }}">
                                     <span class="user-name">{{ profile.name|default:user.email }}</span>
@@ -252,7 +254,7 @@
                             {% endwith %}
                         {% endfor %}
                     </ul>
-                    <button type="button" id="add-executors-btn">Выбрать</button>
+                    <button class="executor-modal__add-btn btn" type="button" id="add-executors-btn">Добавить</button>
                 </div>
             </div>
         
@@ -658,17 +660,39 @@
                 }
             }
 
-            // Глобальная переменная для карты
-            var map;
+            let mapEvent = null; // Для карты в основном интерфейсе
+            let mapModal = null; // Для карты в модальном окне
 
-            // Глобальная функция для инициализации и обновления карты
-            function initMap(containerId) {
-                const map = new ymaps.Map(containerId, {
-                    center: [55.76, 37.64],
-                    zoom: 10
+            // Функция для инициализации карты
+            function initMap(containerId, mapInstance) {
+                const mapContainer = document.getElementById(containerId);
+                if (!mapContainer) {
+                    console.error(`Контейнер с ID "${containerId}" не найден.`);
+                    return;
+                }
+
+                // Если карта уже существует, просто обновляем её
+                if (mapInstance) {
+                    updateMap(mapInstance);
+                    return;
+                }
+
+                // Инициализация новой карты
+                mapInstance = new ymaps.Map(containerId, {
+                    center: [55.76, 37.64], // Центр карты по умолчанию
+                    zoom: 10 // Масштаб по умолчанию
                 });
 
-                map.geoObjects.removeAll();
+                updateMap(mapInstance);
+                return mapInstance; // Возвращаем экземпляр карты
+            }
+
+            // Функция для обновления карты
+            function updateMap(mapInstance) {
+                if (!mapInstance) return;
+
+                // Очистка карты перед обновлением
+                mapInstance.geoObjects.removeAll();
 
                 let coordinates = [];
 
@@ -693,7 +717,7 @@
                             }
                         );
 
-                        map.geoObjects.add(placemark);
+                        mapInstance.geoObjects.add(placemark);
                         coordinates.push([latitude, longitude]);
                     } else {
                         console.warn('Некорректные координаты для адреса:', name);
@@ -707,21 +731,35 @@
                         strokeOpacity: 0.5
                     });
 
-                    map.geoObjects.add(polyline);
+                    mapInstance.geoObjects.add(polyline);
+                }
+
+                // Автоматическое изменение центра и масштаба карты
+                if (coordinates.length > 0) {
+                    mapInstance.setBounds(mapInstance.geoObjects.getBounds(), { checkZoomRange: true });
                 }
             }
 
-            ymaps.ready(function() {
-                initMap('map-event'); // Инициализация карты в основном блоке
-                initMap('map-modal-content'); // Инициализация карты в модальном окне
-            });
+            // Обработчик переключения табов
+            $('.tab-link').click(function(e) {
+                e.preventDefault();
 
-            function updateMaps() {
-                ymaps.ready(function() {
-                    initMap('map-event');
-                    initMap('map-modal-content');
-                });
-            }
+                // Удаляем класс 'active' у всех табов и контента
+                $('.tab-link').removeClass('active');
+                $('.tab-content > div').removeClass('active');
+
+                // Добавляем класс 'active' для текущего таба и его контента
+                $(this).addClass('active');
+                const targetId = $(this).attr('href').substring(1);
+                $(`#${targetId}`).addClass('active');
+
+                // Если активный таб — это таб с картой, инициализируем карту
+                if (targetId === 'event-map' && !mapEvent) {
+                    ymaps.ready(function() {
+                        mapEvent = initMap('map-event', mapEvent);
+                    });
+                }
+            });
 
             let isOrderChanged = false; // Флаг для отслеживания изменений порядка
 
@@ -786,18 +824,28 @@
                 }
 
                 // Проверка на наличие API Key
-                const apiKey = "{{ user.profile.api_key }}"; // Предполагаем, что API Key передан в контекст
+                const apiKey = "{{ user.profile.api_key }}";
                 if (!apiKey) {
                     alert("Вам нужно заполнить поле API Key в профиле.");
                     return;
                 }
 
+                // Показ модального окна
+                $('#map-modal').show();
                 document.body.classList.add('no-scroll');
 
-                // Показ карты
-                $('#map-modal').show();
-                ymaps.ready(initMap);
+                // Инициализация карты после отображения модального окна
+                ymaps.ready(function() {
+                    if (mapModal) {
+                        // Если карта уже существует, обновляем её
+                        updateMap(mapModal);
+                    } else {
+                        // Если карта не существует, создаем новую
+                        mapModal = initMap('map-modal-content', mapModal);
+                    }
+                });
             });
+
 
             // Закрытие модального окна
             $('.modal .modal-close-btn').click(function() {
@@ -831,7 +879,7 @@
 
                 $('#executor-modal').show();
             });
-            $('.close').click(function() {
+            $('.executor-modal .modal-close-btn').click(function() {
                 $('#executor-modal').hide();
             });
 
