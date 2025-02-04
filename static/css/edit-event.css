@@ -428,6 +428,7 @@
 
 .photo-view-modal {
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
     position: fixed;
@@ -437,6 +438,70 @@
     height: 100%;
     background: rgba(0, 0, 0, 0.9);
     z-index: 1010; /* Выше модального окна */
+
+}
+
+.photo-view-modal .modal-close-btn {
+    position: absolute;
+    padding: 25px;
+    top: 25px;
+    right: 25px;
+}
+
+.photo-view-modal .modal-close-btn::before,
+.photo-view-modal .modal-close-btn::after {
+    width: 50px;
+    height: 6px;
+}
+
+.photo-modal__content-wrap {
+    display: flex;
+    flex-direction: column;
+    padding: 0 10px 10px 20px;
+    width: 100%;
+    max-height: 90%;
+    overflow-y: auto;
+}
+
+.photo-gallery {
+    display: flex;
+    flex-wrap: wrap; /* Элементы будут переноситься на новую строку, если не помещаются */
+    width: 100%;
+    gap: 20px;
+}
+
+.photo-modal__title {
+    display: none;
+    font-weight: bold;
+    color: rgb(249 145 87);
+}
+
+.photo-gallery__img-wrap {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: calc((100% - 100px) / 6);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.photo-gallery__img-wrap:hover .photo-gallery__img-name {
+    visibility: visible;
+}
+
+.photo-gallery__img {
+    width: 100%;
+    cursor: pointer;
+}
+
+.photo-gallery__img-name {
+    position: absolute;
+    background-color: rgb(27 43 52 / 80%);
+    width: 100%;
+    left: 0;
+    bottom: 0;
+    padding: 5px;
+    visibility: hidden;
 }
 
 .photo-view-modal img {
@@ -478,6 +543,55 @@
     z-index: 20; 
 }
 
+.photo-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    padding: 20px;
+    background-color: rgb(0,0,0);
+    background-color: rgba(0,0,0,0.4); 
+    z-index: 20; 
+}
+
+.photo-modal__content {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 1200px;
+    height: 90%;
+    padding: 0 10px 10px 0;
+    border: 1px solid rgb(249 145 87);
+    border-radius: 3px;
+    background-color: rgb(51 67 77);
+    overflow: hidden;
+}
+
+/* Стили для самой полосы прокрутки */
+.photo-modal__content-wrap::-webkit-scrollbar {
+    width: 10px; /* Ширина полосы прокрутки */
+}
+
+/* Стили для дорожки */
+.photo-modal__content-wrap::-webkit-scrollbar-track {
+    background: rgb(27 43 52); /* Цвет дорожки */
+    border-radius: 3px;
+}
+
+/* Стили для ползунка */
+.photo-modal__content-wrap::-webkit-scrollbar-thumb {
+    background: rgb(249 145 87); /* Цвет ползунка */
+    border-radius: 3px;
+}
+
+/* Стили при наведении с помощью :hover */
+.photo-modal__content-wrap::-webkit-scrollbar-thumb:hover {
+    background: rgb(204 204 204); /* Цвет ползунка при наведении */
+}
+
 .executor-modal__content {
     position: fixed;
     display: flex;
@@ -493,6 +607,15 @@
     border: 1px solid rgb(249 145 87);
     border-radius: 3px;
     background-color: rgb(51 67 77);
+}
+
+.photo-modal__content-header {
+    position: -webkit-sticky;
+    position: sticky;
+    display: flex;
+    top: 0;
+    align-items: center;
+    padding: 15px 0 15px 20px;
 }
 
 .executor-modal__content-header {

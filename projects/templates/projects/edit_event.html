@@ -279,16 +279,20 @@
                 </div>
             </div> -->
         
-            <div id="photo-gallery-modal" class="modal">
-                <div class="modal-content">
-                    <span class="close">&times;</span>
-                    <h2>Фото Галерея</h2>
-                    <div id="gallery-content" class="photo-gallery">
-                        <!-- Основная галерея будет загружаться тут -->
+            <div id="photo-gallery-modal" class="photo-modal">
+                <div class="photo-modal__content">
+                    <div class="photo-modal__content-header">
+                        <h2 class="modal__title">Фото Галерея</h2>
+                        <span class="modal-close-btn"></span>
                     </div>
-                    <h3>Проблемные Фото</h3>
-                    <div id="problems-gallery-content" class="photo-gallery" style="display: none;">
-                        <!-- Проблемные фото будут загружаться сюда -->
+                    <div class="photo-modal__content-wrap">
+                        <div id="gallery-content" class="photo-gallery">
+                            <!-- Основная галерея будет загружаться тут -->
+                        </div>
+                        <h3 class="photo-modal__title">Проблемные адреса</h3>
+                        <div id="problems-gallery-content" class="photo-gallery" style="display: none;">
+                            <!-- Проблемные фото будут загружаться сюда -->
+                        </div>
                     </div>
                 </div>
             </div>
@@ -353,26 +357,28 @@
 
                         const galleryContent = $('#gallery-content');
                         const problemsGalleryContent = $('#problems-gallery-content');
+                        const problemsGalleryTitle = $('.photo-modal__title');
 
                         galleryContent.empty();
                         problemsGalleryContent.empty();
 
                         data.photos.forEach(photo => {
-                            const img = $('<img>').attr('src', photo.url).attr('alt', photo.name);
+                            const img = $('<img class="photo-gallery__img">').attr('src', photo.url).attr('alt', photo.name);
                             img.click(function() {
                                 openPhotoModal(photo.url);
                             });
-                            galleryContent.append($('<div>').append(img).append($('<span>').text(photo.name)));
+                            galleryContent.append($('<div class="photo-gallery__img-wrap">').append(img).append($('<span class="photo-gallery__img-name">').text(photo.name)));
                         });
 
                         if (data.problems && data.problems.length > 0) {
                             problemsGalleryContent.show();
+                            problemsGalleryTitle.css('display', 'block');
                             data.problems.forEach(photo => {
-                                const img = $('<img>').attr('src', photo.url).attr('alt', photo.name);
+                                const img = $('<img class="photo-gallery__img">').attr('src', photo.url).attr('alt', photo.name);
                                 img.click(function() {
                                     openPhotoModal(photo.url);
                                 });
-                                problemsGalleryContent.append($('<div>').append(img).append($('<span>').text(photo.name)));
+                                problemsGalleryContent.append($('<div class="photo-gallery__img-wrap">').append(img).append($('<span class="photo-gallery__img-name">').text(photo.name)));
                             });
                         } else {
                             problemsGalleryContent.hide();
@@ -387,7 +393,7 @@
             });
 
             // Закрытие галереи при нажатии на кнопку закрытия
-            $('#photo-gallery-modal .close').click(function() {
+            $('#photo-gallery-modal .modal-close-btn').click(function() {
                 $('#photo-gallery-modal').fadeOut();
             });
 
@@ -402,7 +408,7 @@
                 const modalOverlay = $('<div>').addClass('photo-view-modal');
 
                 const img = $('<img>').attr('src', photoUrl);
-                const closeBtn = $('<span>').addClass('close-photo').text('×').click(function() {
+                const closeBtn = $('<span>').addClass('modal-close-btn').text('').click(function() {
                     modalOverlay.fadeOut(() => modalOverlay.remove());
                 });
 
