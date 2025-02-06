@@ -214,7 +214,7 @@
                                             <button class="delete-address-btn btn" data-id="{{ address.id }}">Удалить</button>
                                         </li>
                                         {% empty %}
-                                        <li>Нет адресов.</li>
+                                        <li>Нет адресов</li>
                                         {% endfor %}
                                     </ul>
                                     <div class="event__addresses-btns">
@@ -258,27 +258,6 @@
                 </div>
             </div>
         
-            <!-- <div id="map-modal" class="modal">
-                <div class="modal-content">
-                    <span class="close">&times;</span>
-                    <div id="map-modal-content" style="width: 600px; height: 400px;"></div>
-                    <ul id="modal-event-addresses-list">
-                        {% for address in event.addresses.all %}
-                        <li data-id="{{ address.id }}">
-                            <span class="address-number">{{ forloop.counter }}.</span> 
-                            <span class="address-name" data-id="{{ address.id }}">{{ address.name }}</span>
-                            <span class="hidden-coordinates">
-                                <span class="latitude">{{ address.latitude }}</span> | 
-                                <span class="longitude">{{ address.longitude }}</span>
-                            </span>
-                        </li>
-                        {% empty %}
-                        <li>Нет адресов.</li>
-                        {% endfor %}
-                    </ul>
-                </div>
-            </div> -->
-        
             <div id="photo-gallery-modal" class="photo-modal">
                 <div class="photo-modal__content">
                     <div class="photo-modal__content-header">
@@ -300,6 +279,78 @@
     </div>
 
     <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const saveButton = document.getElementById('save-event-button');
+            const form = document.getElementById('event-form');
+
+            let formInitialData = {};
+
+            // Функция для сбора первоначальных данных формы
+            function collectInitialData() {
+                formInitialData = Array.from(form.elements).reduce((acc, element) => {
+                    if (element.name) {
+                        acc[element.name] = element.value;
+                    }
+                    return acc;
+                }, {});
+            }
+
+            // Проверяем изменение формы
+            function isFormChanged() {
+                return Array.from(form.elements).some(element => {
+                    if (element.name && element.type !== 'submit') {
+                        return element.value !== formInitialData[element.name];
+                    }
+                    return false;
+                });
+            }
+
+            // Обрабатываем событие изменении и проверяем, есть ли изменения в форме
+            function handleFormChange() {
+                if (isFormChanged()) {
+                    saveButton.style.backgroundColor = 'rgb(249 145 87)'; // Например, изменяем цвет на красный
+                } else {
+                    saveButton.style.backgroundColor = ''; // Сбрасываем к исходному
+                }
+            }
+
+            // Собираем данные начальные
+            collectInitialData();
+
+            // Регистрируем обработчики событий изменения для полей формы
+            Array.from(form.elements).forEach(element => {
+                if (element.type !== 'submit') {
+                    element.addEventListener('input', handleFormChange);
+                }
+            });
+        });
+
+        $(document).ready(function() {
+            function checkAddressesList() {
+                const $addressesList = $('#event-addresses-list');
+                const $addressButtons = $('.event__addresses-btns');
+
+                if ($addressesList.children().length === 0 || $addressesList.find('li:contains("Нет адресов")').length > 0) {
+                    $addressButtons.hide(); // Скрываем кнопки, если адресов нет
+                } else {
+                    $addressButtons.show(); // Показываем кнопки, если адреса есть
+                }
+            }
+
+            // Проверяем при загрузке страницы
+            checkAddressesList();
+
+            // Обновляем проверку при добавлении адреса
+            $('#add-address-btn').click(function() {
+                setTimeout(checkAddressesList, 100);
+            });
+
+            // Обновляем проверку при удалении адреса
+            $('#event-addresses-list').on('click', '.delete-address-btn', function() {
+                setTimeout(checkAddressesList, 100);
+            });
+        });
+
         document.addEventListener("DOMContentLoaded", function() {
             const tabLinks = document.querySelectorAll(".tab-link");
             const tabPanes = document.querySelectorAll(".tab-content > div");
@@ -509,69 +560,161 @@
                 });
             });
             // Обработка удаления конкретного адреса
-            $('#event-addresses-list').on('click', '.delete-address-btn', function() {
-                const listItem = $(this).closest('li');
-                const addressId = listItem.data('id');
-                const isUserAssigned = listItem.attr('data-user-assigned') === 'true'; // Используйте attr, если data возвращает unexpected results
+            $(document).ready(function() {
+                // Обработчик для кнопки удаления адреса
+                $('#event-addresses-list').on('click', '.delete-address-btn', function() {
+                    const addressId = $(this).data('id');
+                    const listItem = $(this).closest('li');
+                    const isUserAssigned = listItem.attr('data-user-assigned') === 'true';
 
-                // Добавьте отладочный вывод
-                console.log('Удаление адреса: ', addressId);
-                console.log('Назначен исполнитель:', isUserAssigned);
-
-                if (isUserAssigned) {
-                    const confirmationMessage = "Вы действительно хотите удалить адрес, который назначен исполнителю? Будут удалены имеющиеся фото к этому адресу!";
-                    
-                    // Еще один отладочный вывод для подтверждения
-                    console.log('Отображаем подтверждение');
-                    
-                    if (!confirm(confirmationMessage)) {
-                        console.log('Удаление отменено');
-                        return; // Если пользователь отменил подтверждение, ничего не делаем
+                    // Подтверждение удаления, если адрес назначен исполнителю
+                    if (isUserAssigned) {
+                        const confirmationMessage = "Вы действительно хотите удалить адрес, который назначен исполнителю? Будут удалены имеющиеся фото к этому адресу!";
+                        if (!confirm(confirmationMessage)) {
+                            return; // Если пользователь отменил подтверждение, ничего не делаем
+                        }
                     }
+
+                    // Отправляем запрос на удаление адреса
+                    $.ajax({
+                        url: "{% url 'delete_event_address' 0 %}".replace('/0/', '/' + addressId + '/'),
+                        type: "POST",
+                        data: {
+                            csrfmiddlewaretoken: "{{ csrf_token }}",
+                        },
+                        success: function(response) {
+                            // Удаляем адрес из списка
+                            listItem.remove();
+                            updateAddressNumbers(); // Обновляем нумерацию адресов
+
+                            // Проверяем условия для исполнителей и обновляем список
+                            checkExecutorsAfterAddressDeletion();
+                        },
+                        error: function(response) {
+                            alert('Произошла ошибка при удалении адреса');
+                        }
+                    });
+                });
+
+                // Функция для проверки условий для исполнителей после удаления адреса
+                function checkExecutorsAfterAddressDeletion() {
+                    $.ajax({
+                        url: "{% url 'check_executors_after_address_deletion' event.id %}",
+                        type: "GET",
+                        success: function(response) {
+                            // Обновляем список исполнителей на странице
+                            updateExecutorsList(response.executors);
+                        },
+                        error: function(response) {
+                            console.error('Ошибка при проверке исполнителей:', response);
+                        }
+                    });
                 }
 
-                // Если дошли до сюда, значит, пользователь подтвердил или подтверждение не требовалось
-                $.ajax({
-                    url: "{% url 'delete_event_address' 0 %}".replace('/0/', '/' + addressId + '/'),
-                    type: "POST",
-                    data: {
-                        csrfmiddlewaretoken: "{{ csrf_token }}",
-                    },
-                    success: function(response) {
-                        listItem.remove();  // Удаляем элемент из DOM после успешного удаления из БД
-                        updateAddressNumbers(); // Обновляем нумерацию оставшихся адресов
-                    },
-                    error: function(response) {
-                        alert('Произошла ошибка при удалении адреса');
-                    }
-                });
+                // Функция для обновления списка исполнителей на странице
+                function updateExecutorsList(executors) {
+                    const executorsList = $('#event-executors-list');
+                    executorsList.empty(); // Очищаем текущий список
+
+                    // Добавляем обновленный список исполнителей
+                    executors.forEach(executor => {
+                        const listItem = `
+                            <li class="event__executors-item" data-id="${executor.id}" data-status="${executor.status}">
+                                <div class="event__executors-item-row">
+                                    <span class="user-name">${executor.name}</span>
+                                    ${executor.district ? `<span class="district">${executor.district}</span>` : ''}
+                                    ${executor.phone_number ? `<span class="phone-number">${executor.phone_number}</span>` : ''}
+                                    <span class="status">${executor.status}</span>
+                                </div>
+                                <div class="event__executors-item-row">
+                                    ${executor.has_unassigned_addresses ? `
+                                        <input type="text" id="address-indexes-${executor.id}" placeholder="Пример: 1,3-5,10-20,25">
+                                        <button class="assign-btn btn" data-id="${executor.id}">Назначить</button>
+                                    ` : ''}
+                                </div>
+                                <div class="event__executors-item-row">
+                                    ${executor.has_photos ? `
+                                        <button class="details-btn btn" data-id="${executor.id}">Показать фото</button>
+                                    ` : ''}
+                                    ${executor.status === 'completed' ? `
+                                        <button class="download-photos-btn btn" data-id="${executor.id}">Скачать фото</button>
+                                    ` : ''}
+                                    ${executor.status !== 'completed' ? `
+                                        <button class="delete-executor-btn btn" data-id="${executor.id}">Удалить</button>
+                                    ` : ''}
+                                </div>
+                            </li>
+                        `;
+                        executorsList.append(listItem);
+                    });
+                }
             });
 
             document.getElementById('add-address-btn').onclick = function() {
                 const addressList = document.getElementById('event-addresses-list');
-                
+                const updateButton = document.getElementById('update-addresses-btn');
+
                 // Создаем новый элемент списка без данных
                 const newListItem = document.createElement('li');
+                newListItem.classList.add('event__addresses-item');
                 newListItem.innerHTML = `
-                    <span class="address-number">=${addressList.children.length + 1}=</span>
+                    <span class="address-number">${addressList.children.length + 1}</span>
                     <input type="text" name="new_address_names[]" class="address-name" placeholder="Введите название адреса">
-                    <span class="latitude"></span> | <span class="longitude"></span>
-                    <button type="button" class="delete-address-btn">Удалить</button>
+                    <span class="hidden-coordinates">
+                        <span class="latitude"></span>
+                        <span class="longitude"></span>
+                    </span>
+                    <button type="button" class="delete-address-btn btn">Удалить</button>
                 `;
-                
+
+                // Добавляем новый элемент в список
                 addressList.appendChild(newListItem);
+
+                // Обновляем нумерацию адресов
                 updateAddressNumbers();
-                
+
+                // Прокручиваем список вниз, если есть скроллбар
+                addressList.scrollTop = addressList.scrollHeight;
+
+                // Обработчик для кнопки удаления адреса
                 newListItem.querySelector('.delete-address-btn').onclick = function() {
                     addressList.removeChild(newListItem);
                     updateAddressNumbers();
+                    checkInputFields();
                 };
+
+                // Обработчик для изменения значения в поле ввода
+                const addressInput = newListItem.querySelector('.address-name');
+                addressInput.addEventListener('input', checkInputFields);
+
+                // Функция для проверки всех полей ввода и изменения цвета кнопки
+                function checkInputFields() {
+                    const inputs = addressList.querySelectorAll('.address-name');
+                    
+                    const anyInputNotEmpty = Array.from(inputs).some(input => {
+                        if (input && input.value !== undefined) {
+                            return input.value.trim() !== '';
+                        }
+                        return false;
+                    });
+
+                    if (anyInputNotEmpty) {
+                        updateButton.style.backgroundColor = 'rgb(249 145 87)'; // Зеленый цвет
+                        updateButton.disabled = false; // Включаем кнопку
+                    } else {
+                        updateButton.style.backgroundColor = ''; // Сброс к исходному состоянию
+                        updateButton.disabled = true; // Выключаем кнопку
+                    }
+                }
+
+                // Первоначальная проверка на случай, если поле сразу заполнено
+                checkInputFields();
             };
 
             // Функция для обновления нумерации адресов
             function updateAddressNumbers() {
                 $('#event-addresses-list .address-number').each(function(index) {
-                    $(this).text((index + 1) + '.');
+                    $(this).text('=' + (index + 1) + '=');
                 });
             }
 
@@ -715,7 +858,7 @@
                         const placemark = new ymaps.Placemark(
                             [latitude, longitude], 
                             {
-                                balloonContent: `<strong>Адрес ${addressNumber}</strong>: ${name}`,
+                                balloonContent: `<strong>=${addressNumber}=</strong> ${name}`,
                                 iconContent: addressNumber
                             }, 
                             {
@@ -789,7 +932,7 @@
 
             function updateAddressNumbersAfterSort(selector) {
                 $(selector + ' li').each(function(index) {
-                    $(this).find('.address-number').text((index + 1) + '.');
+                    $(this).find('.address-number').text('=' + (index + 1) + '=');
                 });
             }
 
@@ -865,6 +1008,31 @@
 
             // Открытие и закрытие модального окна
             $('#select-executors-btn').click(function() {
+                // Проверяем, есть ли адреса в списке
+                var addressesExist = $('#event-addresses-list li').length > 1 || 
+                                    ($('#event-addresses-list li').length === 1 && 
+                                    $('#event-addresses-list li').text().trim() !== "Нет адресов");
+
+                if (!addressesExist) {
+                    alert("Для добавления исполнителя - необходимо добавить адреса!");
+                    return;
+                }
+
+                // Проверяем, есть ли хотя бы один неназначенный адрес
+                var hasUnassignedAddress = false;
+                $('#event-addresses-list li').each(function() {
+                    console.log("Адрес:", $(this).find('.address-name').text().trim(), "data-user-assigned:", $(this).data('user-assigned')); // Отладочное сообщение
+                    if ($(this).data('user-assigned') === false) {
+                        hasUnassignedAddress = true;
+                        return false; // Прерываем each, если найден неназначенный адрес
+                    }
+                });
+
+                if (!hasUnassignedAddress) {
+                    alert("Нет свободных адресов для добавления исполнителя!");
+                    return;
+                }
+
                 // Собираем ID исполнителей, уже добавленных в список
                 var existingExecutorIds = [];
                 $('#event-executors-list li').each(function() {
@@ -913,20 +1081,7 @@
                     },
                     success: function(response) {
                         $('#executor-modal').hide();
-                        // Обновите список исполнителей на странице
-                        $('#event-executors-list').empty();
-                        $.each(response.executors, function(index, executor) {
-                            $('#event-executors-list').append(
-                                `<li data-id="${executor.id}">
-                                    <span class="user-name">${executor.name}</span>
-                                    | <span class="district">${executor.district}</span>
-                                    | <span class="phone-number">${executor.phone_number}</span>
-                                    <button class="assign-btn" data-id="${executor.id}">Назначить</button>
-                                    <button class="delete-executor-btn" data-id="${executor.id}">Удалить</button>
-                                </li>`
-                            );
-                        });
-                        location.reload();
+                        location.reload(); // Перезагружаем страницу
                     },
                     error: function(xhr, status, error) {
                         alert('Ошибка при сохранении исполнителей. Попробуйте еще раз.');

@@ -146,13 +146,26 @@ def edit_event(request, event_id):
     user_profile = request.user.profile
     api_key = user_profile.api_key if user_profile else None
 
-    # Проверяем есть ли неназначенные адреса
+    # Проверяем, есть ли неназначенные адреса
     has_unassigned_addresses = event.addresses.filter(assigned_user__isnull=True).exists()
-    executors_with_photo_status = []
 
+    # Фильтруем исполнителей и обновляем их статусы
+    filtered_executors_with_photo_status = []
     for event_user in event_users:
         has_photos_status = has_photos(event_user.user, event)
-        executors_with_photo_status.append((event_user, has_photos_status))
+
+        # Если нет неназначенных адресов и у исполнителя нет назначенных адресов, удаляем его
+        if not has_unassigned_addresses and not event.addresses.filter(assigned_user=event_user.user).exists():
+            event_user.delete()  # Удаляем исполнителя из базы данных
+            continue  # Пропускаем добавление в список
+
+        # Если у исполнителя нет назначенных адресов, но есть неназначенные адреса, меняем статус на "Выбрано"
+        if not event.addresses.filter(assigned_user=event_user.user).exists() and has_unassigned_addresses:
+            event_user.status = 'Выбрано'
+            event_user.save()
+
+        # Добавляем исполнителя в отфильтрованный список
+        filtered_executors_with_photo_status.append((event_user, has_photos_status))
 
     event.update_status()  # Обновление статуса события.
 
@@ -162,10 +175,41 @@ def edit_event(request, event_id):
         'event': event,
         'project_addresses': project_addresses,
         'executors': executors,
-        'executors_with_photo_status': executors_with_photo_status,
+        'executors_with_photo_status': filtered_executors_with_photo_status,  # Используем отфильтрованный список
         'api_key': api_key,
         'has_unassigned_addresses': has_unassigned_addresses,
     })
+
+def check_executors_after_address_deletion(request, event_id):
+    event = get_object_or_404(Event, pk=event_id)
+    event_users = event.eventuser_set.select_related('user')
+    has_unassigned_addresses = event.addresses.filter(assigned_user__isnull=True).exists()
+
+    # Обновляем статусы исполнителей и формируем список для ответа
+    executors = []
+    for event_user in event_users:
+        # Если нет неназначенных адресов и у исполнителя нет назначенных адресов, удаляем его
+        if not has_unassigned_addresses and not event.addresses.filter(assigned_user=event_user.user).exists():
+            event_user.delete()
+            continue
+
+        # Если у исполнителя нет назначенных адресов, но есть неназначенные адреса, меняем статус на "Выбрано"
+        if not event.addresses.filter(assigned_user=event_user.user).exists() and has_unassigned_addresses:
+            event_user.status = 'Выбрано'
+            event_user.save()
+
+        # Добавляем исполнителя в список для ответа
+        executors.append({
+            'id': event_user.user.id,
+            'name': event_user.user.executorprofile.name if event_user.user.executorprofile else event_user.user.email,
+            'district': event_user.user.executorprofile.district if event_user.user.executorprofile else None,
+            'phone_number': event_user.user.executorprofile.phone_number if event_user.user.executorprofile else None,
+            'status': event_user.get_status_display(),  # Используем get_status_display() для читаемого статуса
+            'has_unassigned_addresses': has_unassigned_addresses,
+            'has_photos': has_photos(event_user.user, event),
+        })
+
+    return JsonResponse({'executors': executors})
 
 # перестраивает порядок адресов для оптимального маршрута
 def nearest_neighbor(coords):

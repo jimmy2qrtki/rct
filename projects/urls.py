@@ -39,4 +39,5 @@ urlpatterns = [
     path('save_combined_address_order/', views.save_combined_address_order, name='save_combined_address_order'),
     path('optimize-route/', views.optimize_route, name='optimize_route'),
     path('upload_combined_addresses_photos/', views.upload_combined_addresses_photos, name='upload_combined_addresses_photos'),
+    path('event/<int:event_id>/check_executors/', views.check_executors_after_address_deletion, name='check_executors_after_address_deletion'),
 ]
