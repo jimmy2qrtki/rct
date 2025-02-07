@@ -15,40 +15,7 @@
     <script src="{% static 'js/jquery-ui.1.12.1.min.js' %}"></script>
     <script src="{% static 'js/edit_event.js' %}"></script>
 </head>
-<div id="map-modal" class="modal">
-    <div class="modal__content">
-        <div class="modal__content-header">
-            <h2 class="modal__title">{{ event.get_event_type_display }}: {{ project.name }}</h2>
-            <span class="modal-close-btn"></span>
-        </div>
-        <div class="modal__content-wrap">
-            <ul class="modal__event-addresses-list" id="modal-event-addresses-list">
-                {% for address in event.addresses.all %}
-                <li class="modal__event-addresses-item" data-id="{{ address.id }}">
-                    <span class="address-number">={{ forloop.counter }}=</span> 
-                    <span class="address-name" data-id="{{ address.id }}">{{ address.name }}</span>
-                    <span class="hidden-coordinates">
-                        <span class="latitude">{{ address.latitude }}</span> | 
-                        <span class="longitude">{{ address.longitude }}</span>
-                    </span>
-                    {% if address.assigned_user %}
-                        {% with address.assigned_user.executorprofile as profile %}
-                            <span class="executor-name">{{ profile.name|default:address.assigned_user.username }}</span>
-                        {% endwith %}
-                    {% else %}
-                        <span class="executor-name">Не назначен</span>
-                    {% endif %}
-                </li>
-                {% empty %}
-                <li>Нет адресов.</li>
-                {% endfor %}
-            </ul>
-            <div class="map-wrap">
-                <div id="map-modal-content" style="width: 100%; height: 100%;"></div>
-            </div>
-        </div>
-    </div>
-</div>
+
 <body class="page event">
     <header class="page__header">
         <nav class="nav">
@@ -273,6 +240,41 @@
                             <!-- Проблемные фото будут загружаться сюда -->
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="map-modal" class="modal">
+        <div class="modal__content">
+            <div class="modal__content-header">
+                <h2 class="modal__title">{{ event.get_event_type_display }}: {{ project.name }}</h2>
+                <span class="modal-close-btn"></span>
+            </div>
+            <div class="modal__content-wrap">
+                <ul class="modal__event-addresses-list" id="modal-event-addresses-list">
+                    {% for address in event.addresses.all %}
+                    <li class="modal__event-addresses-item" data-id="{{ address.id }}">
+                        <span class="address-number">={{ forloop.counter }}=</span> 
+                        <span class="address-name" data-id="{{ address.id }}">{{ address.name }}</span>
+                        <span class="hidden-coordinates">
+                            <span class="latitude">{{ address.latitude }}</span> | 
+                            <span class="longitude">{{ address.longitude }}</span>
+                        </span>
+                        {% if address.assigned_user %}
+                            {% with address.assigned_user.executorprofile as profile %}
+                                <span class="executor-name">{{ profile.name|default:address.assigned_user.username }}</span>
+                            {% endwith %}
+                        {% else %}
+                            <span class="executor-name">Не назначен</span>
+                        {% endif %}
+                    </li>
+                    {% empty %}
+                    <li>Нет адресов.</li>
+                    {% endfor %}
+                </ul>
+                <div class="map-wrap">
+                    <div id="map-modal-content" style="width: 100%; height: 100%;"></div>
                 </div>
             </div>
         </div>

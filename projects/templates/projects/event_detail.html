@@ -1,4 +1,5 @@
 <!-- templates/projects/event_detail.html -->
+<!DOCTYPE html>
 <html lang="ru_RU">
 <head>
     <meta charset="UTF-8">
@@ -13,158 +14,200 @@
     <script src="https://api-maps.yandex.ru/2.1/?apikey={{ api_key }}&lang=ru_RU" type="text/javascript"></script>
     <link rel="stylesheet" href="{% static 'css/normalize.css' %}">
     <link rel="stylesheet" href="{% static 'css/styles.css' %}">
-    <style>
-        .hidden-coordinates {
-            display: none;
-        }
-    </style>
+    <link rel="stylesheet" href="{% static 'css/event-detail.css' %}">
 </head>
-<body>
-    <h1>{{ event.get_event_type_display }}: {{ event.project.name }}</h1>
-    <div>
-        <p>Организация: {{ event.project.organization }}</p>
-        <p>Продукт: {{ event.project.product }}</p>
-        <p>Кол-во фото: {{ event.photo_count }}</p>
-        <p>Дата начала: {{ event.event_date }}</p>
-        <p>Срок выполнения (в днях): {{ event.duration_days }}</p>
-        <p>Описание: {{ event.description }}</p>
-    </div>
-
-    <h3>Назначенные адреса</h3>
-    <div id="map" style="width: 100%; height: 400px; margin-bottom: 20px;"></div>
-    <button id="update-route">Обновить маршрут</button>
-    <button id="print-addresses">Печать маршрута</button>
-    {% if is_manager %}
-        <div>
-            <ul class="nav nav-tabs" id="managerTabs" role="tablist">
-                {% for executor, addresses in addresses_with_photos_manager.items %}
-                    {% if executor or addresses %}
-                        <li class="nav-item">
-                            <a class="nav-link {% if forloop.first %}active{% endif %}"
-                            id="tab-{% if executor %}{{ executor.id }}{% else %}unassigned{% endif %}"
-                            data-toggle="tab"
-                            href="#executor-{% if executor %}{{ executor.id }}{% else %}unassigned{% endif %}"
-                            role="tab">
-
-                                {% if executor %}
-                                    {{ executor.name }}
-                                {% else %}
-                                    Без назначения
-                                {% endif %}
-
-                            </a>
-                        </li>
-                    {% endif %}
-                {% endfor %}
+<body class="page event-detail">
+    <header class="page__header">
+        <nav class="nav">
+            <ul class="nav__list">
+                <li class="nav__item">
+                    <a class="nav__link nav__link--inactive" href="{% url 'profile' %}">Профиль</a>
+                </li>
+                <li class="nav__item">
+                    <a class="nav__link nav__link--inactive" href="{% url 'manage_projects' %}">Проекты</a>
+                </li>
+                <li class="nav__item">
+                    <a class="nav__link nav__link--active">Контроль</a>
+                </li>
             </ul>
-            <div class="tab-content" id="managerTabsContent">
-                {% for executor, addresses in addresses_with_photos_manager.items %}
-                    {% if executor or addresses %}
-                        <div class="tab-pane fade {% if forloop.first %}show active{% endif %}"
-                            id="executor-{% if executor %}{{ executor.id }}{% else %}unassigned{% endif %}"
-                            role="tabpanel">
-                            <ul>
-                                {% for item in addresses %}
-                                    <li data-id="{{ item.address.id }}" data-executor-id="{{ item.executor_id }}" data-executor-color="{{ item.executor_color }}">
-                                        <span class="address-number">{{ forloop.counter }}.</span>
-                                        <span class="address-name">{{ item.address.name }}</span>
-                                        {% if item.address.assigned_user %}
-                                            {% if item.address.assigned_user.username %}
-                                                <span class="executor-name"> - {{ item.address.assigned_user.executorprofile.name }}</span>
-                                            {% else %}
-                                                <span class="executor-email"> - {{ item.address.assigned_user.email }}</span>
-                                            {% endif %}
-                                        {% else %}
-                                            <span class="executor-none"> - Исполнитель не назначен</span>
-                                        {% endif %}
-                                        {% if item.has_photos %}
-                                        <button class="view-details" data-address-id="{{ item.address.id }}">Фото</button>
-                                        {% endif %}
-                                        <span class="hidden-coordinates">
-                                            <span class="latitude">{{ item.address.latitude }}</span> | 
-                                            <span class="longitude">{{ item.address.longitude }}</span>
-                                        </span>
-                                    </li>
-                                {% empty %}
-                                    <li>Нет назначенных адресов для {% if executor %}{{ executor.name }}{% else %}категории "Без назначения"{% endif %}.</li>
-                                {% endfor %}
-                            </ul>
+        </nav>
+        <div class="logo">
+            <img class="logo__img" src="{% static 'img/logo.png' %}" alt="Логотип">
+        </div>
+    </header>
+    <div class="container">
+        <div class="event-detail__header">
+            <h1 class="page__title">{{ event.get_event_type_display }}: {{ event.project.name }}</h1>
+            <a class="event-detail__close-btn page__close-btn" href="{% if is_executor %}{% url 'assigned_events_list' %}{% elif is_manager %}{% url 'events_control' %}{% else %}{% url 'home' %}{% endif %}"></a>
+        </div>
+        <div class="event-detail__content">
+            <div class="event-detail__content-row">
+                <div class="event-detail__content-col">
+                    <div class="event-detail__content-cell" data-section-id="details">
+                        <div class="event-detail__cell-header" data-section-id="details">
+                            <h2 class="page__block-title">Детали</h2>
                         </div>
-                    {% endif %}
-                {% endfor %}
+                        <div class="event-detail__cell-content" data-section-id="details">
+                            <div class="event-detail__cell-content-wrap">
+                                <p>Организация: {{ event.project.organization }}</p>
+                                <p>Продукт: {{ event.project.product }}</p>
+                                <p>Кол-во фото: {{ event.photo_count }}</p>
+                                <p>Дата начала: {{ event.event_date }}</p>
+                                <p>Срок выполнения (в днях): {{ event.duration_days }}</p>
+                                <p>Описание: {{ event.description }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="event-detail__content-cell" data-section-id="appointments">
+                        <div class="event-detail__cell-header" data-section-id="appointments">
+                            <h2 class="page__block-title">Назначения</h2>
+                        </div>
+                        <div class="event-detail__cell-content" data-section-id="appointments">
+                            <div class="event-detail__cell-content-wrap">
+                                <button id="update-route">Обновить маршрут</button>
+                                <button id="print-addresses">Печать маршрута</button>
+                                {% if is_manager %}
+                                    <div>
+                                        <ul class="nav nav-tabs" id="managerTabs" role="tablist">
+                                            {% for executor, addresses in addresses_with_photos_manager.items %}
+                                                {% if executor or addresses %}
+                                                    <li class="nav-item">
+                                                        <a class="nav-link {% if forloop.first %}active{% endif %}"
+                                                        id="tab-{% if executor %}{{ executor.id }}{% else %}unassigned{% endif %}"
+                                                        data-toggle="tab"
+                                                        href="#executor-{% if executor %}{{ executor.id }}{% else %}unassigned{% endif %}"
+                                                        role="tab">
+                            
+                                                            {% if executor %}
+                                                                {{ executor.name }}
+                                                            {% else %}
+                                                                Без назначения
+                                                            {% endif %}
+                            
+                                                        </a>
+                                                    </li>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </ul>
+                                        <div class="tab-content" id="managerTabsContent">
+                                            {% for executor, addresses in addresses_with_photos_manager.items %}
+                                                {% if executor or addresses %}
+                                                    <div class="tab-pane fade {% if forloop.first %}show active{% endif %}"
+                                                        id="executor-{% if executor %}{{ executor.id }}{% else %}unassigned{% endif %}"
+                                                        role="tabpanel">
+                                                        <ul>
+                                                            {% for item in addresses %}
+                                                                <li data-id="{{ item.address.id }}" data-executor-id="{{ item.executor_id }}" data-executor-color="{{ item.executor_color }}">
+                                                                    <span class="address-number">{{ forloop.counter }}.</span>
+                                                                    <span class="address-name">{{ item.address.name }}</span>
+                                                                    {% if item.address.assigned_user %}
+                                                                        {% if item.address.assigned_user.username %}
+                                                                            <span class="executor-name"> - {{ item.address.assigned_user.executorprofile.name }}</span>
+                                                                        {% else %}
+                                                                            <span class="executor-email"> - {{ item.address.assigned_user.email }}</span>
+                                                                        {% endif %}
+                                                                    {% else %}
+                                                                        <span class="executor-none"> - Исполнитель не назначен</span>
+                                                                    {% endif %}
+                                                                    {% if item.has_photos %}
+                                                                    <button class="view-details" data-address-id="{{ item.address.id }}">Фото</button>
+                                                                    {% endif %}
+                                                                    <span class="hidden-coordinates">
+                                                                        <span class="latitude">{{ item.address.latitude }}</span> | 
+                                                                        <span class="longitude">{{ item.address.longitude }}</span>
+                                                                    </span>
+                                                                </li>
+                                                            {% empty %}
+                                                                <li>Нет назначенных адресов для {% if executor %}{{ executor.name }}{% else %}категории "Без назначения"{% endif %}.</li>
+                                                            {% endfor %}
+                                                        </ul>
+                                                    </div>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            
+                                {% if is_executor %}
+                                    <ul id="executor-event-addresses-list">
+                                        {% for item in addresses_with_photos_executor %}
+                                        <li data-id="{{ item.address.id }}" data-executor-id="{{ item.executor_id }}" data-executor-color="{{ item.executor_color }}" class="accordion-header">
+                                            <span class="address-number">{{ forloop.counter }}.</span> 
+                                            <span class="address-name">{{ item.address.name }}</span>
+                            
+                                            <div class="photo-upload-section" style="display: none;">
+                                                {% if user_event_status == 'completed' %}
+                                                    <span>Фотографии приняты</span>
+                                                {% else %}
+                                                    {% if item.has_photos %}
+                                                        <span>Фото загружено</span>
+                                                        <button class="refresh-upload-form" data-url="{% url 'upload_photos' event.id item.address.id %}">Перезагрузить</button>
+                                                    {% else %}
+                                                        <form method="post" enctype="multipart/form-data" action="{% url 'upload_photos' event.id item.address.id %}">
+                                                            {% csrf_token %}
+                                                            <input type="file" name="photos" accept="image/*" multiple>
+                                                            <label>
+                                                                <input type="checkbox" name="force_mjeure"> Форс-мажор
+                                                            </label>
+                                                            <button type="submit">Загрузить фото</button>
+                                                        </form>
+                                                    {% endif %}
+                                                {% endif %}
+                                            </div>
+                            
+                                            <span class="hidden-coordinates">
+                                                <span class="latitude">{{ item.address.latitude }}</span> | 
+                                                <span class="longitude">{{ item.address.longitude }}</span>
+                                            </span>
+                                        </li>
+                                        {% empty %}
+                                        <li>Нет назначенных адресов.</li>
+                                        {% endfor %}
+                                    </ul>
+                                {% endif %}
+                            
+                                <!-- Модальное окно для просмотра фото -->
+                                <div id="photosModal" class="modal fade" tabindex="-1" role="dialog">
+                                    <div class="modal-dialog modal-lg" role="document">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">Просмотр фотографий</h5>
+                                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                                    <span aria-hidden="true">&times;</span>
+                                                </button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <!-- Сюда будут вставлены фото -->
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Закрыть</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                {% if is_executor %}
+                                    {% if user_event_status == 'completed' %}
+                                        <p>{{ event.get_event_type_display }}: завершён</p>
+                                    {% else %}
+                                        <button id="complete-event">Завершить</button>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            
+                <div class="event-detail__content-col">
+                    <div class="map-wrap">
+                        <div id="map" style="width: 100%; height: 100%;"></div>
+                    </div>
+                </div>
+
             </div>
         </div>
-    {% endif %}
-
-    {% if is_executor %}
-        <ul id="executor-event-addresses-list">
-            {% for item in addresses_with_photos_executor %}
-            <li data-id="{{ item.address.id }}" data-executor-id="{{ item.executor_id }}" data-executor-color="{{ item.executor_color }}" class="accordion-header">
-                <span class="address-number">{{ forloop.counter }}.</span> 
-                <span class="address-name">{{ item.address.name }}</span>
-
-                <div class="photo-upload-section" style="display: none;">
-                    {% if user_event_status == 'completed' %}
-                        <span>Фотографии приняты</span>
-                    {% else %}
-                        {% if item.has_photos %}
-                            <span>Фото загружено</span>
-                            <button class="refresh-upload-form" data-url="{% url 'upload_photos' event.id item.address.id %}">Перезагрузить</button>
-                        {% else %}
-                            <form method="post" enctype="multipart/form-data" action="{% url 'upload_photos' event.id item.address.id %}">
-                                {% csrf_token %}
-                                <input type="file" name="photos" accept="image/*" multiple>
-                                <label>
-                                    <input type="checkbox" name="force_mjeure"> Форс-мажор
-                                </label>
-                                <button type="submit">Загрузить фото</button>
-                            </form>
-                        {% endif %}
-                    {% endif %}
-                </div>
-
-                <span class="hidden-coordinates">
-                    <span class="latitude">{{ item.address.latitude }}</span> | 
-                    <span class="longitude">{{ item.address.longitude }}</span>
-                </span>
-            </li>
-            {% empty %}
-            <li>Нет назначенных адресов.</li>
-            {% endfor %}
-        </ul>
-    {% endif %}
-
-    <!-- Модальное окно для просмотра фото -->
-    <div id="photosModal" class="modal fade" tabindex="-1" role="dialog">
-        <div class="modal-dialog modal-lg" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Просмотр фотографий</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <!-- Сюда будут вставлены фото -->
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Закрыть</button>
-                </div>
-            </div>
-        </div>
-    </div>
     
-    {% if is_executor %}
-        {% if user_event_status == 'completed' %}
-            <p>{{ event.get_event_type_display }}: завершён</p>
-        {% else %}
-            <button id="complete-event">Завершить</button>
-        {% endif %}
-    {% endif %}
-
-    <a href="{% if is_executor %}{% url 'assigned_events_list' %}{% elif is_manager %}{% url 'events_control' %}{% else %}{% url 'home' %}{% endif %}">
-        Закрыть
-    </a>
+    </div>
 
     <script type="text/javascript">
         window.csrfToken = '{{ csrf_token }}'; // Глобальная переменная с CSRF-токеном

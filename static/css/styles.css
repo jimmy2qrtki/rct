@@ -93,6 +93,7 @@ body {
 .page__title {
     margin: 0;
     margin-bottom: 25px;
+    font-weight: bold;
     color: rgb(187 128 179);
 }
 

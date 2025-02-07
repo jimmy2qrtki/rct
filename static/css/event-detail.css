@@ -1,0 +1,33 @@
+.hidden-coordinates {
+    display: none;
+}
+
+.event-detail__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+}
+
+.page__title {
+    margin-bottom: 0;
+}
+
+
+
+
+
+
+
+
+.map-wrap {
+    position: -webkit-sticky; /* Для поддержки в Safari */
+    position: sticky;
+    display: block;
+    top: 80px;
+    width: 100%;
+    height: 90vh;
+    border-radius: 3px;
+    overflow: hidden;
+    z-index: 10;
+}

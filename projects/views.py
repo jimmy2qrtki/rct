@@ -7,7 +7,7 @@ from .forms import ProjectForm, EventForm
 from django.contrib.auth.decorators import login_required
 from openpyxl import load_workbook
 import requests, json
-from django.http import JsonResponse, HttpResponseBadRequest, HttpResponse
+from django.http import JsonResponse, HttpResponseBadRequest, HttpResponse, HttpResponseForbidden
 from django.views.decorators.http import require_POST, require_http_methods
 from django.utils.html import escape
 from .utils import reset_request_counter, get_time_until_midnight, has_photos
@@ -72,6 +72,11 @@ def manage_projects(request):
 @login_required
 def edit_project(request, project_id):
     project = get_object_or_404(Project, pk=project_id)
+
+    # Проверяем, является ли текущий пользователь владельцем проекта
+    if project.user != request.user:
+        return HttpResponseForbidden("У вас нет доступа к редактированию этого проекта.")
+    
     events = project.events.all()
     addresses = project.addresses.all()
     counter, created = RequestCounter.objects.get_or_create(user=request.user)
@@ -129,6 +134,10 @@ def manage_events(request, project_id):
 def edit_event(request, event_id):
     event = get_object_or_404(Event, pk=event_id)
     project = event.project
+
+    # Проверяем, является ли текущий пользователь владельцем проекта или назначенным исполнителем
+    if project.user != request.user and not event.assigned_users.filter(id=request.user.id).exists():
+        return HttpResponseForbidden("У вас нет доступа к редактированию этого события.")
 
     if request.method == 'POST':
         form = EventForm(request.POST, instance=event)
