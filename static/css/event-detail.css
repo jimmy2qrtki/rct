@@ -3,17 +3,490 @@
 }
 
 .event-detail__header {
-    display: flex;
     justify-content: space-between;
-    align-items: center;
-    margin-bottom: 25px;
 }
 
 .page__title {
     margin-bottom: 0;
 }
 
+.event-detail__content-row {
+    display: flex;
+    width: 100%;
+    gap: 25px;
+}
 
+.event-detail__content-col:nth-child(1) {
+    width: 450px;
+}
+
+.event-detail__content-col:nth-child(2) {
+    position: relative;
+    width: calc(100% - 475px);
+}
+
+.event-detail__content-cell {
+    display: flex;
+    flex-direction: column;
+    border-radius: 3px;
+    background-color: rgb(51 67 77);
+}
+
+.event-detail__content-cell:not(:last-child) {
+    margin-bottom: 25px;
+}
+
+.event-detail__cell-content {
+    display: none; /* Скрываем содержание по умолчанию */
+    width: 100%;
+    padding: 20px;
+}
+
+.event-detail__cell-content-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+
+.event-detail__cell-header {
+    position: relative;
+    display: flex;
+    align-items: center;
+    padding: 10px 45px 10px 10px;
+    cursor: pointer;
+}
+
+.page__block-title {
+    color: rgb(17, 168, 205);
+}
+
+.event-detail__cell-header.event-detail__cell-header--active .page__block-title {
+    color: rgb(249 145 87);
+}
+
+.event-detail__cell-header.event-detail__cell-header--active {
+    background-color: #48565f;
+    border-radius: 3px 3px 0 0;
+}
+
+.event-detail__cell-header::before,
+.event-detail__cell-header::after {
+    content: "";
+    position: absolute;
+    right: 10px;
+    width: 25px;
+    height: 5px;
+    background-color: rgb(17, 168, 205);
+    transition: transform 0.3s ease;
+}
+
+.event-detail__cell-header::after {
+    transform: rotate(90deg);
+}
+
+.event-detail__cell-header.event-detail__cell-header--active::before {
+    transform: rotate(45deg);
+    background-color: rgb(236 83 77);
+}
+
+.event-detail__cell-header.event-detail__cell-header--active::after {
+    transform: rotate(135deg);
+    background-color: rgb(236 83 77);
+}
+
+.event-detail__field {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 5px;
+    gap: 5px;
+    border-radius: 3px;
+    background-color: rgb(27 43 52);
+}
+
+.event-detail__field:not(:last-child) {
+    margin-bottom: 10px;
+}
+
+.event-detail__field:last-child {
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.event-detail__field-name {
+    font-weight: bold;
+}
+
+.event-detail__appointments-btns {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+.event-detail__update-route-btn {
+    background-color: rgb(17, 168, 205);
+}
+
+.event-detail__print-addresses-btn {
+    background-color: rgb(17, 168, 205);
+}
+
+.event-detail__appointments-content {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.nav-tabs {
+    display: flex;
+    justify-content: space-between;
+    padding: 0;
+    margin: 0;
+}
+
+/* .nav-item {
+    background-color: rgb(27 43 52);
+} */
+
+.nav-item:not(:last-child) {
+    margin-right: 10px;
+}
+
+.nav-link {
+    display: block;
+    padding: 7px 10px;
+    border: 3px solid rgb(27 43 52);
+    border-bottom: none;
+    border-radius: 3px 3px 0 0;
+    font-size: 20px;
+    font-weight: bold;
+    color: rgb(17, 168, 205);
+    cursor: pointer;
+}
+
+.nav-link.active {
+    color: rgb(249 145 87);
+    background-color: rgb(27 43 52)
+}
+
+.tab-content {
+    padding: 3px;
+    border-radius: 0 0 3px 3px;
+    background-color: rgb(27 43 52)
+}
+
+.tab-pane {
+    display: none;
+}
+
+.tab-pane.active {
+    display: block;
+}
+
+.event-detail__addresses-list {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-height: 80vh;
+    padding: 3px;
+    overflow-y: auto;
+}
+
+/* Стили для самой полосы прокрутки */
+.event-detail__addresses-list::-webkit-scrollbar {
+    width: 5px; /* Ширина полосы прокрутки */
+}
+
+/* Стили для дорожки */
+.event-detail__addresses-list::-webkit-scrollbar-track {
+    background: rgb(27 43 52); /* Цвет дорожки */
+    border-radius: 3px;
+}
+
+/* Стили для ползунка */
+.event-detail__addresses-list::-webkit-scrollbar-thumb {
+    background: rgb(249 145 87); /* Цвет ползунка */
+    border-radius: 3px;
+}
+
+/* Стили при наведении с помощью :hover */
+.event-detail__addresses-list::-webkit-scrollbar-thumb:hover {
+    background: rgb(204 204 204); /* Цвет ползунка при наведении */
+}
+
+.event-detail__addresses-item {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 3px;
+    border-radius: 3px;
+    background-color: rgb(51 67 77);
+}
+
+.event-detail__addresses-item:not(:last-child) {
+    margin-bottom: 6px;
+}
+
+.event-detail__addresses-item.accordion-header {
+    flex-direction: column;
+    align-items: normal;
+}
+
+.accordion-header:not(:last-child) {
+    margin-bottom: 3px;
+}
+
+.accordion-header-wrap {
+    position: relative;
+    cursor: pointer;
+}
+
+.accordion-header-wrap::before,
+.accordion-header-wrap::after {
+    content: "";
+    position: absolute;
+    right: 7px;
+    width: 17px;
+    height: 3px;
+    background-color: rgb(17, 168, 205);
+    transition: transform 0.3s ease;
+    z-index: 10;
+}
+
+.accordion-header-wrap::after {
+    transform: rotate(90deg);
+}
+
+.accordion-header-wrap.active::before {
+    transform: rotate(45deg);
+    background-color: rgb(236 83 77);
+}
+
+.accordion-header-wrap.active::after {
+    transform: rotate(135deg);
+    background-color: rgb(236 83 77);
+}
+
+.accordion-header.has-photos .accordion-header-wrap::before,
+.accordion-header.has-photos .accordion-header-wrap::after {
+    background-color: rgb(129 172 85); /* Зеленый цвет, можно изменить на любой другой */
+}
+
+/* Стили для псевдоэлементов, когда аккордеон открыт */
+.accordion-header.has-photos .accordion-header-wrap.active::before,
+.accordion-header.has-photos .accordion-header-wrap.active::after {
+    background-color: rgb(236 83 77); /* Красный цвет, можно изменить на любой другой */
+}
+
+#executor-event-addresses-list {
+    margin-bottom: 20px;
+    border-radius: 3px;
+    background-color: rgb(27 43 52);
+}
+
+.accordion-header-wrap {
+    display: flex;
+    align-items: center;
+    padding-right: 34px;
+}
+
+.address-number {
+    width: 37px;
+    margin-right: 5px;
+    text-align: center;
+    font-weight: bold;
+    color: rgb(187 128 179);
+    flex-shrink: 0;
+    cursor: grab;
+}
+
+.address-name {
+    position: relative;
+    white-space: nowrap;
+    display: inline-block;
+    width: 100%;
+    padding: 5px;
+    border-radius: 3px;
+    background-color: rgb(27 43 52);
+    overflow: hidden;
+}
+
+.view-details {
+    margin-left: auto;
+    padding: 5px;
+    padding-left: 10px;
+    width: max-content;
+    color: rgb(17, 168, 205);
+    background-color: rgb(51 67 77);
+    flex-shrink: 0;
+}
+
+.marquee-text {
+    display: inline-block;
+    transition: transform 3s linear; /* Плавное движение влево */
+}
+
+.address-name:hover .marquee-text {
+    transform: translateX(-100%);
+}
+
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    position: relative;
+    /* padding: 20px; */
+    max-width: 1000px;
+    height: 90vh;
+    /* border: 1px solid rgb(249 145 87); */
+    border-radius: 3px;
+    background-color: rgb(51 67 77);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.modal-body {
+    width: 100%;
+}
+
+.modal-close-btn {
+    position: absolute;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    top: 0;
+    right: -60px;
+    height: 50px;
+    width: 50px;
+    cursor: pointer;
+}
+
+.modal-close-btn::before,
+.modal-close-btn::after {
+    content: "";
+    position: absolute;
+    width: 50px;
+    height: 6px;
+    background-color: rgb(236 83 77);
+    transition: transform 0.3s ease;
+}
+
+.modal-close-btn::before {
+    transform: rotate(45deg);
+}
+
+.modal-close-btn::after {
+    transform: rotate(-45deg);
+}
+
+.photo-viewer {
+    /* display: flex;
+    align-items: center;
+    justify-content: center; */
+    width: 100%;
+    height: 100%;
+}
+
+.prev-photo,
+.next-photo {
+    position: absolute;
+    top: 50%;
+    width: 0;
+    height: 0;
+    transform: translateY(-50%);
+    /* border-top: 10px solid transparent;
+    border-right: 20px solid rgb(17, 168, 205);
+    border-bottom: 10px solid transparent; */
+    border: 20px solid transparent; 
+    border-right: 25px solid rgb(17, 168, 205);
+    background: transparent;
+    cursor: pointer;
+}
+
+.prev-photo {
+    left: -70px;
+}
+
+.next-photo {
+    right: -70px;
+    transform: rotate(180deg) translateY(50%);
+}
+
+.modal__img {
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.photo-upload {
+    padding: 10px;
+}
+
+.photo-upload__has-photo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.photo-upload__has-photo span {
+    font-weight: bold;
+    color: rgb(129 172 85);
+}
+
+.refresh-upload-form {
+    padding: 5px;
+    background-color: rgb(249 145 87);
+}
+
+.photo-upload__form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.photo-upload__form-wrap {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    gap: 10px;
+}
+
+.photo-upload__choose-btn {
+    padding: 5px;
+    background-color: rgb(17, 168, 205);
+}
+
+.photo-upload__form-label {
+    display: flex;
+    align-items: center;
+    margin-left: auto;
+    gap: 10px;
+}
+
+.photo-upload__submit-btn {
+    align-self: center;
+    padding: 5px;
+    background-color: rgb(129 172 85);
+}
+
+.event-detail__complete-event-btn {
+    background-color: rgb(129 172 85);
+}
 
 
 

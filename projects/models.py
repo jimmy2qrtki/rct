@@ -94,7 +94,7 @@ class EventAddress(models.Model):
 class EventUser(models.Model):
     STATUS_CHOICES = [
         ('chosen', 'Выбран'),
-        ('assigned', 'Назначен'),
+        ('assigned', 'Назначено'),
         ('confirmed', 'Подтверждено'),
         ('declined', 'Отказ'),
         ('in_progress', 'В работе'),

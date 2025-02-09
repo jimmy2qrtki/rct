@@ -6,19 +6,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Детали события</title>
     {% load static %}
-    <script src="{% static 'js/jquery-3.7.1.min.js' %}"></script>
-    <script src="//code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-    <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
-    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://api-maps.yandex.ru/2.1/?apikey={{ api_key }}&lang=ru_RU" type="text/javascript"></script>
     <link rel="stylesheet" href="{% static 'css/normalize.css' %}">
     <link rel="stylesheet" href="{% static 'css/styles.css' %}">
     <link rel="stylesheet" href="{% static 'css/event-detail.css' %}">
+    
+    <script src="{% static 'js/jquery-3.7.1.min.js' %}"></script>
+    <script src="{% static 'js/jquery-ui.1.12.1.min.js' %}"></script>
+    <script src="https://api-maps.yandex.ru/2.1/?apikey={{ api_key }}&lang=ru_RU" type="text/javascript"></script>
 </head>
 <body class="page event-detail">
     <header class="page__header">
         <nav class="nav">
+            {% if is_manager %}
             <ul class="nav__list">
                 <li class="nav__item">
                     <a class="nav__link nav__link--inactive" href="{% url 'profile' %}">Профиль</a>
@@ -30,6 +29,17 @@
                     <a class="nav__link nav__link--active">Контроль</a>
                 </li>
             </ul>
+            {% endif %}
+            {% if is_executor %}
+            <ul class="nav__list">
+                <li class="nav__item">
+                    <a class="nav__link nav__link--inactive" href="{% url 'executor_profile' %}">Профиль</a>
+                </li>
+                <li class="nav__item">
+                    <a class="nav__link nav__link--active">События</a>
+                </li>
+            </ul>
+            {% endif %}
         </nav>
         <div class="logo">
             <img class="logo__img" src="{% static 'img/logo.png' %}" alt="Логотип">
@@ -49,12 +59,54 @@
                         </div>
                         <div class="event-detail__cell-content" data-section-id="details">
                             <div class="event-detail__cell-content-wrap">
-                                <p>Организация: {{ event.project.organization }}</p>
-                                <p>Продукт: {{ event.project.product }}</p>
-                                <p>Кол-во фото: {{ event.photo_count }}</p>
-                                <p>Дата начала: {{ event.event_date }}</p>
-                                <p>Срок выполнения (в днях): {{ event.duration_days }}</p>
-                                <p>Описание: {{ event.description }}</p>
+                                <div class="event-detail__field">
+                                    <span class="event-detail__field-name">
+                                        Организация:
+                                    </span>
+                                    <span class="event-detail__field-value">
+                                        {{ event.project.organization }}
+                                    </span>
+                                </div>
+                                <div class="event-detail__field">
+                                    <span class="event-detail__field-name">
+                                        Продукт:
+                                    </span>
+                                    <span class="event-detail__field-value">
+                                        {{ event.project.product }}
+                                    </span>
+                                </div>
+                                <div class="event-detail__field">
+                                    <span class="event-detail__field-name">
+                                        Кол-во фото: 
+                                    </span>
+                                    <span class="event-detail__field-value">
+                                        {{ event.photo_count }}
+                                    </span>
+                                </div>
+                                <div class="event-detail__field">
+                                    <span class="event-detail__field-name">
+                                        Дата начала: 
+                                    </span>
+                                    <span class="event-detail__field-value">
+                                        {{ event.event_date }}
+                                    </span>
+                                </div>
+                                <div class="event-detail__field">
+                                    <span class="event-detail__field-name">
+                                        Срок выполнения (в днях):
+                                    </span>
+                                    <span class="event-detail__field-value">
+                                        {{ event.duration_days }}
+                                    </span>
+                                </div>
+                                <div class="event-detail__field">
+                                    <span class="event-detail__field-name">
+                                        Описание:
+                                    </span>
+                                    <span class="event-detail__field-value">
+                                        {{ event.description }}
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -64,26 +116,25 @@
                         </div>
                         <div class="event-detail__cell-content" data-section-id="appointments">
                             <div class="event-detail__cell-content-wrap">
-                                <button id="update-route">Обновить маршрут</button>
-                                <button id="print-addresses">Печать маршрута</button>
+                                <div class="event-detail__appointments-btns">
+                                    <button class="event-detail__update-route-btn btn" id="update-route" type="button">Обновить маршрут</button>
+                                    <button class="event-detail__print-addresses-btn btn" id="print-addresses" type="button">Печать маршрута</button>
+                                </div>
                                 {% if is_manager %}
-                                    <div>
-                                        <ul class="nav nav-tabs" id="managerTabs" role="tablist">
+                                    <div class="event-detail__appointments-content">
+                                        <ul class="nav-tabs" id="managerTabs" role="tablist">
                                             {% for executor, addresses in addresses_with_photos_manager.items %}
                                                 {% if executor or addresses %}
                                                     <li class="nav-item">
                                                         <a class="nav-link {% if forloop.first %}active{% endif %}"
                                                         id="tab-{% if executor %}{{ executor.id }}{% else %}unassigned{% endif %}"
-                                                        data-toggle="tab"
-                                                        href="#executor-{% if executor %}{{ executor.id }}{% else %}unassigned{% endif %}"
+                                                        data-target="#executor-{% if executor %}{{ executor.id }}{% else %}unassigned{% endif %}"
                                                         role="tab">
-                            
                                                             {% if executor %}
                                                                 {{ executor.name }}
                                                             {% else %}
                                                                 Без назначения
                                                             {% endif %}
-                            
                                                         </a>
                                                     </li>
                                                 {% endif %}
@@ -92,31 +143,26 @@
                                         <div class="tab-content" id="managerTabsContent">
                                             {% for executor, addresses in addresses_with_photos_manager.items %}
                                                 {% if executor or addresses %}
-                                                    <div class="tab-pane fade {% if forloop.first %}show active{% endif %}"
+                                                    <div class="tab-pane {% if forloop.first %}active{% endif %}"
                                                         id="executor-{% if executor %}{{ executor.id }}{% else %}unassigned{% endif %}"
                                                         role="tabpanel">
-                                                        <ul>
+                                                        <ul class="event-detail__addresses-list">
                                                             {% for item in addresses %}
-                                                                <li data-id="{{ item.address.id }}" data-executor-id="{{ item.executor_id }}" data-executor-color="{{ item.executor_color }}">
-                                                                    <span class="address-number">{{ forloop.counter }}.</span>
-                                                                    <span class="address-name">{{ item.address.name }}</span>
-                                                                    {% if item.address.assigned_user %}
-                                                                        {% if item.address.assigned_user.username %}
-                                                                            <span class="executor-name"> - {{ item.address.assigned_user.executorprofile.name }}</span>
-                                                                        {% else %}
-                                                                            <span class="executor-email"> - {{ item.address.assigned_user.email }}</span>
-                                                                        {% endif %}
-                                                                    {% else %}
-                                                                        <span class="executor-none"> - Исполнитель не назначен</span>
-                                                                    {% endif %}
-                                                                    {% if item.has_photos %}
-                                                                    <button class="view-details" data-address-id="{{ item.address.id }}">Фото</button>
-                                                                    {% endif %}
-                                                                    <span class="hidden-coordinates">
-                                                                        <span class="latitude">{{ item.address.latitude }}</span> | 
-                                                                        <span class="longitude">{{ item.address.longitude }}</span>
-                                                                    </span>
-                                                                </li>
+                                                            <li class="event-detail__addresses-item" 
+                                                                data-id="{{ item.address.id }}" 
+                                                                data-executor-id="{{ item.executor_id }}" 
+                                                                data-executor-color="{{ item.executor_color }}" 
+                                                                data-address-name="{{ item.address.name }}">
+                                                                <span class="address-number">={{ forloop.counter }}=</span>
+                                                                <span class="address-name">{{ item.address.name }}</span>
+                                                                {% if item.has_photos %}
+                                                                    <button type="button" class="view-details btn" data-address-id="{{ item.address.id }}">Фото</button>
+                                                                {% endif %}
+                                                                <span class="hidden-coordinates">
+                                                                    <span class="latitude">{{ item.address.latitude }}</span> | 
+                                                                    <span class="longitude">{{ item.address.longitude }}</span>
+                                                                </span>
+                                                            </li>
                                                             {% empty %}
                                                                 <li>Нет назначенных адресов для {% if executor %}{{ executor.name }}{% else %}категории "Без назначения"{% endif %}.</li>
                                                             {% endfor %}
@@ -129,28 +175,44 @@
                                 {% endif %}
                             
                                 {% if is_executor %}
-                                    <ul id="executor-event-addresses-list">
+                                    <ul class="event-detail__addresses-list" id="executor-event-addresses-list">
                                         {% for item in addresses_with_photos_executor %}
-                                        <li data-id="{{ item.address.id }}" data-executor-id="{{ item.executor_id }}" data-executor-color="{{ item.executor_color }}" class="accordion-header">
-                                            <span class="address-number">{{ forloop.counter }}.</span> 
-                                            <span class="address-name">{{ item.address.name }}</span>
+                                        <li class="event-detail__addresses-item accordion-header {% if item.has_photos %}has-photos{% endif %}" data-id="{{ item.address.id }}" data-executor-id="{{ item.executor_id }}" data-executor-color="{{ item.executor_color }}">
+                                            <div class="accordion-header-wrap">
+                                                <span class="address-number">={{ forloop.counter }}=</span> 
+                                                <span class="address-name">{{ item.address.name }}</span>
+                                            </div>
                             
-                                            <div class="photo-upload-section" style="display: none;">
+                                            <div class="photo-upload" style="display: none;">
                                                 {% if user_event_status == 'completed' %}
                                                     <span>Фотографии приняты</span>
                                                 {% else %}
                                                     {% if item.has_photos %}
+                                                    <div class="photo-upload__has-photo">
                                                         <span>Фото загружено</span>
-                                                        <button class="refresh-upload-form" data-url="{% url 'upload_photos' event.id item.address.id %}">Перезагрузить</button>
+                                                        <button class="refresh-upload-form btn" data-url="{% url 'upload_photos' event.id item.address.id %}">Перезагрузить</button>
+                                                    </div>
                                                     {% else %}
-                                                        <form method="post" enctype="multipart/form-data" action="{% url 'upload_photos' event.id item.address.id %}">
-                                                            {% csrf_token %}
-                                                            <input type="file" name="photos" accept="image/*" multiple>
-                                                            <label>
+                                                    <form class="photo-upload__form" method="post" enctype="multipart/form-data" action="{% url 'upload_photos' event.id item.address.id %}">
+                                                        {% csrf_token %}
+                                                        <div class="photo-upload__form-wrap">
+
+                                                            <!-- Скрытый input для выбора файлов -->
+                                                            <input type="file" name="photos" id="fileInput" accept="image/*" multiple style="display: none;">
+                                                            
+                                                            <!-- Кастомная кнопка для вызова input -->
+                                                            <button  class="photo-upload__choose-btn btn" type="button" id="customButton">Выбрать</button>
+                                                            
+                                                            <!-- Текстовое поле для отображения выбранных файлов -->
+                                                            <span id="fileLabel">фото</span>
+                                                            
+                                                            <!-- Другие элементы формы -->
+                                                            <label class="photo-upload__form-label">
                                                                 <input type="checkbox" name="force_mjeure"> Форс-мажор
                                                             </label>
-                                                            <button type="submit">Загрузить фото</button>
-                                                        </form>
+                                                        </div>
+                                                        <button class="photo-upload__submit-btn btn" type="submit">Загрузить</button>
+                                                    </form>
                                                     {% endif %}
                                                 {% endif %}
                                             </div>
@@ -167,21 +229,13 @@
                                 {% endif %}
                             
                                 <!-- Модальное окно для просмотра фото -->
-                                <div id="photosModal" class="modal fade" tabindex="-1" role="dialog">
-                                    <div class="modal-dialog modal-lg" role="document">
-                                        <div class="modal-content">
-                                            <div class="modal-header">
-                                                <h5 class="modal-title">Просмотр фотографий</h5>
-                                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                                    <span aria-hidden="true">&times;</span>
-                                                </button>
-                                            </div>
-                                            <div class="modal-body">
-                                                <!-- Сюда будут вставлены фото -->
-                                            </div>
-                                            <div class="modal-footer">
-                                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Закрыть</button>
-                                            </div>
+                                <div id="photosModal" class="modal" style="display: none;">
+                                    <div class="modal-content">
+                                        <span class="modal-close-btn"></span>
+                                        <div class="photo-viewer">
+                                            <button class="prev-photo"></button>
+                                            <img class="modal__img" id="photoDisplay" src="" alt="Фото"/>
+                                            <button class="next-photo"></button>
                                         </div>
                                     </div>
                                 </div>
@@ -190,7 +244,7 @@
                                     {% if user_event_status == 'completed' %}
                                         <p>{{ event.get_event_type_display }}: завершён</p>
                                     {% else %}
-                                        <button id="complete-event">Завершить</button>
+                                        <button class="event-detail__complete-event-btn btn" id="complete-event">Завершить</button>
                                     {% endif %}
                                 {% endif %}
                             </div>
@@ -211,12 +265,144 @@
 
     <script type="text/javascript">
         window.csrfToken = '{{ csrf_token }}'; // Глобальная переменная с CSRF-токеном
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Находим все формы загрузки фотографий
+            const photoUploadForms = document.querySelectorAll('.photo-upload__form');
+
+            photoUploadForms.forEach(form => {
+                const fileInput = form.querySelector('input[type="file"]');
+                const customButton = form.querySelector('.photo-upload__choose-btn');
+                const fileLabel = form.querySelector('#fileLabel');
+
+                if (fileInput && customButton && fileLabel) {
+                    // Обработчик клика по кастомной кнопке
+                    customButton.addEventListener('click', function() {
+                        fileInput.click(); // Программно вызываем клик по скрытому input
+                    });
+
+                    // Обработчик изменения выбранных файлов
+                    fileInput.addEventListener('change', function() {
+                        if (fileInput.files.length > 0) {
+                            // Если файлы выбраны, обновляем текст
+                            fileLabel.textContent = `Выбрано фото: ${fileInput.files.length}`;
+                        } else {
+                            // Если файлы не выбраны, показываем стандартный текст
+                            fileLabel.textContent = 'Фото не выбрано';
+                        }
+                    });
+                }
+            });
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const addressNames = document.querySelectorAll('.address-name');
+
+            addressNames.forEach(addressName => {
+                const text = addressName.textContent;
+                const parentContainer = addressName.closest('.event-detail__content-col'); // Находим родительский контейнер
+                const containerWidth = parentContainer ? parentContainer.offsetWidth : 0; // Ширина родительского контейнера
+                const textWidth = getTextWidth(text, addressName);
+
+                if (textWidth > containerWidth - 170) {
+                    addressName.innerHTML = `<span class="marquee-text">${text}</span>`;
+                    const marqueeText = addressName.querySelector('.marquee-text');
+
+                    // Рассчитываем, насколько нужно сдвинуть текст
+                    const maxScroll = textWidth - containerWidth + 180;
+
+                    // Обработка наведения курсора
+                    addressName.addEventListener('mouseenter', () => {
+                        marqueeText.style.transform = `translateX(-${maxScroll}px)`; // Сдвигаем текст
+                    });
+
+                    // Обработка ухода курсора
+                    addressName.addEventListener('mouseleave', () => {
+                        marqueeText.style.transform = 'translateX(0)'; // Возвращаем текст в исходное положение
+                    });
+                }
+            });
+
+            function getTextWidth(text, element) {
+                const span = document.createElement('span');
+                span.style.visibility = 'hidden';
+                span.style.whiteSpace = 'nowrap';
+                span.style.position = 'absolute';
+                span.textContent = text;
+                document.body.appendChild(span);
+                const width = span.offsetWidth;
+                document.body.removeChild(span);
+                return width;
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const tabs = document.querySelectorAll('.nav-link');
+            const tabPanes = document.querySelectorAll('.tab-pane');
+
+            tabs.forEach(tab => {
+                tab.addEventListener('click', function(e) {
+                    e.preventDefault();
+
+                    // Убираем активный класс у всех табов и панелей
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tabPanes.forEach(pane => pane.classList.remove('active'));
+
+                    // Добавляем активный класс текущему табу и соответствующей панели
+                    this.classList.add('active');
+                    const targetPane = document.querySelector(this.getAttribute('data-target'));
+                    if (targetPane) {
+                        targetPane.classList.add('active');
+                    }
+                });
+            });
+
+            // Активируем первый таб по умолчанию
+            if (tabs.length > 0) {
+                tabs[0].click();
+            }
+        });
+
         $(document).ready(function() {
+            // Инициализация аккордеона
+            $('.event-detail__content-cell').each(function () {
+                const sectionId = $(this).data('section-id');
+                let isOpen = localStorage.getItem(`accordion-${sectionId}`) === 'true';
+                $(this).find('.event-detail__cell-content').toggle(isOpen);
+                $(this).find('.event-detail__cell-header').toggleClass('event-detail__cell-header--active', isOpen);
+            });
+
+            $('.event-detail__cell-header').on('click', function () {
+                const section = $(this).closest('.event-detail__content-cell');
+                const sectionId = section.data('section-id');
+                $(this).next('.event-detail__cell-content').slideToggle(function () {
+                    const isOpen = $(this).is(':visible');
+                    localStorage.setItem(`accordion-${sectionId}`, isOpen.toString());
+                });
+                $(this).toggleClass('event-detail__cell-header--active');
+            });
+
             // Toggle accordion sections by clicking on the header
-            $('#executor-event-addresses-list').on('click', 'li.accordion-header', function(event) {
-                // Only toggle if the click is not on the form or refresh button
-                if (!$(event.target).is('form') && !$(event.target).is('input') && !$(event.target).is('button')) {
-                    $(this).find('.photo-upload-section').slideToggle();
+            $('#executor-event-addresses-list').on('click', '.accordion-header-wrap', function(event) {
+                // Останавливаем всплытие события, чтобы клик на дочерние элементы не срабатывал
+                event.stopPropagation();
+
+                // Находим родительский элемент аккордеона и блок с фото
+                const $accordionHeader = $(this).closest('.event-detail__addresses-item.accordion-header');
+                const $photoUpload = $accordionHeader.find('.photo-upload');
+                const $accordionHeaderWrap = $(this);
+                
+                // Проверяем состояние аккордеона
+                if ($photoUpload.is(':hidden')) { // Если аккордеон закрыт
+                    // Добавляем класс 'active'
+                    $accordionHeaderWrap.addClass('active');
+                    
+                    // Открываем аккордеон
+                    $photoUpload.slideDown();
+                } else { // Если аккордеон открыт
+                    $accordionHeaderWrap.removeClass('active');
+                    // Закрываем аккордеон
+                    $photoUpload.slideUp();
                 }
             });
 
@@ -227,50 +413,109 @@
 
                 if (!csrfToken) {
                     alert('CSRF token not found!');
-                    return; // Прекращаем выполнение, если токен не найден
+                    return;
                 }
 
                 const formHtml = `
-                    <form method="post" enctype="multipart/form-data" action="${action}">
+                    <form class="photo-upload__form" method="post" enctype="multipart/form-data" action="${action}">
                         <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
-                        <input type="file" name="photos" accept="image/*" multiple>
-                        <label>
-                            <input type="checkbox" name="force_mjeure"> Форс-мажор
-                        </label>
-                        <button type="submit">Загрузить фото</button>
+                        <div class="photo-upload__form-wrap">
+                            <input type="file" name="photos" id="fileInput" accept="image/*" multiple style="display: none;">
+                            <button class="photo-upload__choose-btn btn" type="button" id="customButton">Выбрать</button>
+                            <span class="fileLabel">фото</span> <!-- Используем класс вместо id -->
+                            <label class="photo-upload__form-label">
+                                <input type="checkbox" name="force_mjeure"> Форс-мажор
+                            </label>
+                        </div>
+                        <button class="photo-upload__submit-btn btn" type="submit">Загрузить</button>
                     </form>
                 `;
 
-                $(this).parent().html(formHtml);
+                const parentElement = $(this).closest('.photo-upload');
+                parentElement.html(formHtml);
+                console.log('Форма вставлена в:', parentElement);
+
+                const chooseButton = parentElement.find('.photo-upload__choose-btn');
+                const fileInput = parentElement.find('input[type="file"]');
+                const fileLabel = parentElement.find('.fileLabel'); // Используем класс
+
+                if (chooseButton.length && fileInput.length && fileLabel.length) {
+                    console.log('Элементы формы найдены');
+
+                    chooseButton.on('click', function() {
+                        console.log('Кнопка "Выбрать" нажата');
+                        fileInput.trigger('click');
+                    });
+
+                    fileInput.on('change', function() {
+                        console.log('Событие change сработало');
+                        const files = this.files;
+                        if (files.length > 0) {
+                            fileLabel.text(`Выбрано фото: ${files.length}`);
+                            console.log('Выбрано файлов:', files.length);
+                        } else {
+                            fileLabel.text('фото');
+                        }
+                    });
+                } else {
+                    console.error('Элементы формы не найдены');
+                }
             });
 
             // AJAX-запрос для получения и отображения фото в модальном окне
             $(document).on('click', '.view-details', function() {
                 const addressId = $(this).data('address-id');
-                let $trigger = $(this);
+                const addressName = $(this).closest('.event-detail__addresses-item').data('address-name'); // Получаем имя адреса
+                let currentPhotoIndex = 0;
+                let photos = [];
 
                 $.ajax({
                     url: `{% url 'view_photos' event.id %}?address_id=${addressId}`,
                     method: 'GET',
                     success: function(data) {
-                        let photosHtml = '';
-                        if (data.photos && data.photos.length > 0) {
-                            data.photos.forEach(photo => {
-                                photosHtml += `<img src="${photo.url}" alt="Фото ${photo.name} для ${photo.address_name}" style="max-width: 100%;"/><br>`;
-                            });
+                        photos = data.photos;
+
+                        if (photos && photos.length > 0) {
+                            $('#photoDisplay').show();
+                            currentPhotoIndex = 0;
+                            displayPhoto(currentPhotoIndex);
+
+                            if (photos.length === 1) {
+                                $('.prev-photo, .next-photo').hide();
+                            } else {
+                                $('.prev-photo, .next-photo').show();
+                            }
                         } else {
-                            photosHtml = '<p>Нет доступных фотографий.</p>';
+                            $('#photoDisplay').hide();
+                            $('.prev-photo, .next-photo').hide();
                         }
 
-                        $('#photosModal .modal-body').html(photosHtml);
-                        $('#photosModal').modal('show').on('hidden.bs.modal', function() {
-                            $trigger.focus();
-                        });
+                        $('#photosModal').fadeIn();
                     },
                     error: function() {
                         alert('Ошибка при загрузке фотографий.');
                     }
                 });
+
+                function displayPhoto(index) {
+                    if (photos && photos.length > 0) {
+                        $('#photoDisplay').attr('src', photos[index].url).attr('alt', `Фото ${photos[index].name} для ${photos[index].address_name}`);
+                    }
+                }
+
+                $('.prev-photo').on('click', function() {
+                    currentPhotoIndex = (currentPhotoIndex - 1 + photos.length) % photos.length;
+                    displayPhoto(currentPhotoIndex);
+                });
+
+                $('.next-photo').on('click', function() {
+                    currentPhotoIndex = (currentPhotoIndex + 1) % photos.length;
+                    displayPhoto(currentPhotoIndex);
+                });
+            });
+
+            $(document).on('click', '.modal-close-btn', function() {
+                $('#photosModal').fadeOut();
             });
 
             // Handle form submission via AJAX
@@ -310,7 +555,7 @@
                     success: function(response) {
                         if (response.success) {
                             // Изменяем отображение на странице
-                            $('#assigned-event-addresses-list .photo-upload-section:has(.refresh-upload-form)').each(function() {
+                            $('#assigned-event-addresses-list .photo-upload:has(.refresh-upload-form)').each(function() {
                                 $(this).html('<span>Фотографии приняты</span>');
                             });
                             alert('Мероприятие успешно завершено.');
@@ -363,7 +608,7 @@
                         var placemark = new ymaps.Placemark(
                             [latitude, longitude],
                             {
-                                balloonContent: `<strong>Адрес ${addressNumber}</strong>: ${name}`,
+                                balloonContent: `<strong>=${addressNumber}=</strong> ${name}`,
                                 iconContent: addressNumber
                             },
                             {
@@ -404,7 +649,7 @@
                 const orderData = [];
                 $(elementSelector).find('li').each(function(index) {
                     const addressId = $(this).data('id');
-                    $(this).find('.address-number').text(index + 1);
+                    $(this).find('.address-number').text('=' + (index + 1) + '=');
                     orderData.push({ id: addressId, order: index });
                 });
                 $.ajax({
@@ -465,7 +710,7 @@
                 });
 
                 $.each(listElement.find('li'), function(index, element) {
-                    $(element).find('.address-number').text(index + 1);
+                    $(element).find('.address-number').text('=' + (index + 1) + '=');
                 });
                 
                 updateMapMarkers(sortedAddresses);
@@ -474,20 +719,33 @@
 
             $('#update-route').on('click', handleUpdateRoute);
 
-            if (isManager) {
-                $('#managerTabs a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
-                    const addresses = getAddressesFromList($(e.target).attr('href') + ' ul');
-                    updateMapMarkers(addresses);
-                }).first().trigger('shown.bs.tab');
+            $(document).ready(function() { if (isManager) { $('#managerTabs a[data-target]').on('click', function (e) { e.preventDefault();
+
+                // Сначала скрываем все содержимое вкладок
+                $('#managerTabsContent .tab-pane').hide();
+
+                // Показываем содержимое для выбранной вкладки
+                const targetSelector = $(this).data('target');
+                $(targetSelector).show();
+
+                // Переключаем активный класс на текущую вкладку
+                $('#managerTabs a').removeClass('active');
+                $(this).addClass('active');
+
+                // Обновляем маркеры на карте
+                const addresses = getAddressesFromList(targetSelector + ' ul');
+                updateMapMarkers(addresses);
+                }).first().trigger('click'); // Имитируем клик для отображения первой вкладки при загрузке
 
                 $('#managerTabsContent .tab-pane ul').sortable({
                     update: function() {
                         const addresses = getAddressesFromList(this);
                         updateMapMarkers(addresses);
                         saveNewOrder(this);
-                    }
-                });
-            }
+                        }
+                    });
+                }
+            });
 
             if (isExecutor) {
             const addresses = getAddressesFromList('#executor-event-addresses-list');
@@ -506,4 +764,7 @@
     </script>
 
 </body>
+<footer class="page__footer">
+
+</footer>
 </html>

@@ -188,7 +188,7 @@ $(document).ready(function() {
                                             <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
                                             <input type="hidden" name="address_id" value="${address.id}">
                                             <div class="file-input-wrapper">
-                                                <button class="file-btn btn">Выбрать файл</button>
+                                                <button class="file-btn btn" type="button">Выбрать файл</button>
                                                 <input class="file-input" type="file" name="photos" accept="image/*" multiple>
                                             </div>
                                             <label class="force-majeure-input">
@@ -240,7 +240,7 @@ $(document).ready(function() {
                     <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
                     <input type="hidden" name="address_id" value="${addressId}">
                     <div class="file-input-wrapper">
-                        <button class="file-btn btn">Выбрать файл</button>
+                        <button class="file-btn btn" type="button">Выбрать файл</button>
                         <input class="file-input" type="file" name="photos" accept="image/*" multiple>
                     </div>
                     <label class="force-majeure-input">

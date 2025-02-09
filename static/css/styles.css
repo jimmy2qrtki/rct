@@ -43,12 +43,11 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    margin-bottom: 25px;
     width: 100%;
 }
 
 .nav {
-    margin-right: 25px;
-    margin-bottom: 15px;
     padding: 25px 0;
 }
 
@@ -125,7 +124,8 @@ ymaps {
 }
 
 .project__header,
-.event__header {
+.event__header,
+.event-detail__header {
     position: -webkit-sticky; /* Для поддержки в Safari */
     position: sticky;
     top: 0;
