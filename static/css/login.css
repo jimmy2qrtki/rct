@@ -10,8 +10,16 @@
 }
 
 .page__content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     width: 100%;
     padding-top: 25px;
+    gap: 50px;
+}
+
+.page__logo {
+    width: 400px;
 }
 
 .page__title {
@@ -45,12 +53,14 @@
 
 .login {
     position: relative;
-    max-width: 400px;
+    display: flex;
+    flex-direction: column;
+    width: 400px;
     margin: 0 auto;
     padding: 1rem;
-    border: 1px solid #ccc;
+    border: 1px solid rgb(249 145 87);
     border-radius: 5px;
-    background-color: #ffffffad;
+    background-color: rgb(27 43 52 / 77%);
     z-index: 1;
 }
 
@@ -58,7 +68,8 @@
     margin: 0;
     margin-bottom: 1rem;
     text-align: center;
-    color: rgb(27 43 52);
+    font-weight: bold;
+    color: rgb(204 204 204);
 }
 
 .login__form {
@@ -73,11 +84,20 @@
 .login__input {
     margin-bottom: 1rem;
     padding: 0.5rem;
-    border: 1px solid #ccc;
+    border: 1px solid transparent;
     border-radius: 3px;
     width: 100%;
     box-sizing: border-box;
-    background-color: #a5a5a582;
+    color: rgb(204 204 204);
+    background-color: rgb(51 67 77 / 75%);
+}
+
+.login__input::placeholder {
+    color: rgb(204 204 204);
+}
+
+.login__input:focus {
+    border: 1px solid rgb(249 145 87);
 }
 
 .login__button {
@@ -93,10 +113,11 @@
 
 .login__register-link, 
 .login__forgot-password {
+    align-self: center;
     display: block;
     text-align: center;
     margin-top: 1rem;
-    color: #007bff;
+    color: rgb(17 168 205);
     text-decoration: none;
 }
 

@@ -481,17 +481,20 @@
 .photo-upload__submit-btn {
     align-self: center;
     padding: 5px;
+    background-color: rgb(249 145 87);
+}
+
+.photo-upload__submit-btn.valid {
     background-color: rgb(129 172 85);
+}
+
+.photo-upload__submit-btn.invalid {
+    background-color: rgb(249 145 87);
 }
 
 .event-detail__complete-event-btn {
     background-color: rgb(129 172 85);
 }
-
-
-
-
-
 
 .map-wrap {
     position: -webkit-sticky; /* Для поддержки в Safari */

@@ -11,19 +11,24 @@
     <link rel="stylesheet" href="{% static 'css/manage-projects.css' %}">
 </head>
 <body class="page">
-    <nav class="nav">
-        <ul class="nav__list">
-            <li class="nav__item">
-                <a class="nav__link nav__link--inactive" href="{% url 'profile' %}">Профиль</a>
-            </li>
-            <li class="nav__item">
-                <a class="nav__link nav__link--active">Проекты</a>
-            </li>
-            <li class="nav__item">
-                <a class="nav__link nav__link--inactive" href="{% url 'events_control' %}">Контроль</a>
-            </li>
-        </ul>
-    </nav>
+    <header class="page__header">
+        <nav class="nav">
+            <ul class="nav__list">
+                <li class="nav__item">
+                    <a class="nav__link nav__link--inactive" href="{% url 'profile' %}">Профиль</a>
+                </li>
+                <li class="nav__item">
+                    <a class="nav__link nav__link--active">Проекты</a>
+                </li>
+                <li class="nav__item">
+                    <a class="nav__link nav__link--inactive" href="{% url 'events_control' %}">Контроль</a>
+                </li>
+            </ul>
+        </nav>
+        <div class="logo">
+            <img class="logo__img" src="{% static 'img/logo.png' %}" alt="Логотип">
+        </div>
+    </header>
 
     <div class="container">
         <header class="projects__header">

@@ -170,7 +170,7 @@ def edit_event(request, event_id):
 
         # Если у исполнителя нет назначенных адресов, но есть неназначенные адреса, меняем статус на "Выбрано"
         if not event.addresses.filter(assigned_user=event_user.user).exists() and has_unassigned_addresses:
-            event_user.status = 'Выбрано'
+            event_user.status = 'Выбран'
             event_user.save()
 
         # Добавляем исполнителя в отфильтрованный список
@@ -204,7 +204,7 @@ def check_executors_after_address_deletion(request, event_id):
 
         # Если у исполнителя нет назначенных адресов, но есть неназначенные адреса, меняем статус на "Выбрано"
         if not event.addresses.filter(assigned_user=event_user.user).exists() and has_unassigned_addresses:
-            event_user.status = 'Выбрано'
+            event_user.status = 'Выбран'
             event_user.save()
 
         # Добавляем исполнителя в список для ответа
@@ -1088,11 +1088,17 @@ def upload_photos(request, event_id, address_id):
         address = get_object_or_404(EventAddress, pk=address_id, event=event)
         photos = request.FILES.getlist('photos')
         force_mjeure = request.POST.get('force_mjeure') == "on"
-
+        
         # Проверка на количество фото только если не форс-мажор
         if not force_mjeure and len(photos) != event.photo_count:
             return JsonResponse({
                 'error': f'Количество фотографий должно быть равно {event.photo_count}.'
+            }, status=200)
+        
+        # Добавляем проверку на диапазон от 1 до 10 при включенном флаге force_mjeure
+        if force_mjeure and not (1 <= len(photos) <= 10):
+            return JsonResponse({
+                'error': 'При форс-мажоре количество фотографий должно быть от 1 до 10.'
             }, status=200)
 
         executor_id = request.user.executorprofile.id
@@ -1117,7 +1123,7 @@ def upload_photos(request, event_id, address_id):
         if force_mjeure:
             base_path = problems_path
             
-        # Создать дирректорию если не существует
+        # Создать директорию если не существует
         os.makedirs(base_path, exist_ok=True)
 
         # Сохранение новых фотографий

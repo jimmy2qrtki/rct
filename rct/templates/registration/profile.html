@@ -11,19 +11,24 @@
     <script src="{% static 'js/profile.js' %}"></script>
 </head>
 <body class="page profile profile--executor">
-    <nav class="nav">
-        <ul class="nav__list">
-            <li class="nav__item">
-                <a class="nav__link nav__link--active">Профиль</a>
-            </li>
-            <li class="nav__item">
-                <a class="nav__link nav__link--inactive" href="{% url 'manage_projects' %}">Проекты</a>
-            </li>
-            <li class="nav__item">
-                <a class="nav__link nav__link--inactive" href="{% url 'events_control' %}">Контроль</a>
-            </li>
-        </ul>
-    </nav>
+    <header class="page__header">
+        <nav class="nav">
+            <ul class="nav__list">
+                <li class="nav__item">
+                    <a class="nav__link nav__link--active">Профиль</a>
+                </li>
+                <li class="nav__item">
+                    <a class="nav__link nav__link--inactive" href="{% url 'manage_projects' %}">Проекты</a>
+                </li>
+                <li class="nav__item">
+                    <a class="nav__link nav__link--inactive" href="{% url 'events_control' %}">Контроль</a>
+                </li>
+            </ul>
+        </nav>
+        <div class="logo">
+            <img class="logo__img" src="{% static 'img/logo.png' %}" alt="Логотип">
+        </div>
+    </header>
     <main class="profile__content">
         <header class="profile__header">
             <h1 class="profile__title">Профиль Управляющего</h1>
@@ -95,8 +100,8 @@
     
         
     </main>
-    <footer class="footer">
-        <!-- Можно добавить информацию о подвале сайта -->
+    <footer class="page__footer">
+
     </footer>
 
 </body>

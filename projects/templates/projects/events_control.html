@@ -13,22 +13,27 @@
     <script src="{% static 'js/events-control.js' %}"></script>
 </head>
 <body class="page">
-    <nav class="nav">
-        <ul class="nav__list">
-            <li class="nav__item">
-                <a class="nav__link nav__link--inactive" href="{% url 'profile' %}">Профиль</a>
-            </li>
-            <li class="nav__item">
-                <a class="nav__link nav__link--inactive" href="{% url 'manage_projects' %}">Проекты</a>
-            </li>
-            <li class="nav__item">
-                <a class="nav__link nav__link--active">Контроль</a>
-            </li>
-        </ul>
-    </nav>
+    <header class="page__header">
+        <nav class="nav">
+            <ul class="nav__list">
+                <li class="nav__item">
+                    <a class="nav__link nav__link--inactive" href="{% url 'profile' %}">Профиль</a>
+                </li>
+                <li class="nav__item">
+                    <a class="nav__link nav__link--inactive" href="{% url 'manage_projects' %}">Проекты</a>
+                </li>
+                <li class="nav__item">
+                    <a class="nav__link nav__link--active">Контроль</a>
+                </li>
+            </ul>
+        </nav>
+        <div class="logo">
+            <img class="logo__img" src="{% static 'img/logo.png' %}" alt="Логотип">
+        </div>
+    </header>
     <div class="container control">
         <h1 class="page__title">Контроль событий</h1>
-        <div id="tabs">
+        <div class="control__tabs" id="tabs">
             {% for status, data in event_data_by_status.items %}
                 <div class="tab {% if forloop.first %}active{% endif %}" data-status="{{ status }}">
                     {{ data.display }} [ {{ data.count }} ]
@@ -86,4 +91,7 @@
         </div>
     </div>
 </body>
+<footer class="page__footer">
+
+</footer>
 </html>

@@ -1,3 +1,8 @@
+.control__tabs {
+    display: flex;
+    justify-content: center;
+}
+
 .tab {
     display: inline-block;
     padding: 10px 20px;
