@@ -1,19 +1,33 @@
 import datetime
 from django import forms
-from .models import Project, Event
+from .models import Project, Event, Organization
 
 class ProjectForm(forms.ModelForm):
-    organization_choices = [
-        ("", "---------"),
-        ("Пятёрочка", "Пятёрочка"),
-        ("Перекрёсток", "Перекрёсток"),
-        ("Магнит", "Магнит"),
-        ("Лента", "Лента"),
-        ("Дикси", "Дикси"),
-        ("add_new", "Добавить организацию"),
-    ]
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        
+        # Стандартные организации
+        standard_organizations = [
+            ("", "---------"),
+            ("Пятёрочка", "Пятёрочка"),
+            ("Перекрёсток", "Перекрёсток"),
+            ("Магнит", "Магнит"),
+            ("Лента", "Лента"),
+            ("Дикси", "Дикси"),
+        ]
+        
+        # Получаем организации, созданные пользователем
+        if user:
+            user_organizations = Organization.objects.filter(user=user)
+            user_organization_choices = [(org.name, org.name) for org in user_organizations]
+        else:
+            user_organization_choices = []
 
-    organization = forms.ChoiceField(choices=organization_choices, required=False)
+        # Объединяем стандартные организации и организации пользователя
+        self.fields['organization'].choices = standard_organizations + user_organization_choices + [("add_new", "Добавить организацию")]
+
+    organization = forms.ChoiceField(choices=[], required=False)
     new_organization = forms.CharField(max_length=255, required=False, label='Новая организация')
 
     class Meta:

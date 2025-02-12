@@ -186,33 +186,34 @@
                                             <div class="photo-upload" style="display: none;">
                                                 {% if user_event_status == 'completed' %}
                                                     <span>Фотографии приняты</span>
+                                                {% elif user_event_status != 'in_progress' %}
+                                                    <span>Для загрузки фото необходим статус "в работе"</span>
                                                 {% else %}
                                                     {% if item.has_photos %}
-                                                    <div class="photo-upload__has-photo">
-                                                        <span>Фото загружено</span>
-                                                        <button class="refresh-upload-form btn" data-url="{% url 'upload_photos' event.id item.address.id %}">Перезагрузить</button>
-                                                    </div>
-                                                    {% else %}
-                                                    <form class="photo-upload__form" method="post" enctype="multipart/form-data" action="{% url 'upload_photos' event.id item.address.id %}">
-                                                        {% csrf_token %}
-                                                        <div class="photo-upload__form-wrap">
-
-                                                            <!-- Скрытый input для выбора файлов -->
-                                                            <input type="file" name="photos" id="fileInput" accept="image/*" multiple style="display: none;">
-                                                            
-                                                            <!-- Кастомная кнопка для вызова input -->
-                                                            <button  class="photo-upload__choose-btn btn" type="button" id="customButton">Выбрать</button>
-                                                            
-                                                            <!-- Текстовое поле для отображения выбранных файлов -->
-                                                            <span class="photo-upload__fileLabel" id="fileLabel">фото</span>
-                                                            
-                                                            <!-- Другие элементы формы -->
-                                                            <label class="photo-upload__form-label">
-                                                                <input type="checkbox" name="force_mjeure"> Форс-мажор
-                                                            </label>
+                                                        <div class="photo-upload__has-photo">
+                                                            <span>Фото загружено</span>
+                                                            <button class="refresh-upload-form btn" data-url="{% url 'upload_photos' event.id item.address.id %}">Перезагрузить</button>
                                                         </div>
-                                                        <button class="photo-upload__submit-btn btn" type="submit">Загрузить</button>
-                                                    </form>
+                                                    {% else %}
+                                                        <form class="photo-upload__form" method="post" enctype="multipart/form-data" action="{% url 'upload_photos' event.id item.address.id %}">
+                                                            {% csrf_token %}
+                                                            <div class="photo-upload__form-wrap">
+                                                                <!-- Скрытый input для выбора файлов -->
+                                                                <input type="file" name="photos" id="fileInput" accept="image/*" multiple style="display: none;">
+                                                                
+                                                                <!-- Кастомная кнопка для вызова input -->
+                                                                <button class="photo-upload__choose-btn btn" type="button" id="customButton">Выбрать</button>
+                                                                
+                                                                <!-- Текстовое поле для отображения выбранных файлов -->
+                                                                <span class="photo-upload__fileLabel" id="fileLabel">фото</span>
+                                                                
+                                                                <!-- Другие элементы формы -->
+                                                                <label class="photo-upload__form-label">
+                                                                    <input type="checkbox" name="force_mjeure"> Форс-мажор
+                                                                </label>
+                                                            </div>
+                                                            <button class="photo-upload__submit-btn btn" type="submit">Загрузить</button>
+                                                        </form>
                                                     {% endif %}
                                                 {% endif %}
                                             </div>

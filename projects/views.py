@@ -2,9 +2,9 @@ from datetime import datetime, time
 from django.urls import reverse
 from django.utils import timezone
 from django.shortcuts import render, get_object_or_404, redirect
-from .models import Address, EventAddress, Project, Event, RequestCounter, EventUser
+from .models import Address, EventAddress, Project, Event, RequestCounter, EventUser, Organization
 from .forms import ProjectForm, EventForm
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from openpyxl import load_workbook
 import requests, json
 from django.http import JsonResponse, HttpResponseBadRequest, HttpResponse, HttpResponseForbidden
@@ -27,7 +27,11 @@ from datetime import datetime, time, timezone as py_timezone
 from django.template.loader import render_to_string
 from .utils import is_ajax
 
+def manager_group(user):
+    return user.groups.filter(name='Менеджер').exists()
+
 @login_required
+@user_passes_test(manager_group, login_url='assigned-events/')
 def manage_projects(request):
     projects = Project.objects.filter(user=request.user).prefetch_related('events')
     active_projects = []
@@ -83,17 +87,19 @@ def edit_project(request, project_id):
     remaining_requests = counter.count
 
     if request.method == 'POST':
-        form = ProjectForm(request.POST, request.FILES, instance=project)
+        form = ProjectForm(request.POST, request.FILES, instance=project, user=request.user)
         if form.is_valid():
             if form.cleaned_data['organization'] == 'add_new':
-                new_org = form.cleaned_data['new_organization']
-                form.instance.organization = new_org
+                new_org_name = form.cleaned_data['new_organization']
+                # Создаем новую организацию и связываем её с пользователем
+                new_org, created = Organization.objects.get_or_create(name=new_org_name, user=request.user)
+                form.instance.organization = new_org.name
             else:
                 form.instance.organization = form.cleaned_data['organization']
             form.save()
             return redirect('edit_project', project_id=project.id)
     else:
-        form = ProjectForm(instance=project)
+        form = ProjectForm(instance=project, user=request.user)
 
     # Создание экземпляра EventForm без данных для модального окна
     event_form = EventForm()
@@ -136,7 +142,7 @@ def edit_event(request, event_id):
     project = event.project
 
     # Проверяем, является ли текущий пользователь владельцем проекта или назначенным исполнителем
-    if project.user != request.user and not event.assigned_users.filter(id=request.user.id).exists():
+    if project.user != request.user:
         return HttpResponseForbidden("У вас нет доступа к редактированию этого события.")
 
     if request.method == 'POST':
@@ -954,8 +960,15 @@ from collections import defaultdict
 def event_detail(request, event_id):
     event = get_object_or_404(Event, pk=event_id)
     current_user = request.user
-    is_manager = current_user.groups.filter(name='Менеджер').exists()
-    is_executor = current_user.groups.filter(name='Исполнитель').exists()
+
+    # Проверка прав доступа
+    is_manager = current_user.groups.filter(name='Менеджер').exists() and event.project.user == current_user
+    is_executor = current_user.groups.filter(name='Исполнитель').exists() and event.addresses.filter(assigned_user=current_user).exists()
+
+    if not (is_manager or is_executor):
+        return HttpResponseForbidden("У вас нет доступа к данной странице.")
+
+    # Остальная логика представления
     manager_addresses = defaultdict(list)
     executor_addresses = []
 
@@ -994,7 +1007,7 @@ def event_detail(request, event_id):
             })
         return addresses_with_photos
 
-    if is_manager and event.project.user == current_user:
+    if is_manager:
         for address in event.addresses.all().select_related('assigned_user'):
             executor = address.assigned_user.executorprofile if address.assigned_user else None
             manager_addresses[executor].append(address)

@@ -16,6 +16,13 @@ class Project(models.Model):
         next_event = self.events.filter(event_date__gte=today).order_by('event_date').first()
         return next_event
 
+class Organization(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    name = models.CharField(max_length=255)
+
+    def __str__(self):
+        return self.name
+
 class Event(models.Model):
     EVENT_TYPES = (
         ('montage', 'Монтаж'),

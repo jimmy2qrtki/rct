@@ -27,19 +27,24 @@
     <script src="{% static 'js/assigned-events-list.js' %}"></script>
 </head>
 <body class="page">
-    <nav class="nav">
-        <ul class="nav__list">
-            <li class="nav__item">
-                <a class="nav__link nav__link--inactive" href="{% url 'executor_profile' %}">Профиль</a>
-            </li>
-            <li class="nav__item">
-                <a class="nav__link nav__link--active">События</a>
-            </li>
-        </ul>
-    </nav>
+    <header class="page__header">
+        <nav class="nav">
+            <ul class="nav__list">
+                <li class="nav__item">
+                    <a class="nav__link nav__link--inactive" href="{% url 'executor_profile' %}">Профиль</a>
+                </li>
+                <li class="nav__item">
+                    <a class="nav__link nav__link--active">События</a>
+                </li>
+            </ul>
+        </nav>
+        <div class="logo">
+            <img class="logo__img" src="{% static 'img/logo.png' %}" alt="Логотип">
+        </div>
+    </header>
     <main class="assigned-events__content">
         <h1 class="page__title">События к исполнению</h1>
-        <div id="tabs">
+        <div class="assigned-events__tabs" id="tabs">
             {% for status, data in event_data_by_status.items %}
                 <div class="tab {% if forloop.first %}active{% endif %}" data-status="{{ status }}">
                     {{ data.display }} [ {{ data.count }} ]
@@ -132,4 +137,7 @@
     </main>
     
 </body>
+<footer class="page__footer">
+
+</footer>
 </html>
