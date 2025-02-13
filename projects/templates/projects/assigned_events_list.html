@@ -123,11 +123,22 @@
                     <div id="in-progress-addresses" class="in-progress-addresses" style="display: none;">
                         <div class="in-progress-addresses__content">
                             <h3 class="in-progress-addresses__title">Объединённый список адресов</h3>
-                            <div id="map" class="in-progress-addresses__map" style="width: 100%; height: 400px; margin-top: 20px;"></div>
-                            <button id="optimize-route-btn" class="optimize-route-btn btn">Маршрут</button>
-                            <ul id="combined-addresses-list" class="in-progress-addresses__list">
-                                <!-- Для Элементов совмещённого списка адресов -->
-                            </ul>
+                            <div class="in-progress-addresses__row">
+                                <div class="in-progress-addresses__col">
+                                    <div class="in-progress-addresses__btns">
+                                        <button id="optimize-route-btn" class="optimize-route-btn btn" type="button">Обновить маршрут</button>
+                                        <button class="print-addresses-btn btn" id="print-addresses-btn" type="button">Печать маршрута</button>
+                                    </div>
+                                    <ul id="combined-addresses-list" class="in-progress-addresses__list">
+                                        <!-- Для Элементов совмещённого списка адресов -->
+                                    </ul>
+                                </div>
+                                <div class="in-progress-addresses__col">
+                                    <div class="in-progress-addresses__map-wrap">
+                                        <div id="map" class="in-progress-addresses__map" style="width: 100%; height: 100%;"></div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 {% endif %}

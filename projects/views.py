@@ -1306,7 +1306,7 @@ def get_addresses_for_events(request):
             addresses = EventAddress.objects.filter(
                 event__in=event_ids,
                 assigned_user=request.user
-            )
+            ).select_related('event', 'event__project')  # Оптимизация запросов
             
             address_list = [
                 {
@@ -1316,6 +1316,9 @@ def get_addresses_for_events(request):
                     'longitude': address.longitude,
                     'projectName': address.event.project.name,
                     'eventTypeDisplay': address.event.get_event_type_display(),
+                    'organization': address.event.project.organization,  # Добавлено
+                    'product': address.event.project.product,  # Добавлено
+                    'photoCount': address.event.photo_count,  # Добавлено
                     'photos_uploaded': check_photos_uploaded(address, request.user)  # Проверяем наличие фото
                 }
                 for address in addresses
@@ -1325,6 +1328,8 @@ def get_addresses_for_events(request):
         
         except json.JSONDecodeError:
             return JsonResponse({'success': False, 'error': 'Некорректный формат JSON'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
         
     return JsonResponse({'success': False, 'error': 'Invalid request method'})
 
@@ -1429,7 +1434,7 @@ def upload_combined_addresses_photos(request):
                 if not (1 <= len(photos) <= 10):
                     return JsonResponse({
                         'success': False,
-                        'error': 'Вы должны загрузить от 1 до 10 фотографий'
+                        'error': 'При форс-мажоре количество фотографий должно быть от 1 до 10.'
                     })
             else:
                 # Проверяем соответствие требуемому количеству фото

@@ -111,7 +111,7 @@ $(document).ready(function() {
                     if (response.success) {
                         // Update numbering of list elements
                         $('#combined-addresses-list li').each(function(index) {
-                            $(this).find('.address-number').text(index + 1);
+                            $(this).find('.address-number').text('=' + (index + 1) + '=');
                         });
 
                         // Update map markers
@@ -166,14 +166,24 @@ $(document).ready(function() {
                                 default:
                                     eventTypeClass = '';
                             }
-                        
+
+                            // Проверка, загружены ли фото для данного адреса
+                            const photoCountClass = address.photos_uploaded ? 'photo-count--uploaded' : '';
+
                             return `
                                 <li class="in-progress-addresses__item" data-id="${address.id}">
                                     <div class="accordion-header">
-                                        <span class="address-number">${index + 1}.</span> 
-                                        <span class="project-name">${address.projectName}</span>
-                                        <span class="event-type ${eventTypeClass}">${address.eventTypeDisplay}</span>
-                                        <span class="address-name">${address.name}</span>
+                                        <div class="accordion-header__row">
+                                            <span class="address-number">=${index + 1}=</span> 
+                                            <span class="project-name">${address.projectName}</span>
+                                            <span class="event-type ${eventTypeClass}">${address.eventTypeDisplay}</span>
+                                            <span class="organization">${address.organization}</span>
+                                            <span class="product">${address.product}</span>
+                                            <span class="photo-count ${photoCountClass}">Фото: ${address.photoCount}</span>
+                                        </div>
+                                        <div class="accordion-header__row">
+                                            <span class="address-name">${address.name}</span>
+                                        </div>
                                     </div>
                                     <div class="accordion-content" style="display: none;">
                                         ${address.photos_uploaded ? 
@@ -188,8 +198,9 @@ $(document).ready(function() {
                                             <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
                                             <input type="hidden" name="address_id" value="${address.id}">
                                             <div class="file-input-wrapper">
-                                                <button class="file-btn btn" type="button">Выбрать файл</button>
+                                                <button class="file-btn btn" type="button">Выбрать</button>
                                                 <input class="file-input" type="file" name="photos" accept="image/*" multiple>
+                                                <span class="photo-upload-fileLabel">фото</span>
                                             </div>
                                             <label class="force-majeure-input">
                                                 <input type="checkbox" name="force_majeure"> Форс-мажор
@@ -209,6 +220,7 @@ $(document).ready(function() {
                         $('#in-progress-addresses').show();
                         updateMapMarkers();
                         initializeAccordionAndUploadHandlers();
+                        initializeFileInputHandlers(); // Инициализация обработчиков для input[type="file"]
                     } else {
                         alert(response.error);
                     }
@@ -217,6 +229,45 @@ $(document).ready(function() {
         } else {
             $('#in-progress-addresses').hide();
         }
+    }
+
+    // Инициализация обработчиков для input[type="file"]
+    function initializeFileInputHandlers() {
+        // Обработчик изменения выбранных файлов
+        $('.file-input').on('change', function() {
+            const fileLabel = $(this).siblings('.photo-upload-fileLabel');
+            const files = this.files;
+            const uploadBtn = $(this).closest('.photo-upload-form').find('.upload-btn');
+            const forceMajeureCheckbox = $(this).closest('.photo-upload-form').find('input[name="force_majeure"]');
+            const photoCount = parseInt($(this).closest('.in-progress-addresses__item').find('.photo-count').text().replace('Фото: ', ''), 10);
+
+            if (files.length > 0) {
+                fileLabel.text(`${files.length} фото выбрано`);
+            } else {
+                fileLabel.text('фото');
+            }
+
+            // Проверка условий для изменения цвета кнопки
+            if (
+                (forceMajeureCheckbox.is(':checked') && files.length >= 1 && files.length <= 10) ||
+                (!forceMajeureCheckbox.is(':checked') && files.length === photoCount)
+            ) {
+                uploadBtn.css('background-color', 'rgb(129 172 85)'); // Условие выполнено
+            } else {
+                uploadBtn.css('background-color', ''); // Сброс цвета, если условие не выполнено
+            }
+        });
+
+        // Обработчик изменения состояния чекбокса "Форс-мажор"
+        $('input[name="force_majeure"]').on('change', function() {
+            const fileInput = $(this).closest('.photo-upload-form').find('.file-input');
+            fileInput.trigger('change'); // Имитируем изменение input[type="file"]
+        });
+
+        // Обработчик клика по кнопке "Выбрать"
+        $('.file-btn').on('click', function() {
+            $(this).siblings('.file-input').click(); // Программный клик по input[type="file"]
+        });
     }
 
     // Инициализация обработчиков формы и аккордеона
@@ -229,9 +280,7 @@ $(document).ready(function() {
     // Обработчик щелчка по элементам аккордеона и кнопкам
     $('#in-progress-addresses').on('click', function(event) {
         const target = event.target;
-    
-        // Убедитесь, что обработка для .accordion-header не выполняется здесь
-        // Фокусируемся только на .reload-btn
+
         if ($(target).hasClass('reload-btn')) {
             const content = $(target).closest('.accordion-content');
             const addressId = $(target).closest('li').data('id');
@@ -240,8 +289,9 @@ $(document).ready(function() {
                     <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
                     <input type="hidden" name="address_id" value="${addressId}">
                     <div class="file-input-wrapper">
-                        <button class="file-btn btn" type="button">Выбрать файл</button>
+                        <button class="file-btn btn" type="button">Выбрать</button>
                         <input class="file-input" type="file" name="photos" accept="image/*" multiple>
+                        <span class="photo-upload-fileLabel">фото</span>
                     </div>
                     <label class="force-majeure-input">
                         <input type="checkbox" name="force_majeure"> Форс-мажор
@@ -250,13 +300,14 @@ $(document).ready(function() {
                 </form>
             `);
             handlePhotoUploadForm(content.find('.photo-upload-form')[0]);
+            initializeFileInputHandlers(); // Инициализация обработчиков для input[type="file"]
         }
     });
 
     $(document).on('click', '.accordion-header', function() {
         const header = $(this);
         const content = header.next('.accordion-content');
-    
+
         header.toggleClass('active');
         content.slideToggle(); // Анимация открытия/закрытия контента
     });
@@ -301,8 +352,8 @@ $(document).ready(function() {
         map.geoObjects.removeAll();
 
         const projectColors = {};
-        const availableColors = ['islands#redIcon', 'islands#blueIcon', 'islands#greenIcon', 
-                                 'islands#orangeIcon', 'islands#darkOrangeIcon', 'islands#pinkIcon'];
+        const availableColors = ['islands#redStretchyIcon', 'islands#blueStretchyIcon', 'islands#greenStretchyIcon', 
+                                 'islands#orangeStretchyIcon', 'islands#darkOrangeStretchyIcon', 'islands#pinkStretchyIcon'];
         let colorIndex = 0;
 
         const coordinateMap = {};
@@ -335,7 +386,7 @@ $(document).ready(function() {
                 const placemark = new ymaps.Placemark(
                     offsetCoordinates,
                     {
-                        balloonContent: `<strong>${addressNumber}</strong>: ${projectName} - ${eventType} - ${addressName}`,
+                        balloonContent: `<strong>=${addressNumber}=</strong> ${projectName} - ${eventType} - ${addressName}`,
                         iconContent: addressNumber
                     },
                     {
@@ -423,7 +474,7 @@ $(document).ready(function() {
                     });
 
                     $('#combined-addresses-list li').each(function(index) {
-                        $(this).find('.address-number').text(index + 1);
+                        $(this).find('.address-number').text('=' + (index + 1) + '=');
                     });
 
                     updateMapMarkers();
@@ -460,4 +511,78 @@ $(document).ready(function() {
             }
         });
     }
+
+    // Обработчик клика по кнопке "Печать маршрута"
+    $('#print-addresses-btn').on('click', function() {
+        // Получаем содержимое списка адресов
+        const addressesList = $('#combined-addresses-list').html();
+
+        // Создаём HTML для печати
+        const printContent = `
+            <!DOCTYPE html>
+            <html lang="ru_RU">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Печать маршрута</title>
+                <style>
+                    body {
+                        font-family: Arial, sans-serif;
+                        padding: 20px;
+                    }
+                    h1 {
+                        font-size: 24px;
+                        margin-bottom: 20px;
+                    }
+                    ul {
+                        list-style-type: none;
+                        padding: 0;
+                    }
+                    li {
+                        margin-bottom: 10px;
+                        font-size: 16px;
+                    }
+                    .address-number {
+                        font-weight: bold;
+                        margin-right: 10px;
+                    }
+                    .project-name {
+                        font-weight: bold;
+                        margin-right: 10px;
+                    }
+                    .event-type {
+                        margin-right: 10px;
+                    }
+                    .organization {
+                        margin-right: 10px;
+                    }
+                    .product {
+                        margin-right: 10px;
+                    }
+                    .photo-count {
+                        margin-right: 10px;
+                    }
+                    .address-name {
+                        font-style: italic;
+                    }
+                    .hidden-coordinates {
+                        display: none;
+                    }
+                </style>
+            </head>
+            <body>
+                <h1>Маршрут адресов</h1>
+                <ul>${addressesList}</ul>
+            </body>
+            </html>
+        `;
+
+        // Открываем новое окно для печати
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(printContent);
+        printWindow.document.close();
+
+        // Вызываем печать
+        printWindow.print();
+    });
 });
