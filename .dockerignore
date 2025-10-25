@@ -1,0 +1,39 @@
+# Логи Python
+*.log
+*.pyc
+*.pyo
+__pycache__/
+
+# Виртуальное окружение
+venv/
+env/
+.venv/
+
+# Файлы системы контроля версий
+.git/
+.gitignore
+*.swp
+*.swo
+
+# Локальные файлы конфигурации
+*.local
+.settings/
+
+# Каталог с медиафайлами (он будет смонтирован отдельно в docker-compose)
+media/
+
+# База данных SQLite (будет использоваться PostgreSQL в контейнере)
+db.sqlite3
+debug.log
+
+# Каталог с локальными настройками
+config/
+local_settings.py
+
+# Кэш Django
+*.cache
+.cache/
+
+# Файлы временных данных
+.DS_Store
+Thumbs.db
